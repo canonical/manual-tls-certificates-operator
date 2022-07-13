@@ -1,0 +1,23 @@
+# Copyright 2021 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  generate-self-signed-certificates:
+    type: boolean
+    default: false
+    description: Generate self-signed certificates and ignores provided certificates.
+  certificate:
+    type: string
+    default:
+    description: |
+      Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
+  private-key:
+    type: string
+    default:
+    description: |
+      Base64 encoded private key (do not use if 'generate-self-signed-certificates' is set to true).
+  ca-certificate:
+    type: string
+    default:
+    description: |
+      Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
