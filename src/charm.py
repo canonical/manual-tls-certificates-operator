@@ -181,7 +181,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
     @staticmethod
     def _decode_from_base64_bytes(bytes_content: bytes) -> str:
-        """Encodes given byte string in Base64.
+        """Decodes bytes to string
 
         Args:
             bytes_content (bytes): Bytes content
