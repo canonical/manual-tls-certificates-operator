@@ -1,0 +1,24 @@
+# Copyright 2021 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: tls-certificates-operator
+description: |
+  Charm responsible for distributing certificates through relationship. Certificates are provided
+  by the operator through Juju configs.
+summary: |
+  Charm responsible for distributing certificates through relationship. Certificates are provided
+  by the operator through Juju configs.
+
+containers:
+  placeholder:
+    resource: placeholder-image
+
+provides:
+  certificates:
+    interface: tls-certificates
+
+resources:
+  placeholder-image:
+    type: oci-image
+    description: Placeholder image
+    upstream-source: ubuntu:latest
