@@ -43,7 +43,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
     @property
     def _self_signed_certificates(self) -> bool:
-        """Returns whether the 'generate-self-signed-certificates' config is set tu True.
+        """Returns whether the 'generate-self-signed-certificates' config is set to True.
 
         Returns:
             bool: True/False
