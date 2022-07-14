@@ -158,3 +158,13 @@ class TestCharm(unittest.TestCase):
             ),
             relation_id=event.relation_id,
         )
+
+    def test_given_non_base64_encoded_certificates_when_config_changed_then_unit_is_blocked(self):
+        key_values = {"certificate": "aaa", "ca-certificate": "bbb", "private-key": "ccc"}
+
+        self.harness.update_config(key_values=key_values)
+
+        self.assertEqual(
+            BlockedStatus("Certificates are not valid"),
+            self.harness.charm.unit.status,
+        )
