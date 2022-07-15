@@ -8,6 +8,7 @@ Certificates are provided by the operator trough Juju configs.
 """
 
 import base64
+import binascii
 import logging
 from typing import List
 
@@ -60,9 +61,16 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             bool: True/False
         """
-        certificate = Certificate(base64.b64decode(self.model.config.get("certificate")))  # type: ignore[arg-type]  # noqa: E501
-        ca_certificate = Certificate(base64.b64decode(self.model.config.get("ca-certificate")))  # type: ignore[arg-type]  # noqa: E501
-        private_key = PrivateKey(base64.b64decode(self.model.config.get("private-key")))  # type: ignore[arg-type]  # noqa: E501
+        try:
+            certificate_bytes = base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
+            ca_certificate_bytes = base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
+            private_key_bytes = base64.b64decode(self.model.config.get("private-key"))  # type: ignore[arg-type]  # noqa: E501
+        except binascii.Error:
+            return False
+
+        certificate = Certificate(certificate_bytes)
+        ca_certificate = Certificate(ca_certificate_bytes)
+        private_key = PrivateKey(private_key_bytes)
         return certificate.is_valid and ca_certificate.is_valid and private_key.is_valid
 
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:
@@ -82,9 +90,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 )
                 return
             if not self._certificates_are_valid:
-                self.unit.status = BlockedStatus(
-                    f"Configuration options missing: {missing_config_options}"
-                )
+                self.unit.status = BlockedStatus("Certificates are not valid")
                 return
             else:
                 self._stored.ca_certificate = self._decode_from_base64_bytes(
