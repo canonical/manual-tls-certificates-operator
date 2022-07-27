@@ -18,7 +18,6 @@ from charms.tls_certificates_interface.v0.tls_certificates import (
     TLSCertificatesProvides,
 )
 from ops.charm import CharmBase, ConfigChangedEvent
-from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus
 
@@ -30,12 +29,9 @@ logger = logging.getLogger(__name__)
 class TLSCertificatesOperatorCharm(CharmBase):
     """Main class to handle Juju events."""
 
-    _stored = StoredState()
-
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        self._stored.set_default(ca_certificate="", certificate="", private_key="")
         self.tls_certificates = TLSCertificatesProvides(self, "certificates")
         self.framework.observe(
             self.tls_certificates.on.certificate_request, self._on_certificate_request
@@ -93,14 +89,27 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 self.unit.status = BlockedStatus("Certificates are not valid")
                 return
             else:
-                self._stored.ca_certificate = self._decode_from_base64_bytes(
-                    base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
+                replicas = self.model.get_relation("replicas")
+                replicas.data[self.app].update(  # type: ignore[union-attr]
+                    {
+                        "ca_certificate": self._decode_from_base64_bytes(
+                            base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
+                        )
+                    }
                 )
-                self._stored.certificate = self._decode_from_base64_bytes(
-                    base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
+                replicas.data[self.app].update(  # type: ignore[union-attr]
+                    {
+                        "certificate": self._decode_from_base64_bytes(
+                            base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
+                        )
+                    }
                 )
-                self._stored.private_key = self._decode_from_base64_bytes(
-                    base64.b64decode(self.model.config.get("private-key"))  # type: ignore[arg-type]  # noqa: E501
+                replicas.data[self.app].update(  # type: ignore[union-attr]
+                    {
+                        "private_key": self._decode_from_base64_bytes(
+                            base64.b64decode(self.model.config.get("private-key"))  # type: ignore[arg-type]  # noqa: E501
+                        )
+                    }
                 )
         self.unit.status = ActiveStatus()
 
@@ -113,16 +122,23 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
+        if not self.unit.is_leader():
+            return
         self_signed_certificates = SelfSignedCertificates()
         self_signed_certificates.generate(common_name=common_name)
-        self._stored.ca_certificate = self._decode_from_base64_bytes(
-            self_signed_certificates.ca_certificate
+        replicas = self.model.get_relation("replicas")
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {
+                "ca_certificate": self._decode_from_base64_bytes(
+                    self_signed_certificates.ca_certificate
+                )
+            }
         )
-        self._stored.certificate = self._decode_from_base64_bytes(
-            self_signed_certificates.certificate
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {"certificate": self._decode_from_base64_bytes(self_signed_certificates.certificate)}
         )
-        self._stored.private_key = self._decode_from_base64_bytes(
-            self_signed_certificates.private_key
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {"private_key": self._decode_from_base64_bytes(self_signed_certificates.private_key)}
         )
         logger.info("Generated self-signed certificates")
 
@@ -135,6 +151,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
+        if not self.unit.is_leader():
+            return
         if self._self_signed_certificates:
             if not self._certificates_are_set:
                 self._generate_self_signed_certificates(event.common_name)
@@ -145,11 +163,12 @@ class TLSCertificatesOperatorCharm(CharmBase):
                     "Certificates can't be passed through relation"
                 )
                 return
+        replicas = self.model.get_relation("replicas")
         self.tls_certificates.set_relation_certificate(
             certificate=Cert(
-                cert=self._stored.certificate,
-                key=self._stored.private_key,
-                ca=self._stored.ca_certificate,
+                cert=replicas.data[self.app].get("certificate"),  # type: ignore[union-attr]
+                key=replicas.data[self.app].get("private_key"),  # type: ignore[union-attr]
+                ca=replicas.data[self.app].get("ca_certificate"),  # type: ignore[union-attr]
                 common_name=event.common_name,
             ),
             relation_id=event.relation_id,
@@ -162,10 +181,11 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             bool: Whether all certificates are set.
         """
+        replicas = self.model.get_relation("replicas")
         return (
-            self._stored.ca_certificate != ""  # noqa: W503
-            and self._stored.certificate != ""  # noqa: W503
-            and self._stored.private_key != ""  # noqa: W503
+            replicas.data[self.app].get("certificate")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("private_key")  # type: ignore[union-attr]  # noqa: W503 E501
         )
 
     def get_missing_configuration_options(self) -> List[str]:
