@@ -44,7 +44,9 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation_unit(relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
 
-    def test_given_configuration_options_are_set_when_config_changed_then_status_is_active(self):
+    def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_status_is_active(
+        self,
+    ):
         certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
         private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
@@ -72,7 +74,7 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_set_when_certificate_request_then_certificates_are_passed(  # noqa: E501
+    def test_given_configuration_options_are_set_and_unit_is_leader_when_certificate_request_then_certificates_are_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
@@ -127,7 +129,7 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_self_signed_option_is_true_when_certificate_request_then_certificates_are_set(
+    def test_given_self_signed_option_is_true_and_unit_is_leader_when_certificate_request_then_certificates_are_set(
         self,
         patch_set_relation_certificates,
         patch_ca_certificate,
@@ -175,7 +177,7 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_set_and_not_leader_when_certificate_request_then_certificates_are_not_passed(  # noqa: E501
+    def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_request_then_certificates_are_not_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
