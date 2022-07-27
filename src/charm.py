@@ -88,7 +88,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             if not self._certificates_are_valid:
                 self.unit.status = BlockedStatus("Certificates are not valid")
                 return
-            else:
+            if self.unit.is_leader():
                 replicas = self.model.get_relation("replicas")
                 replicas.data[self.app].update(  # type: ignore[union-attr]
                     {
