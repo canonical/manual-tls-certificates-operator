@@ -17,6 +17,10 @@ provides:
   certificates:
     interface: tls-certificates
 
+peers:
+  replicas:
+    interface: tls-certificates-replica
+
 resources:
   placeholder-image:
     type: oci-image
