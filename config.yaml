@@ -6,6 +6,10 @@ options:
     type: boolean
     default: false
     description: Generate self-signed certificates and ignores provided certificates.
+  ca-common-name:
+    type: string
+    default:
+    description: Common name to be used only if `generate-self-signed-certificates` set to true.
   certificate:
     type: string
     default:

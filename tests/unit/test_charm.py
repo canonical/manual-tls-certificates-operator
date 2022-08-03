@@ -2,7 +2,7 @@
 # See LICENSE file for licensing details.
 import base64
 import unittest
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 from charms.tls_certificates_interface.v0.tls_certificates import Cert
 from ops import testing
@@ -40,8 +40,8 @@ class TestCharm(unittest.TestCase):
         self.harness = testing.Harness(TLSCertificatesOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
-        relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
-        self.harness.add_relation_unit(relation_id, self.harness.charm.unit.name)
+        self.peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(self.peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
 
     def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_status_is_active(  # noqa: E501
@@ -93,7 +93,7 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_set_and_unit_is_leader_when_certificate_request_then_certificates_are_passed(  # noqa: E501
+    def test_given_configuration_options_are_set_and_unit_is_leader_when_certificate_request_v0_then_certificates_are_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
@@ -113,7 +113,7 @@ class TestCharm(unittest.TestCase):
         }
         self.harness.update_config(key_values=key_values)
 
-        self.harness.charm._on_certificate_request(event=event)
+        self.harness.charm._on_certificate_request_v0(event=event)
 
         patch_set_relation_certificates.assert_called_with(
             certificate=Cert(
@@ -125,35 +125,28 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_not_set_when_certificate_request_then_certificates_are_passed(  # noqa: E501
+    def test_given_configuration_options_are_not_set_when_certificate_request_v0_then_certificates_are_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
         event.relation_id = 1234
 
-        self.harness.charm._on_certificate_request(event=event)
+        self.harness.charm._on_certificate_request_v0(event=event)
 
         patch_set_relation_certificates.assert_not_called()
 
-    @patch("self_signed_certificates.SelfSignedCertificates.generate", new=Mock())
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.private_key", new_callable=PropertyMock
-    )
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.certificate", new_callable=PropertyMock
-    )
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.ca_certificate", new_callable=PropertyMock
-    )
+    @patch("charm.generate_csr")
+    @patch("charm.generate_private_key")
+    @patch("charm.generate_certificate")
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_self_signed_option_is_true_and_unit_is_leader_when_certificate_request_then_certificates_are_set(  # noqa: E501
+    def test_given_self_signed_option_is_true_and_unit_is_leader_and_root_certificates_are_stored_when_certificate_request_v0_then_certificates_are_set(  # noqa: E501
         self,
         patch_set_relation_certificates,
-        patch_ca_certificate,
-        patch_certificate,
-        patch_private_key,
+        patch_generate_certificate,
+        patch_generate_private_key,
+        _,
     ):
         ca_certificate = "UHl0aG9uIGlzIGZ1bg=="
         certificate = "eafeawewaf=="
@@ -161,17 +154,26 @@ class TestCharm(unittest.TestCase):
         ca_certificate_bytes = ca_certificate.encode("utf-8")
         certificate_bytes = certificate.encode("utf-8")
         private_key_bytes = private_key.encode("utf-8")
-        patch_ca_certificate.return_value = ca_certificate_bytes
-        patch_certificate.return_value = certificate_bytes
-        patch_private_key.return_value = private_key_bytes
+        patch_generate_certificate.return_value = certificate_bytes
+        patch_generate_private_key.return_value = private_key_bytes
         common_name = "whatever"
-        key_values = {"generate-self-signed-certificates": "true"}
-        self.harness.update_config(key_values=key_values)
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": common_name}
+        )
+        self.harness.update_relation_data(
+            relation_id=self.peer_relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "ca_certificate": ca_certificate,
+                "ca_private_key": "whatever ca private key",
+                "ca_private_key_password": "whatever ca password",
+            },
+        )
         event = Mock()
         event.common_name = common_name
         event.relation_id = 1234
 
-        self.harness.charm._on_certificate_request(event=event)
+        self.harness.charm._on_certificate_request_v0(event=event)
 
         patch_set_relation_certificates.assert_called_with(
             certificate=Cert(
@@ -196,7 +198,7 @@ class TestCharm(unittest.TestCase):
     @patch(
         "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_request_then_certificates_are_not_passed(  # noqa: E501
+    def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_request_v0_then_certificates_are_not_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
@@ -217,6 +219,6 @@ class TestCharm(unittest.TestCase):
         self.harness.update_config(key_values=key_values)
 
         self.harness.set_leader(False)
-        self.harness.charm._on_certificate_request(event=event)
+        self.harness.charm._on_certificate_request_v0(event=event)
 
         patch_set_relation_certificates.assert_not_called()
