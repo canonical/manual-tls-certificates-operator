@@ -46,6 +46,7 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_certificates_but_peer_relation_not_set_when_on_install_then_event_is_deferred(  # noqa: E501
         self,
     ):
+        self.harness.set_leader(True)
         event = Mock()
         self.harness.update_config(
             key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
@@ -147,6 +148,19 @@ class TestCharm(unittest.TestCase):
         self.harness.update_config(key_values=key_values)
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
+
+    def test_given_generate_self_signed_certificate_set_to_true_but_no_common_name_then_status_is_blocked(  # noqa: E501
+        self,
+    ):
+        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+
+        self.assertEqual(
+            BlockedStatus(
+                "Configuration `ca-common-name` must be set when "
+                "`generate-self-signed-certificates` is set to True."
+            ),
+            self.harness.charm.unit.status,
+        )
 
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
         key_values = {"private-key": "whatever private key"}

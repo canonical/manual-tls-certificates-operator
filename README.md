@@ -23,7 +23,9 @@ juju relate tls-certificates-operator your-charm
 > **Warning**: This configuration option is unsecure and should be used for testing only.
 
 ```bash
-juju deploy tls-certificates-operator --config generate-self-signed-certificates=true
+juju deploy tls-certificates-operator \
+  --config generate-self-signed-certificates=true \
+  --config ca-common-name=<your ca common name>
 juju relate tls-certificates-operator your-charm
 ```
 
@@ -31,6 +33,7 @@ juju relate tls-certificates-operator your-charm
 
 List of configuration options:
 - **generate-self-signed-certificates (boolean)**: Generate self-signed certificates and ignores provided certificates.
+- **ca-common-name (string)**: Certificate Authority Common Name (only use if 'generate-self-signed-certificates' is set to true).
 - **certificate (string)**: Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
 - **private-key (string)**: Base64 encoded private key (do not use if 'generate-self-signed-certificates' is set to true).
 - **ca-certificate (string)**: Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).

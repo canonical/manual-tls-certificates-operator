@@ -12,7 +12,7 @@ import binascii
 import logging
 import secrets
 import string
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from charms.tls_certificates_interface.v0.tls_certificates import Cert as CertV0
 from charms.tls_certificates_interface.v0.tls_certificates import (
@@ -65,6 +65,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
     def _on_install(self, event):
         if not self._self_signed_certificates:
             return
+        if not self.unit.is_leader():
+            return
+        if not self._config_ca_common_name:
+            self.unit.status = BlockedStatus(
+                "Configuration `ca-common-name` must be set when "
+                "`generate-self-signed-certificates` is set to True."
+            )
+            return
         replicas_relation = self.model.get_relation("replicas")
         if not replicas_relation:
             self.unit.status = WaitingStatus("Waiting for peer relation to be created")
@@ -83,7 +91,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         private_key = generate_private_key(password=private_key_password.encode())
         ca_certificate = generate_ca(
             private_key=private_key,
-            subject=self.model.config.get("ca-common-name"),  # type: ignore[arg-type]  # noqa: E501
+            subject=self._config_ca_common_name,  # type: ignore[arg-type]  # noqa: E501
             private_key_password=private_key_password.encode(),
         )
         replicas_relation.data[self.app].update(  # type: ignore[union-attr]
@@ -93,6 +101,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 "ca_certificate": ca_certificate.decode(),
             }
         )
+        logger.info("Root certificates generated and stored.")
 
     @property
     def _self_signed_certificates(self) -> bool:
@@ -101,12 +110,22 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             bool: True/False
         """
-        if self.model.config.get(
-            "generate-self-signed-certificates", False
-        ) and self.model.config.get("ca-common-name", False):
+        if self.model.config.get("generate-self-signed-certificates", False):
             return True
         else:
             return False
+
+    @property
+    def _config_ca_common_name(self) -> Optional[str]:
+        """Returns the user provided common name.
+
+         This common name should only be used when the 'generate-self-signed-certificates' config
+         is set to True.
+
+        Returns:
+            str: Common name
+        """
+        return self.model.config.get("ca-common-name", None)
 
     @property
     def _certificates_are_valid(self) -> bool:
@@ -138,6 +157,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
+        if self._self_signed_certificates:
+            if not self._config_ca_common_name:
+                self.unit.status = BlockedStatus(
+                    "Configuration `ca-common-name` must be set when "
+                    "`generate-self-signed-certificates` is set to True."
+                )
+                return
         if not self._self_signed_certificates:
             missing_config_options = self.get_missing_configuration_options()
             if missing_config_options:
