@@ -22,7 +22,7 @@ from charms.tls_certificates_interface.v0.tls_certificates import (
     TLSCertificatesProvides as TLSCertificatesProvidesV0,
 )
 from charms.tls_certificates_interface.v1.tls_certificates import (
-    CertificateRequestEvent as CertificateRequestEventV1,
+    CertificateCreationRequestEvent as CertificateRequestEventV1,
 )
 from charms.tls_certificates_interface.v1.tls_certificates import (
     TLSCertificatesProvidesV1,
@@ -52,13 +52,15 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self.tls_certificates_v0 = TLSCertificatesProvidesV0(self, "certificates")
         self.tls_certificates_v1 = TLSCertificatesProvidesV1(self, "certificates")
         self.framework.observe(self.on.install, self._on_install)
-        self.framework.observe(
-            self.tls_certificates_v0.on.certificate_request, self._on_certificate_request_v0
-        )
-        self.framework.observe(
-            self.tls_certificates_v1.on.certificate_request, self._on_certificate_request_v1
-        )
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.tls_certificates_v0.on.certificate_request,
+            self._on_certificate_creation_request_v0,
+        )
+        self.framework.observe(
+            self.tls_certificates_v1.on.certificate_creation_request,
+            self._on_certificate_creation_request_v1,
+        )
 
     def _on_install(self, event):
         if not self._self_signed_certificates:
@@ -211,7 +213,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         logger.info("Generated self-signed certificates")
         return certificate.decode()
 
-    def _on_certificate_request_v0(self, event: CertificateRequestEventV0) -> None:
+    def _on_certificate_creation_request_v0(self, event: CertificateRequestEventV0) -> None:
         """Triggered everytime there's a certificate request.
 
         Args:
@@ -260,7 +262,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 relation_id=event.relation_id,
             )
 
-    def _on_certificate_request_v1(self, event: CertificateRequestEventV1):
+    def _on_certificate_creation_request_v1(self, event: CertificateRequestEventV1):
         if not self.unit.is_leader():
             return
         replicas_relation = self.model.get_relation("replicas")
@@ -270,16 +272,18 @@ class TLSCertificatesOperatorCharm(CharmBase):
             return
         if self._self_signed_certificates:
             if not self._root_certificates_are_set:
-                certificate = self._generate_self_signed_certificates_v1(
-                    event.certificate_signing_request
-                )
-                self.tls_certificates_v1.set_relation_certificate(
-                    certificate_signing_request=event.certificate_signing_request,
-                    certificate=certificate,
-                    ca=replicas_relation.data[self.app].get("ca_certificate"),
-                    chain=replicas_relation.data[self.app].get("ca_certificate"),
-                    relation_id=event.relation_id,
-                )
+                event.defer()
+                return
+            certificate = self._generate_self_signed_certificates_v1(
+                event.certificate_signing_request
+            )
+            self.tls_certificates_v1.set_relation_certificate(
+                certificate_signing_request=event.certificate_signing_request,
+                certificate=certificate,
+                ca=replicas_relation.data[self.app].get("ca_certificate"),
+                chain=replicas_relation.data[self.app].get("ca_certificate"),
+                relation_id=event.relation_id,
+            )
         else:
             if not self._config_certificates_are_set:
                 logger.error(
