@@ -12,15 +12,8 @@ import binascii
 import logging
 import secrets
 import string
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-from charms.tls_certificates_interface.v0.tls_certificates import Cert as CertV0
-from charms.tls_certificates_interface.v0.tls_certificates import (
-    CertificateRequestEvent as CertificateRequestEventV0,
-)
-from charms.tls_certificates_interface.v0.tls_certificates import (
-    TLSCertificatesProvides as TLSCertificatesProvidesV0,
-)
 from charms.tls_certificates_interface.v1.tls_certificates import (
     CertificateCreationRequestEvent as CertificateRequestEventV1,
 )
@@ -35,9 +28,7 @@ from self_signed_certificates import (
     certificate_is_valid,
     generate_ca,
     generate_certificate,
-    generate_csr,
     generate_private_key,
-    private_key_is_valid,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,36 +40,12 @@ class TLSCertificatesOperatorCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        self.tls_certificates_v0 = TLSCertificatesProvidesV0(self, "certificates")
-        self.tls_certificates_v1 = TLSCertificatesProvidesV1(self, "certificates")
-        self.framework.observe(self.on.install, self._on_install)
+        self.tls_certificates = TLSCertificatesProvidesV1(self, "certificates")
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
-            self.tls_certificates_v0.on.certificate_request,
-            self._on_certificate_creation_request_v0,
+            self.tls_certificates.on.certificate_creation_request,
+            self._on_certificate_creation_request,
         )
-        self.framework.observe(
-            self.tls_certificates_v1.on.certificate_creation_request,
-            self._on_certificate_creation_request_v1,
-        )
-
-    def _on_install(self, event):
-        if not self._self_signed_certificates:
-            return
-        if not self.unit.is_leader():
-            return
-        if not self._config_ca_common_name:
-            self.unit.status = BlockedStatus(
-                "Configuration `ca-common-name` must be set when "
-                "`generate-self-signed-certificates` is set to True."
-            )
-            return
-        replicas_relation = self.model.get_relation("replicas")
-        if not replicas_relation:
-            self.unit.status = WaitingStatus("Waiting for peer relation to be created")
-            event.defer()
-            return
-        self._generate_root_certificates()
 
     def _generate_root_certificates(self) -> None:
         """Generates root certificate to be used to sign certificates.
@@ -137,19 +104,39 @@ class TLSCertificatesOperatorCharm(CharmBase):
         try:
             certificate_bytes = base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
             ca_certificate_bytes = base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
-            private_key_bytes = base64.b64decode(self.model.config.get("private-key"))  # type: ignore[arg-type]  # noqa: E501
+            ca_chain_bytes = base64.b64decode(self.model.config.get("ca-chain"))  # type: ignore[arg-type]  # noqa: E501
         except binascii.Error:
             return False
         try:
             assert certificate_is_valid(certificate_bytes)
             assert certificate_is_valid(ca_certificate_bytes)
-            assert private_key_is_valid(private_key_bytes)
+            assert certificate_is_valid(ca_chain_bytes)
             return True
         except AssertionError:
             return False
 
+    @property
+    def _replicas_relation_created(self) -> bool:
+        return self._relation_created("replicas")
+
+    def _relation_created(self, relation_name: str) -> bool:
+        """Returns whether given relation was created.
+
+        Args:
+            relation_name (str): Relation name
+
+        Returns:
+            bool: True/False
+        """
+        try:
+            if self.model.get_relation(relation_name):
+                return True
+            return False
+        except KeyError:
+            return False
+
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:
-        """Triggered once when the charm is installed.
+        """Triggered when the Juju config is changed.
 
         Args:
             event (ConfigChangedEvent): Juju event.
@@ -157,13 +144,26 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
+        if not self._replicas_relation_created:
+            self.unit.status = WaitingStatus("Replicas relation not yet created")
+            event.defer()
+            return
         if self._self_signed_certificates:
-            if not self._config_ca_common_name:
-                self.unit.status = BlockedStatus(
-                    "Configuration `ca-common-name` must be set when "
-                    "`generate-self-signed-certificates` is set to True."
-                )
-                return
+            if self.unit.is_leader():
+                if not self._config_ca_common_name:
+                    self.unit.status = BlockedStatus(
+                        "Configuration `ca-common-name` must be set when "
+                        "`generate-self-signed-certificates` is set to True."
+                    )
+                    return
+                self._generate_root_certificates()
+            else:
+                if not self._root_certificates_are_set:
+                    self.unit.status = WaitingStatus(
+                        "Waiting for root certificates to be generated."
+                    )
+                    event.defer()
+                    return
         if not self._self_signed_certificates:
             missing_config_options = self.get_missing_configuration_options()
             if missing_config_options:
@@ -192,34 +192,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 )
                 replicas.data[self.app].update(  # type: ignore[union-attr]
                     {
-                        "private_key": self._decode_from_base64_bytes(
-                            base64.b64decode(self.model.config.get("private-key"))  # type: ignore[arg-type]  # noqa: E501
+                        "ca_chain": self._decode_from_base64_bytes(
+                            base64.b64decode(self.model.config.get("ca-chain"))  # type: ignore[arg-type]  # noqa: E501
                         )
                     }
                 )
         self.unit.status = ActiveStatus()
 
-    def _generate_self_signed_certificates_v0(self, common_name: str) -> Tuple[str, str]:
-        """Generates self-signed certificates.
-
-        Args:
-            common_name (str): Certificate common name (used for subject)
-
-        Returns:
-            (str, str): Certificate and Private Key
-        """
-        replicas_relation = self.model.get_relation("replicas")
-        ca_certificate = replicas_relation.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: E501
-        ca_private_key = replicas_relation.data[self.app].get("ca_private_key")  # type: ignore[union-attr]  # noqa: E501
-        private_key = generate_private_key()
-        csr = generate_csr(private_key=ca_private_key, subject=common_name)
-        certificate = generate_certificate(
-            ca=ca_certificate.encode(), ca_key=ca_private_key.encode(), csr=csr
-        )
-        logger.info("Generated self-signed certificates")
-        return certificate.decode(), private_key.decode()
-
-    def _generate_self_signed_certificates_v1(self, certificate_signing_request: str) -> str:
+    def _generate_self_signed_certificates(self, certificate_signing_request: str) -> str:
         """Generates self-signed certificates.
 
         Args:
@@ -231,23 +211,18 @@ class TLSCertificatesOperatorCharm(CharmBase):
         replicas_relation = self.model.get_relation("replicas")
         ca_certificate = replicas_relation.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: E501
         ca_private_key = replicas_relation.data[self.app].get("ca_private_key")  # type: ignore[union-attr]  # noqa: E501
+        ca_private_key_password = replicas_relation.data[self.app].get("ca_private_key_password")  # type: ignore[union-attr]  # noqa: E501
         certificate = generate_certificate(
             ca=ca_certificate.encode(),
-            ca_key=ca_private_key,
+            ca_key=ca_private_key.encode(),
+            ca_key_password=ca_private_key_password.encode(),
             csr=certificate_signing_request.encode(),
         )
         logger.info("Generated self-signed certificates")
         return certificate.decode()
 
-    def _on_certificate_creation_request_v0(self, event: CertificateRequestEventV0) -> None:
-        """Triggered everytime there's a certificate request.
-
-        Args:
-            event (CertificateRequestEvent): Event for certificate requests.
-
-        Returns:
-            None
-        """
+    def _on_certificate_creation_request(self, event: CertificateRequestEventV1):
+        logger.info("Received Certificate Creation Request")
         if not self.unit.is_leader():
             return
         replicas_relation = self.model.get_relation("replicas")
@@ -257,53 +232,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
             return
         if self._self_signed_certificates:
             if not self._root_certificates_are_set:
+                logger.warning("Root Certificates are not set")
                 event.defer()
                 return
-            certificate, private_key = self._generate_self_signed_certificates_v0(
-                event.common_name
-            )
-            self.tls_certificates_v0.set_relation_certificate(
-                certificate=CertV0(
-                    cert=certificate,
-                    key=private_key,
-                    ca=replicas_relation.data[self.app].get("ca_certificate"),
-                    common_name=event.common_name,
-                ),
-                relation_id=event.relation_id,
-            )
-        else:
-            if not self._config_certificates_are_set:
-                logger.error(
-                    "Configuration options are missing - "
-                    "Certificates can't be passed through relation"
-                )
-                return
-            self.tls_certificates_v0.set_relation_certificate(
-                certificate=CertV0(
-                    cert=replicas_relation.data[self.app].get("certificate"),
-                    key=replicas_relation.data[self.app].get("private_key"),
-                    ca=replicas_relation.data[self.app].get("ca_certificate"),
-                    common_name=event.common_name,
-                ),
-                relation_id=event.relation_id,
-            )
-
-    def _on_certificate_creation_request_v1(self, event: CertificateRequestEventV1):
-        if not self.unit.is_leader():
-            return
-        replicas_relation = self.model.get_relation("replicas")
-        if not replicas_relation:
-            self.unit.status = WaitingStatus("Waiting for peer relation to be created")
-            event.defer()
-            return
-        if self._self_signed_certificates:
-            if not self._root_certificates_are_set:
-                event.defer()
-                return
-            certificate = self._generate_self_signed_certificates_v1(
+            certificate = self._generate_self_signed_certificates(
                 event.certificate_signing_request
             )
-            self.tls_certificates_v1.set_relation_certificate(
+            self.tls_certificates.set_relation_certificate(
                 certificate_signing_request=event.certificate_signing_request,
                 certificate=certificate,
                 ca=replicas_relation.data[self.app].get("ca_certificate"),
@@ -318,7 +253,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 )
                 return
 
-            self.tls_certificates_v1.set_relation_certificate(
+            self.tls_certificates.set_relation_certificate(
                 certificate_signing_request=event.certificate_signing_request,
                 certificate=replicas_relation.data[self.app].get("certificate"),
                 ca=replicas_relation.data[self.app].get("ca_certificate"),
@@ -337,7 +272,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         return (
             replicas.data[self.app].get("certificate")  # type: ignore[union-attr]  # noqa: W503 E501
             and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
-            and replicas.data[self.app].get("private_key")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_chain")  # type: ignore[union-attr]  # noqa: W503 E501
         )
 
     @property
@@ -363,7 +298,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         missing_config_options = []
         required_config_options = [
             "certificate",
-            "private-key",
+            "ca-chain",
             "ca-certificate",
         ]
         for config in required_config_options:

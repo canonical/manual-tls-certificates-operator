@@ -747,7 +747,6 @@ class TLSCertificatesRequiresV1(Object):
         Returns:
             None
         """
-        logger.info("Received request to create certificate")
         relation = self.model.get_relation(self.relationship_name)
         if not relation:
             message = (
@@ -816,12 +815,16 @@ class TLSCertificatesRequiresV1(Object):
         Returns:
             None
         """
-        self.request_certificate_revocation(
-            certificate_signing_request=old_certificate_signing_request
-        )
+        try:
+            self.request_certificate_revocation(
+                certificate_signing_request=old_certificate_signing_request
+            )
+        except RuntimeError:
+            logger.warning("Certificate revocation failed.")
         self.request_certificate_creation(
             certificate_signing_request=new_certificate_signing_request
         )
+        logger.info("Certificate renewal request completed.")
 
     @staticmethod
     def _relation_data_is_valid(certificates_data: dict) -> bool:

@@ -5,7 +5,7 @@
 """Methods used to generate self-signed certificates."""
 
 import datetime
-from typing import List, Optional
+from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -45,6 +45,7 @@ def generate_certificate(
     csr: bytes,
     ca: bytes,
     ca_key: bytes,
+    ca_key_password: Optional[bytes] = None,
     validity: int = 365,
     alt_names: list = None,
 ) -> bytes:
@@ -54,6 +55,7 @@ def generate_certificate(
         csr: CSR Bytes
         ca: Set the CA certificate, must be PEM format
         ca_key: The CA key, must be PEM format; if not in CAfile
+        ca_key_password: The CA key password
         validity: Validity
         alt_names: Alternative names (optional)
 
@@ -63,7 +65,7 @@ def generate_certificate(
     csr_object = x509.load_pem_x509_csr(csr)
     subject = csr_object.subject
     issuer = x509.load_pem_x509_certificate(ca).issuer
-    private_key = serialization.load_pem_private_key(ca_key, password=None)
+    private_key = serialization.load_pem_private_key(ca_key, password=ca_key_password)
 
     certificate_builder = (
         x509.CertificateBuilder()
@@ -144,45 +146,6 @@ def generate_ca(
     return cert.public_bytes(serialization.Encoding.PEM)
 
 
-def generate_csr(
-    private_key: bytes,
-    subject: str,
-    private_key_password: Optional[bytes] = None,
-    sans: Optional[List[str]] = None,
-    additional_critical_extensions: Optional[List] = None,
-) -> bytes:
-    """Generates a CSR using private key and subject.
-
-    Args:
-        private_key (bytes): Private key
-        private_key_password (bytes): Private key password
-        subject (str): CSR Subject.
-        sans (list): List of subject alternative names
-        additional_critical_extensions (list): List if critical additional extension objects.
-            Object must be a x509 ExtensionType.
-
-    Returns:
-        bytes: CSR
-    """
-    signing_key = serialization.load_pem_private_key(private_key, password=private_key_password)
-    csr = x509.CertificateSigningRequestBuilder(
-        subject_name=x509.Name(
-            [
-                x509.NameAttribute(x509.NameOID.COMMON_NAME, subject),
-            ]
-        )
-    )
-    if sans:
-        csr = csr.add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(san) for san in sans]), critical=False
-        )
-    if additional_critical_extensions:
-        for extension in additional_critical_extensions:
-            csr = csr.add_extension(extension, critical=True)
-    signed_certificate = csr.sign(signing_key, hashes.SHA256())  # type: ignore[arg-type]
-    return signed_certificate.public_bytes(serialization.Encoding.PEM)
-
-
 def certificate_is_valid(certificate: bytes) -> bool:
     """Returns whether a certificate is valid.
 
@@ -194,19 +157,6 @@ def certificate_is_valid(certificate: bytes) -> bool:
     """
     try:
         x509.load_pem_x509_certificate(certificate)
-        return True
-    except ValueError:
-        return False
-
-
-def private_key_is_valid(private_key: bytes) -> bool:
-    """Returns whether a private key is valid.
-
-    Returns:
-        bool: True/False
-    """
-    try:
-        serialization.load_pem_private_key(private_key, password=None)
         return True
     except ValueError:
         return False

@@ -59,9 +59,9 @@ class TestTLSCertificatesOperator:
         resources = {
             "placeholder-image": METADATA["resources"]["placeholder-image"]["upstream-source"],
         }
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        private_key = self.get_certificate_from_file(filename="tests/private_key.key")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         private_key_bytes = base64.b64encode(private_key.encode("utf-8"))
@@ -83,9 +83,9 @@ class TestTLSCertificatesOperator:
         resources = {
             "placeholder-image": METADATA["resources"]["placeholder-image"]["upstream-source"],
         }
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        private_key = self.get_certificate_from_file(filename="tests/private_key.key")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         private_key_bytes = base64.b64encode(private_key.encode("utf-8"))

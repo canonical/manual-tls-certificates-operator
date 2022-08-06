@@ -15,13 +15,13 @@ options:
     default:
     description: |
       Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
-  private-key:
-    type: string
-    default:
-    description: |
-      Base64 encoded private key (do not use if 'generate-self-signed-certificates' is set to true).
   ca-certificate:
     type: string
     default:
     description: |
       Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
+  ca-chain:
+    type: string
+    default:
+    description: |
+      Base64 encoded CA Chain (do not use if 'generate-self-signed-certificates' is set to true).
