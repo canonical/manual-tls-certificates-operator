@@ -15,9 +15,7 @@ import string
 from typing import List, Optional
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
-    CertificateCreationRequestEvent as CertificateRequestEventV1,
-)
-from charms.tls_certificates_interface.v1.tls_certificates import (
+    CertificateCreationRequestEvent,
     TLSCertificatesProvidesV1,
 )
 from ops.charm import CharmBase, ConfigChangedEvent
@@ -47,28 +45,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
             self._on_certificate_creation_request,
         )
 
-    def _generate_root_certificates(self) -> None:
-        """Generates root certificate to be used to sign certificates.
+    @property
+    def _certificate_validity(self) -> int:
+        """Returns self-signed certificate validity (in days).
 
         Returns:
-            None
+            int: Certificate validity (in days)
         """
-        replicas_relation = self.model.get_relation("replicas")
-        private_key_password = self._generate_password()
-        private_key = generate_private_key(password=private_key_password.encode())
-        ca_certificate = generate_ca(
-            private_key=private_key,
-            subject=self._config_ca_common_name,  # type: ignore[arg-type]  # noqa: E501
-            private_key_password=private_key_password.encode(),
-        )
-        replicas_relation.data[self.app].update(  # type: ignore[union-attr]
-            {
-                "ca_private_key_password": private_key_password,
-                "ca_private_key": private_key.decode(),
-                "ca_certificate": ca_certificate.decode(),
-            }
-        )
-        logger.info("Root certificates generated and stored.")
+        return int(self.model.config.get("certificate-validity", 365))
 
     @property
     def _self_signed_certificates(self) -> bool:
@@ -118,6 +102,57 @@ class TLSCertificatesOperatorCharm(CharmBase):
     @property
     def _replicas_relation_created(self) -> bool:
         return self._relation_created("replicas")
+
+    @property
+    def _config_certificates_are_set(self) -> bool:
+        """Returns whether certificates are set in stored data.
+
+        Returns:
+            bool: Whether all certificates are set.
+        """
+        replicas = self.model.get_relation("replicas")
+        return (
+            replicas.data[self.app].get("certificate")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_chain")  # type: ignore[union-attr]  # noqa: W503 E501
+        )
+
+    @property
+    def _root_certificates_are_set(self) -> bool:
+        """Returns whether certificates are set in stored data.
+
+        Returns:
+            bool: Whether all certificates are set.
+        """
+        replicas = self.model.get_relation("replicas")
+        return (
+            replicas.data[self.app].get("ca_private_key")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
+            and replicas.data[self.app].get("ca_private_key_password")  # type: ignore[union-attr]  # noqa: W503 E501
+        )
+
+    def _generate_root_certificates(self) -> None:
+        """Generates root certificate to be used to sign certificates.
+
+        Returns:
+            None
+        """
+        replicas_relation = self.model.get_relation("replicas")
+        private_key_password = self._generate_password()
+        private_key = generate_private_key(password=private_key_password.encode())
+        ca_certificate = generate_ca(
+            private_key=private_key,
+            subject=self._config_ca_common_name,  # type: ignore[arg-type]  # noqa: E501
+            private_key_password=private_key_password.encode(),
+        )
+        replicas_relation.data[self.app].update(  # type: ignore[union-attr]
+            {
+                "ca_private_key_password": private_key_password,
+                "ca_private_key": private_key.decode(),
+                "ca_certificate": ca_certificate.decode(),
+            }
+        )
+        logger.info("Root certificates generated and stored.")
 
     def _relation_created(self, relation_name: str) -> bool:
         """Returns whether given relation was created.
@@ -175,29 +210,32 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 self.unit.status = BlockedStatus("Certificates are not valid")
                 return
             if self.unit.is_leader():
-                replicas = self.model.get_relation("replicas")
-                replicas.data[self.app].update(  # type: ignore[union-attr]
-                    {
-                        "ca_certificate": self._decode_from_base64_bytes(
-                            base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
-                        )
-                    }
-                )
-                replicas.data[self.app].update(  # type: ignore[union-attr]
-                    {
-                        "certificate": self._decode_from_base64_bytes(
-                            base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
-                        )
-                    }
-                )
-                replicas.data[self.app].update(  # type: ignore[union-attr]
-                    {
-                        "ca_chain": self._decode_from_base64_bytes(
-                            base64.b64decode(self.model.config.get("ca-chain"))  # type: ignore[arg-type]  # noqa: E501
-                        )
-                    }
-                )
+                self._set_certificates_from_config()
         self.unit.status = ActiveStatus()
+
+    def _set_certificates_from_config(self):
+        replicas = self.model.get_relation("replicas")
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {
+                "ca_certificate": self._decode_from_base64_bytes(
+                    base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
+                )
+            }
+        )
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {
+                "certificate": self._decode_from_base64_bytes(
+                    base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
+                )
+            }
+        )
+        replicas.data[self.app].update(  # type: ignore[union-attr]
+            {
+                "ca_chain": self._decode_from_base64_bytes(
+                    base64.b64decode(self.model.config.get("ca-chain"))  # type: ignore[arg-type]  # noqa: E501
+                )
+            }
+        )
 
     def _generate_self_signed_certificates(self, certificate_signing_request: str) -> str:
         """Generates self-signed certificates.
@@ -217,11 +255,12 @@ class TLSCertificatesOperatorCharm(CharmBase):
             ca_key=ca_private_key.encode(),
             ca_key_password=ca_private_key_password.encode(),
             csr=certificate_signing_request.encode(),
+            validity=self._certificate_validity,
         )
         logger.info("Generated self-signed certificates")
         return certificate.decode()
 
-    def _on_certificate_creation_request(self, event: CertificateRequestEventV1):
+    def _on_certificate_creation_request(self, event: CertificateCreationRequestEvent) -> None:
         logger.info("Received Certificate Creation Request")
         if not self.unit.is_leader():
             return
@@ -232,7 +271,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             return
         if self._self_signed_certificates:
             if not self._root_certificates_are_set:
-                logger.warning("Root Certificates are not set")
+                self.unit.status = WaitingStatus("Root Certificates are not yet set")
                 event.defer()
                 return
             certificate = self._generate_self_signed_certificates(
@@ -247,12 +286,12 @@ class TLSCertificatesOperatorCharm(CharmBase):
             )
         else:
             if not self._config_certificates_are_set:
-                logger.error(
+                self.unit.status = BlockedStatus(
                     "Configuration options are missing - "
                     "Certificates can't be passed through relation"
                 )
+                event.defer()
                 return
-
             self.tls_certificates.set_relation_certificate(
                 certificate_signing_request=event.certificate_signing_request,
                 certificate=replicas_relation.data[self.app].get("certificate"),
@@ -260,34 +299,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 chain=replicas_relation.data[self.app].get("ca_certificate"),
                 relation_id=event.relation_id,
             )
-
-    @property
-    def _config_certificates_are_set(self) -> bool:
-        """Returns whether certificates are set in stored data.
-
-        Returns:
-            bool: Whether all certificates are set.
-        """
-        replicas = self.model.get_relation("replicas")
-        return (
-            replicas.data[self.app].get("certificate")  # type: ignore[union-attr]  # noqa: W503 E501
-            and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
-            and replicas.data[self.app].get("ca_chain")  # type: ignore[union-attr]  # noqa: W503 E501
-        )
-
-    @property
-    def _root_certificates_are_set(self) -> bool:
-        """Returns whether certificates are set in stored data.
-
-        Returns:
-            bool: Whether all certificates are set.
-        """
-        replicas = self.model.get_relation("replicas")
-        return (
-            replicas.data[self.app].get("ca_private_key")  # type: ignore[union-attr]  # noqa: W503 E501
-            and replicas.data[self.app].get("ca_certificate")  # type: ignore[union-attr]  # noqa: W503 E501
-            and replicas.data[self.app].get("ca_private_key_password")  # type: ignore[union-attr]  # noqa: W503 E501
-        )
 
     def get_missing_configuration_options(self) -> List[str]:
         """Returns the list of missing configuration options.

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from ops import testing
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from charm import TLSCertificatesOperatorCharm
 
@@ -104,11 +104,12 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
-    def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_but_no_common_name_then_status_is_blocked(  # noqa: E501
+    def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_but_no_common_name_when_config_changed_then_status_is_blocked(  # noqa: E501
         self,
     ):
         self.harness.set_leader(True)
         self.harness.add_relation("replicas", self.harness.charm.app.name)
+
         self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
 
         self.assertEqual(
@@ -156,21 +157,39 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
-    def test_given_unit_is_leader_but_peer_relation_not_created_when_on_config_changed_then_root_ca_not_created(  # noqa: E501
+    def test_given_unit_is_not_leader_and_self_signed_certs_are_not_yet_stored_when_config_changed_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        self.harness.set_leader(True)
-        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
-        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
-        ca_certificate_bytes = ca_chain_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        key_values = {
-            "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": ca_chain_bytes.decode("utf-8"),
-            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
-        }
+        key_values = {"generate-self-signed-certificates": "true"}
+        self.harness.set_leader(False)
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
         self.harness.update_config(key_values=key_values)
+
+        self.assertEqual(
+            WaitingStatus("Waiting for root certificates to be generated."),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_unit_is_not_leader_and_self_signed_certs_are_stored_when_config_changed_then_status_is_active(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(False)
+        relation_id = self.harness.add_relation(
+            relation_name="replicas", remote_app=self.harness.charm.app.name
+        )
+        self.harness.update_relation_data(
+            relation_id=relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "ca_private_key": "whatever private key",
+                "ca_certificate": "whatever cert",
+                "ca_private_key_password": "whatever password",
+            },
+        )
+        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+
+        self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
     @patch("charm.generate_certificate")
     @patch(
@@ -275,3 +294,48 @@ class TestCharm(unittest.TestCase):
         self.harness.charm._on_certificate_creation_request(event=event)
 
         patch_set_relation_certificates.assert_not_called()
+
+    def test_given_no_config_when_on_certificate_creation_request_then_status_is_blocked(self):
+        event = Mock()
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            BlockedStatus(
+                "Configuration options are missing - Certificates can't be passed through relation"
+            ),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_peer_relation_is_not_created_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.set_leader(True)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            WaitingStatus("Waiting for peer relation to be created"),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_self_signed_certificates_not_yet_stored_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.set_leader(True)
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            WaitingStatus("Root Certificates are not yet set"),
+            self.harness.charm.unit.status,
+        )

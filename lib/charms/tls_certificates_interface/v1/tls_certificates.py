@@ -638,17 +638,17 @@ class TLSCertificatesProvidesV1(Object):
         provider_relation_data = certificates_relation.data[self.model.unit]  # type: ignore[union-attr]
         loaded_relation_data = _load_unit_relation_data(provider_relation_data)
         new_certificate = {
-            "certificate": certificate,
-            "certificate_signing_request": certificate_signing_request,
-            "ca": ca,
-            "chain": chain,
+            "certificate": certificate.strip(),
+            "certificate_signing_request": certificate_signing_request.strip(),
+            "ca": ca.strip(),
+            "chain": chain.strip(),
         }
         if "certificates" not in loaded_relation_data:
             certificates = [new_certificate]
         else:
             certificates = loaded_relation_data["certificates"]
             for cert_dict in certificates:
-                if cert_dict["certificate_signing_request"] == certificate_signing_request:
+                if cert_dict["certificate_signing_request"] == certificate_signing_request.strip():
                     certificates.remove(cert_dict)
             loaded_relation_data["certificates"].append(new_certificate)
         provider_relation_data["certificates"] = json.dumps(certificates)
@@ -666,11 +666,11 @@ class TLSCertificatesProvidesV1(Object):
         for certificate_relation in relations[self.relationship_name]:
             provider_relation_data = certificate_relation.data[self.model.unit]
             loaded_relation_data = _load_unit_relation_data(provider_relation_data)
-            certificates = loaded_relation_data["certificates"]
-            for i in range(len(certificates)):
-                if certificates[i]["certificate"] == certificate:
-                    certificates.pop(i)
-            provider_relation_data["certificates"] = json.dumps(certificates)
+            provided_certificates = loaded_relation_data["certificates"]
+            for provided_certificate in provided_certificates:
+                if provided_certificate["certificate"] == certificate.strip():
+                    provided_certificates.remove(provided_certificate)
+            provider_relation_data["certificates"] = json.dumps(provided_certificates)
 
     def _on_relation_changed(self, event) -> None:
         """Handler triggerred on relation changed event.
@@ -690,7 +690,9 @@ class TLSCertificatesProvidesV1(Object):
         requirer_relation_data = _load_unit_relation_data(event.relation.data[event.unit])
         provider_relation_data = _load_unit_relation_data(event.relation.data[self.model.unit])
         if not self._relation_data_is_valid(requirer_relation_data):
-            logger.warning("Relation data did not pass JSON Schema validation")
+            logger.warning(
+                f"Relation data did not pass JSON Schema validation: {requirer_relation_data}"
+            )
             return
         provider_csrs = _get_provider_csrs(event.relation.data[self.model.unit])
         requirer_csrs = _get_requirer_csrs(event.relation.data[event.unit])
@@ -708,6 +710,7 @@ class TLSCertificatesProvidesV1(Object):
                     ca=certificate["ca"],
                     chain=certificate["chain"],
                 )
+                self.remove_certificate(certificate=certificate["certificate"])
 
 
 class TLSCertificatesRequiresV1(Object):
@@ -726,8 +729,8 @@ class TLSCertificatesRequiresV1(Object):
         Args:
             charm: Charm object
             relationship_name: Juju relation name
-            expiry_notification_time (int): Time difference between now and expiry. Used to
-                trigger the CertificateExpiring event.
+            expiry_notification_time (int): Time difference between now and expiry (in hours).
+                Used to trigger the CertificateExpiring event. Default: 7 days.
         """
         super().__init__(charm, relationship_name)
         self.relationship_name = relationship_name
@@ -757,7 +760,7 @@ class TLSCertificatesRequiresV1(Object):
             raise RuntimeError(message)
         relation_data = _load_unit_relation_data(relation.data[self.model.unit])
         new_certificate_creation_request = {
-            "certificate_signing_request": certificate_signing_request.decode()
+            "certificate_signing_request": certificate_signing_request.decode().strip()
         }
         if "certificate_signing_requests" in relation_data:
             certificate_creation_request_list = relation_data["certificate_signing_requests"]
@@ -794,7 +797,10 @@ class TLSCertificatesRequiresV1(Object):
             logger.info("No CSR in relation data.")
             return
         for requirer_csr in requirer_relation_csr_list:
-            if requirer_csr["certificate_signing_request"] == certificate_signing_request.decode():
+            if (
+                requirer_csr["certificate_signing_request"]
+                == certificate_signing_request.decode().strip()
+            ):
                 requirer_relation_csr_list.remove(requirer_csr)
         relation.data[self.model.unit]["certificate_signing_requests"] = json.dumps(
             requirer_relation_csr_list
@@ -853,7 +859,9 @@ class TLSCertificatesRequiresV1(Object):
         """
         provider_relation_data = _load_unit_relation_data(event.relation.data[event.unit])
         if not self._relation_data_is_valid(provider_relation_data):
-            logger.warning("Relation data did not pass JSON Schema validation")
+            logger.warning(
+                f"Relation data did not pass JSON Schema validation: {provider_relation_data}"
+            )
             return
         provider_csrs = _get_provider_csrs(event.relation.data[event.unit])
         requirer_csrs = _get_requirer_csrs(event.relation.data[self.model.unit])
@@ -882,7 +890,7 @@ class TLSCertificatesRequiresV1(Object):
         Returns:
             None
         """
-        relation = self.model.get_relation("certificates")
+        relation = self.model.get_relation(self.relationship_name)
         if not relation:
             return
         for unit in relation.units:
