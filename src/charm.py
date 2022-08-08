@@ -14,7 +14,7 @@ import secrets
 import string
 from typing import List, Optional
 
-from charms.tls_certificates_interface.v1.tls_certificates import (
+from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore[import]
     CertificateCreationRequestEvent,
     TLSCertificatesProvidesV1,
 )
