@@ -2,11 +2,10 @@
 # See LICENSE file for licensing details.
 import base64
 import unittest
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
-from charms.tls_certificates_interface.v0.tls_certificates import Cert
 from ops import testing
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from charm import TLSCertificatesOperatorCharm
 
@@ -40,40 +39,64 @@ class TestCharm(unittest.TestCase):
         self.harness = testing.Harness(TLSCertificatesOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
-        relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
-        self.harness.add_relation_unit(relation_id, self.harness.charm.unit.name)
-        self.harness.set_leader(True)
 
     def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        private_key_bytes = base64.b64encode(private_key.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "private-key": private_key_bytes.decode("utf-8"),
+            "ca-chain": ca_certificate_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.update_config(key_values=key_values)
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
+    def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_cert_is_added_to_peer_relation_data(  # noqa: E501
+        self,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = ca_chain = self.get_certificate_from_file(
+            filename="tests/ca_certificate.pem"
+        )
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = ca_chain_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        key_values = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        self.harness.update_config(key_values=key_values)
+
+        relation_data = self.harness.get_relation_data(
+            relation_id=peer_relation_id, app_or_unit=self.harness.charm.app.name
+        )
+
+        assert relation_data["ca_certificate"] == ca_certificate
+        assert relation_data["certificate"] == certificate
+        assert relation_data["ca_chain"] == ca_chain
+
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
-        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        private_key_bytes = base64.b64encode(private_key.encode("utf-8"))
+        ca_certificate_bytes = ca_chain_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "private-key": private_key_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.set_leader(False)
@@ -81,8 +104,26 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
+    def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_but_no_common_name_when_config_changed_then_status_is_blocked(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(True)
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+
+        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+
+        self.assertEqual(
+            BlockedStatus(
+                "Configuration `ca-common-name` must be set when "
+                "`generate-self-signed-certificates` is set to True."
+            ),
+            self.harness.charm.unit.status,
+        )
+
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
-        key_values = {"private-key": "whatever private key"}
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+        key_values = {"ca-chain": "whatever ca chain"}
+
         self.harness.update_config(key_values=key_values)
 
         self.assertEqual(
@@ -90,101 +131,9 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
-    @patch(
-        "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
-    )
-    def test_given_configuration_options_are_set_and_unit_is_leader_when_certificate_request_then_certificates_are_passed(  # noqa: E501
-        self, patch_set_relation_certificates
-    ):
-        event = Mock()
-        event.relation_id = 1234
-        common_name = "whatever common name"
-        event.common_name = common_name
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
-        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
-        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        private_key_bytes = base64.b64encode(private_key.encode("utf-8"))
-        key_values = {
-            "certificate": certificate_bytes.decode("utf-8"),
-            "private-key": private_key_bytes.decode("utf-8"),
-            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
-        }
-        self.harness.update_config(key_values=key_values)
-
-        self.harness.charm._on_certificate_request(event=event)
-
-        patch_set_relation_certificates.assert_called_with(
-            certificate=Cert(
-                ca=ca_certificate, key=private_key, cert=certificate, common_name=common_name
-            ),
-            relation_id=event.relation_id,
-        )
-
-    @patch(
-        "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
-    )
-    def test_given_configuration_options_are_not_set_when_certificate_request_then_certificates_are_passed(  # noqa: E501
-        self, patch_set_relation_certificates
-    ):
-        event = Mock()
-        event.relation_id = 1234
-
-        self.harness.charm._on_certificate_request(event=event)
-
-        patch_set_relation_certificates.assert_not_called()
-
-    @patch("self_signed_certificates.SelfSignedCertificates.generate", new=Mock())
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.private_key", new_callable=PropertyMock
-    )
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.certificate", new_callable=PropertyMock
-    )
-    @patch(
-        "self_signed_certificates.SelfSignedCertificates.ca_certificate", new_callable=PropertyMock
-    )
-    @patch(
-        "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
-    )
-    def test_given_self_signed_option_is_true_and_unit_is_leader_when_certificate_request_then_certificates_are_set(  # noqa: E501
-        self,
-        patch_set_relation_certificates,
-        patch_ca_certificate,
-        patch_certificate,
-        patch_private_key,
-    ):
-        ca_certificate = "UHl0aG9uIGlzIGZ1bg=="
-        certificate = "eafeawewaf=="
-        private_key = "lkfeafewafewa=="
-        ca_certificate_bytes = ca_certificate.encode("utf-8")
-        certificate_bytes = certificate.encode("utf-8")
-        private_key_bytes = private_key.encode("utf-8")
-        patch_ca_certificate.return_value = ca_certificate_bytes
-        patch_certificate.return_value = certificate_bytes
-        patch_private_key.return_value = private_key_bytes
-        common_name = "whatever"
-        key_values = {"generate-self-signed-certificates": "true"}
-        self.harness.update_config(key_values=key_values)
-        event = Mock()
-        event.common_name = common_name
-        event.relation_id = 1234
-
-        self.harness.charm._on_certificate_request(event=event)
-
-        patch_set_relation_certificates.assert_called_with(
-            certificate=Cert(
-                ca=self._decode_from_base64(ca_certificate_bytes),
-                key=self._decode_from_base64(private_key_bytes),
-                cert=self._decode_from_base64(certificate_bytes),
-                common_name=common_name,
-            ),
-            relation_id=event.relation_id,
-        )
-
     def test_given_non_base64_encoded_certificates_when_config_changed_then_unit_is_blocked(self):
-        key_values = {"certificate": "aaa", "ca-certificate": "bbb", "private-key": "ccc"}
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+        key_values = {"certificate": "aaa", "ca-certificate": "bbb", "ca-chain": "ccc"}
 
         self.harness.update_config(key_values=key_values)
 
@@ -193,30 +142,200 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
+    def test_given_user_provided_certs_not_valid_when_config_changed_then_status_is_blocked(self):
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+        key_values = {
+            "certificate": self._encode_in_base64("bad cert").decode(),
+            "ca-chain": self._encode_in_base64("bad ca chain").decode(),
+            "ca-certificate": self._encode_in_base64("bad ca cert").decode(),
+        }
+
+        self.harness.update_config(key_values=key_values)
+
+        self.assertEqual(
+            BlockedStatus("Certificates are not valid"),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_unit_is_not_leader_and_self_signed_certs_are_not_yet_stored_when_config_changed_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        key_values = {"generate-self-signed-certificates": "true"}
+        self.harness.set_leader(False)
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
+
+        self.harness.update_config(key_values=key_values)
+
+        self.assertEqual(
+            WaitingStatus("Waiting for root certificates to be generated."),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_unit_is_not_leader_and_self_signed_certs_are_stored_when_config_changed_then_status_is_active(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(False)
+        relation_id = self.harness.add_relation(
+            relation_name="replicas", remote_app=self.harness.charm.app.name
+        )
+        self.harness.update_relation_data(
+            relation_id=relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "ca_private_key": "whatever private key",
+                "ca_certificate": "whatever cert",
+                "ca_private_key_password": "whatever password",
+            },
+        )
+        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+
+        self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
+
+    @patch("charm.generate_certificate")
     @patch(
-        "charms.tls_certificates_interface.v0.tls_certificates.TLSCertificatesProvides.set_relation_certificate"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
     )
-    def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_request_then_certificates_are_not_passed(  # noqa: E501
+    def test_given_self_signed_option_is_true_and_unit_is_leader_and_root_certificates_are_stored_when_certificate_creation_request_then_certificates_are_set(  # noqa: E501
+        self,
+        patch_set_relation_certificates,
+        patch_generate_certificate,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        ca_certificate = "UHl0aG9uIGlzIGZ1bg=="
+        certificate = "eafeawewaf=="
+        csr = "whatever csr"
+        certificate_bytes = certificate.encode("utf-8")
+        patch_generate_certificate.return_value = certificate_bytes
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+        self.harness.update_relation_data(
+            relation_id=peer_relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "ca_certificate": ca_certificate,
+                "ca_private_key": "whatever ca private key",
+                "ca_private_key_password": "whatever ca password",
+            },
+        )
+        event = Mock()
+        event.certificate_signing_request = csr
+        event.relation_id = 1234
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        patch_set_relation_certificates.assert_called_with(
+            certificate=certificate,
+            certificate_signing_request=csr,
+            ca=ca_certificate,
+            chain=ca_certificate,
+            relation_id=event.relation_id,
+        )
+
+    @patch(
+        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_user_provided_certificates_and_unit_is_leader_and_root_certificates_are_stored_when_certificate_creation_request_then_certificates_are_set(  # noqa: E501
+        self,
+        patch_set_relation_certificates,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        csr = "whatever csr"
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = ca_chain_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        key_values = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        self.harness.update_config(key_values=key_values)
+        event = Mock()
+        event.certificate_signing_request = csr
+        event.relation_id = 1234
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        patch_set_relation_certificates.assert_called_with(
+            certificate=certificate,
+            certificate_signing_request=csr,
+            ca=ca_certificate,
+            chain=ca_certificate,
+            relation_id=event.relation_id,
+        )
+
+    @patch(
+        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_creation_request_then_certificates_are_not_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
         event = Mock()
         event.relation_id = 1234
         common_name = "whatever common name"
         event.common_name = common_name
-        certificate = self.get_certificate_from_file(filename="tests/test_certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/test_ca_certificate.pem")
-        private_key = self.get_certificate_from_file(filename="tests/test_private_key.key")
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
-        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        private_key_bytes = base64.b64encode(private_key.encode("utf-8"))
+        ca_certificate_bytes = ca_chain_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "private-key": private_key_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.update_config(key_values=key_values)
 
         self.harness.set_leader(False)
-        self.harness.charm._on_certificate_request(event=event)
+        self.harness.charm._on_certificate_creation_request(event=event)
 
         patch_set_relation_certificates.assert_not_called()
+
+    def test_given_no_config_when_on_certificate_creation_request_then_status_is_blocked(self):
+        event = Mock()
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            BlockedStatus(
+                "Configuration options are missing - Certificates can't be passed through relation"
+            ),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_peer_relation_is_not_created_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.set_leader(True)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            WaitingStatus("Waiting for peer relation to be created"),
+            self.harness.charm.unit.status,
+        )
+
+    def test_given_self_signed_certificates_not_yet_stored_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.set_leader(True)
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
+
+        self.harness.charm._on_certificate_creation_request(event=event)
+
+        self.assertEqual(
+            WaitingStatus("Root Certificates are not yet set"),
+            self.harness.charm.unit.status,
+        )
