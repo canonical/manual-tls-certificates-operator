@@ -26,6 +26,7 @@ options:
       Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
   ca-chain:
     type: string
-    default:
+    default: ""
     description: |
       Base64 encoded CA Chain (do not use if 'generate-self-signed-certificates' is set to true).
+      If not provided, the ca-chain will be composed of the application and the ca-certificate.
