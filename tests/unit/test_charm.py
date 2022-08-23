@@ -90,6 +90,33 @@ class TestCharm(unittest.TestCase):
             certificate.strip(),
         ]
 
+    def test_given_configuration_options_are_set_without_ca_chain_and_unit_is_leader_when_config_changed_then_cert_is_added_to_peer_relation_data(  # noqa: E501
+        self,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        key_values = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        self.harness.update_config(key_values=key_values)
+
+        relation_data = self.harness.get_relation_data(
+            relation_id=peer_relation_id, app_or_unit=self.harness.charm.app.name
+        )
+
+        assert relation_data["config_ca_certificate"] == ca_certificate.strip()
+        assert relation_data["config_certificate"] == certificate.strip()
+        assert json.loads(relation_data["config_ca_chain"]) == [
+            ca_certificate.strip(),
+            certificate.strip(),
+        ]
+
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):

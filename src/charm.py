@@ -87,20 +87,30 @@ class TLSCertificatesOperatorCharm(CharmBase):
             bool: True/False
         """
         try:
-            certificate_bytes = base64.b64decode(self.model.config.get("certificate"))  # type: ignore[arg-type]  # noqa: E501
-            ca_certificate_bytes = base64.b64decode(self.model.config.get("ca-certificate"))  # type: ignore[arg-type]  # noqa: E501
-            ca_chain_list = json.loads(self.model.config.get("ca-chain"))  # type: ignore[arg-type]  # noqa: E501
-            ca_chain_bytes_list = [base64.b64decode(item) for item in ca_chain_list]
+            certificate_bytes = base64.b64decode(self.model.config.get("certificate", None))  # type: ignore[arg-type]  # noqa: E501
+            ca_certificate_bytes = base64.b64decode(self.model.config.get("ca-certificate", None))  # type: ignore[arg-type]  # noqa: E501
         except (binascii.Error, TypeError):
             return False
-        try:
-            assert certificate_is_valid(certificate_bytes)
-            assert certificate_is_valid(ca_certificate_bytes)
-            for ca_certificate in ca_chain_bytes_list:
-                assert certificate_is_valid(ca_certificate)
-            return True
-        except AssertionError:
+        if not certificate_is_valid(certificate_bytes):
+            logger.error("Config `certificate` is not valid")
             return False
+        if not certificate_is_valid(ca_certificate_bytes):
+            logger.error("Config `ca-certificate` is not valid")
+            return False
+        config_ca_chain = self.model.config.get("ca-chain", None)
+        if config_ca_chain:
+            try:
+                ca_chain_list = json.loads(
+                    self.model.config.get("ca-chain")  # type: ignore[arg-type]
+                )
+                ca_chain_bytes_list = [base64.b64decode(item) for item in ca_chain_list]
+            except (binascii.Error, TypeError):
+                return False
+            for certificate in ca_chain_bytes_list:
+                if not certificate_is_valid(certificate):
+                    logger.error("Config `ca-chain` is not valid")
+                    return False
+        return True
 
     @property
     def _replicas_relation_created(self) -> bool:
@@ -312,8 +322,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
         ca_chain_config = self.model.config.get("ca-chain", None)
         certificate_config = self.model.config.get("certificate", None)
         ca_certificate_config = self.model.config.get("ca-certificate", None)
-        if not ca_chain_config:
-            raise ValueError("Config `ca-chain` not set")
         if not certificate_config:
             raise ValueError("Config `certificate` not set")
         if not ca_certificate_config:
@@ -324,12 +332,22 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self._store_config_certificate(
             self._decode_from_base64_bytes(base64.b64decode(certificate_config)).strip()
         )
-        self._store_config_ca_chain(
-            [
-                self._decode_from_base64_bytes(base64.b64decode(cert)).strip()
-                for cert in json.loads(ca_chain_config)
-            ]
-        )
+        if ca_chain_config:
+            self._store_config_ca_chain(
+                [
+                    self._decode_from_base64_bytes(base64.b64decode(cert)).strip()
+                    for cert in json.loads(ca_chain_config)
+                ]
+            )
+        else:
+            self._store_config_ca_chain(
+                [
+                    self._decode_from_base64_bytes(
+                        base64.b64decode(ca_certificate_config)
+                    ).strip(),
+                    self._decode_from_base64_bytes(base64.b64decode(certificate_config)).strip(),
+                ]
+            )
 
     def _generate_self_signed_certificates(self, certificate_signing_request: str) -> str:
         """Generates self-signed certificates.
@@ -406,7 +424,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
         missing_config_options = []
         required_config_options = [
             "certificate",
-            "ca-chain",
             "ca-certificate",
         ]
         for config in required_config_options:
