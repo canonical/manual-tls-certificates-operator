@@ -9,10 +9,6 @@ summary: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
   by the operator through Juju configs.
 
-containers:
-  placeholder:
-    resource: placeholder-image
-
 provides:
   certificates:
     interface: tls-certificates
@@ -20,9 +16,3 @@ provides:
 peers:
   replicas:
     interface: tls-certificates-replica
-
-resources:
-  placeholder-image:
-    type: oci-image
-    description: Placeholder image
-    upstream-source: ubuntu:latest
