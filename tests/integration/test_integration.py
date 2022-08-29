@@ -64,7 +64,7 @@ class TestTLSCertificatesOperator:
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": f'["{ca_certificate_bytes.decode("utf-8")}"]',
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 
@@ -86,7 +86,7 @@ class TestTLSCertificatesOperator:
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": f'["{ca_certificate_bytes.decode("utf-8")}"]',
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 
