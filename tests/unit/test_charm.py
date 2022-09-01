@@ -49,12 +49,13 @@ class TestCharm(unittest.TestCase):
         self.harness.set_leader(True)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        ca_chain = [ca_certificate_bytes.decode("utf-8"), certificate_bytes.decode("utf-8")]
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": json.dumps(ca_chain),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.update_config(key_values=key_values)
@@ -69,12 +70,13 @@ class TestCharm(unittest.TestCase):
         self.harness.set_leader(True)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        ca_chain_bytes = [ca_certificate_bytes.decode("utf-8"), certificate_bytes.decode("utf-8")]
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": json.dumps(ca_chain_bytes),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.update_config(key_values=key_values)
@@ -125,12 +127,13 @@ class TestCharm(unittest.TestCase):
         ca_certificate = self.get_certificate_from_file(
             filename="tests/ca_certificate.pem"
         ).strip()
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        ca_chain_bytes = [ca_certificate_bytes.decode("utf-8"), certificate_bytes.decode("utf-8")]
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": json.dumps(ca_chain_bytes),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.set_leader(False)
@@ -157,7 +160,7 @@ class TestCharm(unittest.TestCase):
 
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
         self.harness.add_relation("replicas", self.harness.charm.app.name)
-        key_values = {"ca-chain": json.dumps(["cert 1", "cert 2"])}
+        key_values = {"ca-chain": "Whatever ca chain"}
 
         self.harness.update_config(key_values=key_values)
 
@@ -171,7 +174,7 @@ class TestCharm(unittest.TestCase):
         key_values = {
             "certificate": "aaa",
             "ca-certificate": "bbb",
-            "ca-chain": json.dumps(["cert 1", "cert 2"]),
+            "ca-chain": "ccc",
         }
 
         self.harness.update_config(key_values=key_values)
@@ -286,12 +289,13 @@ class TestCharm(unittest.TestCase):
         csr = "whatever csr"
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
-        ca_chain_bytes = [ca_certificate_bytes.decode("utf-8"), certificate_bytes.decode("utf-8")]
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         key_values = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": json.dumps(ca_chain_bytes),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
         self.harness.update_config(key_values=key_values)

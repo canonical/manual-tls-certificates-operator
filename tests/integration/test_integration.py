@@ -60,11 +60,13 @@ class TestTLSCertificatesOperator:
         }
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": f'["{ca_certificate_bytes.decode("utf-8")}"]',
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 
@@ -82,11 +84,13 @@ class TestTLSCertificatesOperator:
         }
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": f'["{ca_certificate_bytes.decode("utf-8")}"]',
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 

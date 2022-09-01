@@ -28,6 +28,7 @@ from self_signed_certificates import (
     generate_ca,
     generate_certificate,
     generate_private_key,
+    parse_ca_chain,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,15 +101,17 @@ class TLSCertificatesOperatorCharm(CharmBase):
         config_ca_chain = self.model.config.get("ca-chain", None)
         if config_ca_chain:
             try:
-                ca_chain_list = json.loads(
-                    self.model.config.get("ca-chain")  # type: ignore[arg-type]
-                )
-                ca_chain_bytes_list = [base64.b64decode(item) for item in ca_chain_list]
+                ca_chain_bytes = base64.b64decode(self.model.config.get("ca-chain", None))  # type: ignore[arg-type]  # noqa: E501
             except (binascii.Error, TypeError):
+                logger.error(
+                    "Config `ca-chain` is not valid because it is badly encoded."
+                    "Please use --config ca-chain='$(base64 -w0 ca_chain.pem)'."
+                )
                 return False
-            for certificate in ca_chain_bytes_list:
-                if not certificate_is_valid(certificate):
-                    logger.error("Config `ca-chain` is not valid")
+            list_of_certificates = parse_ca_chain(ca_chain_bytes.decode())
+            for certificate in list_of_certificates:
+                if not certificate_is_valid(certificate.encode()):
+                    logger.error("Config `ca-chain` is not valid because of a bad certificate.")
                     return False
         return True
 
@@ -327,27 +330,19 @@ class TLSCertificatesOperatorCharm(CharmBase):
         if not ca_certificate_config:
             raise ValueError("Config `ca-certificate` not set")
         self._store_config_ca_certificate(
-            self._decode_from_base64_bytes(base64.b64decode(ca_certificate_config)).strip()
+            base64.b64decode(ca_certificate_config).decode("utf-8").strip()
         )
         self._store_config_certificate(
-            self._decode_from_base64_bytes(base64.b64decode(certificate_config)).strip()
+            base64.b64decode(certificate_config).decode("utf-8").strip()
         )
         if ca_chain_config:
-            self._store_config_ca_chain(
-                [
-                    self._decode_from_base64_bytes(base64.b64decode(cert)).strip()
-                    for cert in json.loads(ca_chain_config)
-                ]
-            )
+            ca_chain_list = parse_ca_chain(base64.b64decode(ca_chain_config).decode("utf-8"))
         else:
-            self._store_config_ca_chain(
-                [
-                    self._decode_from_base64_bytes(
-                        base64.b64decode(ca_certificate_config)
-                    ).strip(),
-                    self._decode_from_base64_bytes(base64.b64decode(certificate_config)).strip(),
-                ]
-            )
+            ca_chain_list = [
+                base64.b64decode(ca_certificate_config).decode("utf-8").strip(),
+                base64.b64decode(certificate_config).decode("utf-8").strip(),
+            ]
+        self._store_config_ca_chain(ca_chain_list)
 
     def _generate_self_signed_certificates(self, certificate_signing_request: str) -> str:
         """Generates self-signed certificates.
@@ -430,18 +425,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
             if not self.model.config.get(config, None):
                 missing_config_options.append(config)
         return missing_config_options
-
-    @staticmethod
-    def _decode_from_base64_bytes(bytes_content: bytes) -> str:
-        """Decodes bytes to string.
-
-        Args:
-            bytes_content (bytes): Bytes content
-
-        Returns:
-            str: String
-        """
-        return bytes_content.decode("utf-8")
 
     @staticmethod
     def _generate_password() -> str:
