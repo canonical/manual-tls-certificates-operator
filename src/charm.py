@@ -133,7 +133,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             logger.info("Config CA certificate not stored")
             return False
         if not self._config_ca_chain:
-            logger.info("Config CA certificate not stored")
+            logger.info("Config CA chain not stored")
             return False
         return True
 
