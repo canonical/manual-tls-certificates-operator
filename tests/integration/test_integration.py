@@ -41,25 +41,37 @@ class TestTLSCertificatesOperator:
     async def test_given_no_config_when_deploy_then_status_is_blocked(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
-        await ops_test.model.deploy(entity_url=charm, application_name=APPLICATION_NAME)
+        resources = {
+            "placeholder-image": METADATA["resources"]["placeholder-image"]["upstream-source"],
+        }
+        await ops_test.model.deploy(
+            entity_url=charm,
+            resources=resources,
+            application_name=APPLICATION_NAME,
+        )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="blocked", timeout=1000)
 
     async def test_given_correct_config_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
+        resources = {
+            "placeholder-image": METADATA["resources"]["placeholder-image"]["upstream-source"],
+        }
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 
         await ops_test.model.deploy(
-            entity_url=charm, application_name=APPLICATION_NAME, config=config
+            entity_url=charm, resources=resources, application_name=APPLICATION_NAME, config=config
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
@@ -67,18 +79,24 @@ class TestTLSCertificatesOperator:
     async def test_given_correct_config_when_deploy_and_scale_then_status_is_active(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
+        resources = {
+            "placeholder-image": METADATA["resources"]["placeholder-image"]["upstream-source"],
+        }
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
         config = {
             "certificate": certificate_bytes.decode("utf-8"),
-            "ca-chain": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
             "ca-certificate": ca_certificate_bytes.decode("utf-8"),
         }
 
         await ops_test.model.deploy(
             entity_url=charm,
+            resources=resources,
             application_name=APPLICATION_NAME,
             config=config,
         )
