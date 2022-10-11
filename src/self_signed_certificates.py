@@ -68,21 +68,19 @@ def generate_certificate(
     issuer = x509.load_pem_x509_certificate(ca).issuer
     private_key = serialization.load_pem_private_key(ca_key, password=ca_key_password)
 
-    certificate_builder = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(csr_object.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=validity))
+    certificate_builder = x509.CertificateBuilder(
+        subject_name=subject,
+        issuer_name=issuer,
+        public_key=csr_object.public_key(),
+        serial_number=x509.random_serial_number(),
+        not_valid_before=datetime.datetime.utcnow(),
+        not_valid_after=datetime.datetime.utcnow() + datetime.timedelta(days=validity),
     )
 
-    if alt_names:
-        names = [x509.DNSName(n) for n in alt_names]
+    for extention in csr_object.extensions:
         certificate_builder = certificate_builder.add_extension(
-            x509.SubjectAlternativeName(names),
-            critical=False,
+            extention.value,
+            critical=extention.critical,
         )
     certificate_builder._version = x509.Version.v1
     cert = certificate_builder.sign(private_key, hashes.SHA256())  # type: ignore[arg-type]
