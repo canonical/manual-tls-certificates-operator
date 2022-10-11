@@ -44,6 +44,8 @@ class TestCharm(unittest.TestCase):
     def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
@@ -65,6 +67,8 @@ class TestCharm(unittest.TestCase):
     def test_given_configuration_options_are_set_and_unit_is_leader_when_config_changed_then_cert_is_added_to_peer_relation_data(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
@@ -95,6 +99,8 @@ class TestCharm(unittest.TestCase):
     def test_given_configuration_options_are_set_without_ca_chain_and_unit_is_leader_when_config_changed_then_cert_is_added_to_peer_relation_data(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
@@ -122,6 +128,8 @@ class TestCharm(unittest.TestCase):
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         self.harness.add_relation("replicas", self.harness.charm.app.name)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(
@@ -145,6 +153,8 @@ class TestCharm(unittest.TestCase):
     def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_but_no_common_name_when_config_changed_then_status_is_blocked(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         self.harness.set_leader(True)
         self.harness.add_relation("replicas", self.harness.charm.app.name)
 
@@ -159,6 +169,8 @@ class TestCharm(unittest.TestCase):
         )
 
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
+        assert self.harness.charm is not None
+
         self.harness.add_relation("replicas", self.harness.charm.app.name)
         key_values = {"ca-chain": "Whatever ca chain"}
 
@@ -170,6 +182,8 @@ class TestCharm(unittest.TestCase):
         )
 
     def test_given_non_base64_encoded_certificates_when_config_changed_then_unit_is_blocked(self):
+        assert self.harness.charm is not None
+
         self.harness.add_relation("replicas", self.harness.charm.app.name)
         key_values = {
             "certificate": "aaa",
@@ -185,6 +199,8 @@ class TestCharm(unittest.TestCase):
         )
 
     def test_given_user_provided_certs_not_valid_when_config_changed_then_status_is_blocked(self):
+        assert self.harness.charm is not None
+
         self.harness.add_relation("replicas", self.harness.charm.app.name)
         key_values = {
             "certificate": self._encode_in_base64("bad cert").decode(),
@@ -202,6 +218,8 @@ class TestCharm(unittest.TestCase):
     def test_given_unit_is_not_leader_and_self_signed_certs_are_not_yet_stored_when_config_changed_then_status_is_waiting(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(False)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
@@ -216,6 +234,8 @@ class TestCharm(unittest.TestCase):
     def test_given_unit_is_not_leader_and_self_signed_certs_are_stored_when_config_changed_then_status_is_active(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         self.harness.set_leader(False)
         relation_id = self.harness.add_relation(
             relation_name="replicas", remote_app=self.harness.charm.app.name
@@ -242,6 +262,8 @@ class TestCharm(unittest.TestCase):
         patch_set_relation_certificates,
         patch_generate_certificate,
     ):
+        assert self.harness.charm is not None
+
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
@@ -283,6 +305,8 @@ class TestCharm(unittest.TestCase):
         self,
         patch_set_relation_certificates,
     ):
+        assert self.harness.charm is not None
+
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
@@ -319,6 +343,8 @@ class TestCharm(unittest.TestCase):
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_creation_request_then_certificates_are_not_passed(  # noqa: E501
         self, patch_set_relation_certificates
     ):
+        assert self.harness.charm is not None
+
         event = Mock()
         event.relation_id = 1234
         common_name = "whatever common name"
@@ -341,6 +367,8 @@ class TestCharm(unittest.TestCase):
         patch_set_relation_certificates.assert_not_called()
 
     def test_given_no_config_when_on_certificate_creation_request_then_status_is_blocked(self):
+        assert self.harness.charm is not None
+
         event = Mock()
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
@@ -358,6 +386,8 @@ class TestCharm(unittest.TestCase):
     def test_given_peer_relation_is_not_created_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         event = Mock()
         self.harness.set_leader(True)
 
@@ -371,6 +401,8 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_certificates_not_yet_stored_when_on_certificate_creation_request_then_status_is_waiting(  # noqa: E501
         self,
     ):
+        assert self.harness.charm is not None
+
         event = Mock()
         self.harness.set_leader(True)
         self.harness.update_config(
