@@ -77,12 +77,12 @@ def generate_certificate(
         not_valid_after=datetime.datetime.utcnow() + datetime.timedelta(days=validity),
     )
 
-    for extention in csr_object.extensions:
+    for extension in csr_object.extensions:
         certificate_builder = certificate_builder.add_extension(
-            extention.value,
-            critical=extention.critical,
+            extension.value,
+            critical=extension.critical,
         )
-    certificate_builder._version = x509.Version.v1
+    certificate_builder._version = x509.Version.v3
     cert = certificate_builder.sign(private_key, hashes.SHA256())  # type: ignore[arg-type]
     return cert.public_bytes(serialization.Encoding.PEM)
 
