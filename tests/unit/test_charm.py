@@ -5,10 +5,20 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
+from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore
+    generate_csr,
+)
+from cryptography import x509
+from cryptography.x509 import DNSName
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from charm import TLSCertificatesOperatorCharm
+from self_signed_certificates import (
+    generate_ca,
+    generate_certificate,
+    generate_private_key,
+)
 
 testing.SIMULATE_CAN_CONNECT = True
 
@@ -384,3 +394,26 @@ class TestCharm(unittest.TestCase):
             WaitingStatus("Root Certificates are not yet set"),
             self.harness.charm.unit.status,
         )
+
+    def test_given_sans_added_to_csr_when_generate_certificate_then_the_correct_extensions_are_set_in_generated_certificate(  # noqa: E501
+        self,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+
+        sans = ["www.canonical.com", "test.com"]
+        csr = generate_csr(
+            generate_private_key(),
+            subject="my_subject",
+            sans=sans,
+        )
+
+        ca_private_key = generate_private_key()
+        ca_certificate = generate_ca(ca_private_key, "ca")
+        certificate = generate_certificate(csr, ca_certificate, ca_private_key)
+
+        cert = x509.load_pem_x509_certificate(certificate)
+        san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+        subj_alt_names = san_ext.value.get_values_for_type(DNSName)
+
+        self.assertCountEqual(subj_alt_names, sans)

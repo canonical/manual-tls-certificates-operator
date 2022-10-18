@@ -48,7 +48,6 @@ def generate_certificate(
     ca_key: bytes,
     ca_key_password: Optional[bytes] = None,
     validity: int = 365,
-    alt_names: list = None,
 ) -> bytes:
     """Generates a certificate based on CSR.
 
@@ -58,7 +57,6 @@ def generate_certificate(
         ca_key: The CA key, must be PEM format; if not in CAfile
         ca_key_password: The CA key password
         validity: Validity
-        alt_names: Alternative names (optional)
 
     Returns:
         bytes: Certificate
@@ -68,23 +66,21 @@ def generate_certificate(
     issuer = x509.load_pem_x509_certificate(ca).issuer
     private_key = serialization.load_pem_private_key(ca_key, password=ca_key_password)
 
-    certificate_builder = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(csr_object.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=validity))
+    certificate_builder = x509.CertificateBuilder(
+        subject_name=subject,
+        issuer_name=issuer,
+        public_key=csr_object.public_key(),
+        serial_number=x509.random_serial_number(),
+        not_valid_before=datetime.datetime.utcnow(),
+        not_valid_after=datetime.datetime.utcnow() + datetime.timedelta(days=validity),
     )
 
-    if alt_names:
-        names = [x509.DNSName(n) for n in alt_names]
+    for extension in csr_object.extensions:
         certificate_builder = certificate_builder.add_extension(
-            x509.SubjectAlternativeName(names),
-            critical=False,
+            extension.value,
+            critical=extension.critical,
         )
-    certificate_builder._version = x509.Version.v1
+    certificate_builder._version = x509.Version.v3
     cert = certificate_builder.sign(private_key, hashes.SHA256())  # type: ignore[arg-type]
     return cert.public_bytes(serialization.Encoding.PEM)
 
