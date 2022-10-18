@@ -5,7 +5,9 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-from charms.tls_certificates_interface.v1.tls_certificates import generate_csr # type: ignore
+from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore
+    generate_csr,
+)
 from cryptography import x509
 from cryptography.x509 import DNSName
 from ops import testing
