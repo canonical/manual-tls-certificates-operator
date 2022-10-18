@@ -395,7 +395,7 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
-    def test_given_sans_added_to_csr_when_created_then_set_the_correct_extension_on_generated_certificate(  # noqa: E501
+    def test_given_sans_added_to_csr_when_generate_certificate_then_the_correct_extensions_are_set_in_generated_certificate(  # noqa: E501
         self,
     ):
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
