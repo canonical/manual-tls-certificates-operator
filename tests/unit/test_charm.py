@@ -395,15 +395,17 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
-    def test_given_self_signed_certificates_with_additional_extensions(self):
-        """Test setting an extension on a CSR and retrieving it from the cert."""
+    def test_given_sans_added_to_csr_when_created_then_set_the_correct_extension_on_generated_certificate(  # noqa: E501
+        self,
+    ):
         peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
 
+        sans = ["www.canonical.com", "test.com"]
         csr = generate_csr(
             generate_private_key(),
             subject="my_subject",
-            sans=["www.canonical.com"],
+            sans=sans,
         )
 
         ca_private_key = generate_private_key()
@@ -414,4 +416,4 @@ class TestCharm(unittest.TestCase):
         san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
         subj_alt_names = san_ext.value.get_values_for_type(DNSName)
 
-        self.assertCountEqual(subj_alt_names, ["www.canonical.com"])
+        self.assertCountEqual(subj_alt_names, sans)
