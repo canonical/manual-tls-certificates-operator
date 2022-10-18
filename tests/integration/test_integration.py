@@ -41,6 +41,7 @@ class TestTLSCertificatesOperator:
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
+            series="focal",
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="blocked", timeout=1000)
@@ -64,6 +65,7 @@ class TestTLSCertificatesOperator:
             entity_url=charm,
             application_name=APPLICATION_NAME,
             config=config,
+            series="focal",
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
@@ -87,6 +89,7 @@ class TestTLSCertificatesOperator:
             entity_url=charm,
             application_name=APPLICATION_NAME,
             config=config,
+            series="focal",
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
