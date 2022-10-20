@@ -299,6 +299,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
                     )
                     return
                 self._generate_root_certificates()
+                self.tls_certificates.revoke_all_certificates()
+                logger.info("Revoked all previously issued certificates.")
             else:
                 if not self._self_signed_root_certificates_are_stored:
                     self.unit.status = WaitingStatus(
@@ -318,6 +320,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 return
             if self.unit.is_leader():
                 self._store_certificates_from_config()
+                self.tls_certificates.revoke_all_certificates()
+                logger.info("Revoked all previously issued certificates.")
         self.unit.status = ActiveStatus()
 
     def _store_certificates_from_config(self) -> None:
