@@ -35,7 +35,7 @@ jobs:
       - name: Promote Charm
         uses: canonical/charming-actions/release-charm@2.0.0
         with:
-          credentials: ${{ secrets.CHARMCRAFT_AUTH }}
+          credentials: ${{ secrets.CHARMHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           destination-channel: latest/${{ env.promote-to }}
           origin-channel: latest/${{ env.promote-from }}
