@@ -260,6 +260,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self._store_self_signed_ca_private_key(private_key.decode())
         self._store_self_signed_ca_private_key_password(private_key_password)
         logger.info("Root certificates generated and stored.")
+        self.tls_certificates.revoke_all_certificates()
+        logger.info("Revoked all previously issued certificates.")
 
     def _relation_created(self, relation_name: str) -> bool:
         """Returns whether given relation was created.
@@ -343,6 +345,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 base64.b64decode(certificate_config).decode("utf-8").strip(),
             ]
         self._store_config_ca_chain(ca_chain_list)
+        self.tls_certificates.revoke_all_certificates()
+        logger.info("Revoked all previously issued certificates.")
 
     def _generate_self_signed_certificates(self, certificate_signing_request: str) -> str:
         """Generates self-signed certificates.

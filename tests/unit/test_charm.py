@@ -417,3 +417,65 @@ class TestCharm(unittest.TestCase):
         subj_alt_names = san_ext.value.get_values_for_type(DNSName)
 
         self.assertCountEqual(subj_alt_names, sans)
+
+    @patch("charm.generate_certificate")
+    @patch(
+        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.revoke_all_certificates"  # noqa: E501, W505
+    )
+    def test_given_self_signed_option_is_true_and_unit_is_leader_when_config_changed_then_all_certificates_revoked(  # noqa: E501
+        self,
+        patch_revoke_all_certificates,
+        patch_generate_certificate,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        ca_certificate = "UHl0aG9uIGlzIGZ1bg=="
+        certificate = "eafeawewaf=="
+        certificate_bytes = certificate.encode("utf-8")
+        patch_generate_certificate.return_value = certificate_bytes
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+        self.harness.update_relation_data(
+            relation_id=peer_relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "self_signed_ca_certificate": ca_certificate,
+                "self_signed_ca_private_key": "whatever ca private key",
+                "self_signed_ca_private_key_password": "whatever ca password",
+            },
+        )
+
+        self.harness.update_config(
+            key_values={
+                "generate-self-signed-certificates": "true",
+                "ca-common-name": "whatever else",
+            }
+        )
+        patch_revoke_all_certificates.assert_called_with()
+
+    @patch(
+        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.revoke_all_certificates"  # noqa: E501, W505
+    )
+    def test_given_user_provided_certificates_and_unit_is_leader_when_config_changed_then_all_certificates_are_revoked(  # noqa: E501
+        self,
+        patch_revoke_all_certificates,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+        key_values = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        self.harness.update_config(key_values=key_values)
+
+        patch_revoke_all_certificates.assert_called_with()
