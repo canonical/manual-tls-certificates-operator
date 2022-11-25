@@ -18,6 +18,7 @@ from typing import List, Optional
 from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore[import]
     CertificateCreationRequestEvent,
     TLSCertificatesProvidesV1,
+    generate_csr,
 )
 from ops.charm import CharmBase, ConfigChangedEvent
 from ops.main import main
@@ -45,6 +46,9 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self.framework.observe(
             self.tls_certificates.on.certificate_creation_request,
             self._on_certificate_creation_request,
+        )
+        self.framework.observe(
+            self.on.generate_certificate_action, self._on_generate_certificate_action
         )
 
     @property
@@ -412,6 +416,51 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 ca=self._config_ca_certificate,
                 chain=self._config_ca_chain,
                 relation_id=event.relation_id,
+            )
+
+    def _on_generate_certificate_action(self, event) -> None:
+        """Generates TLS Certificate.
+
+        Generates a private key and certificate for an external service.
+        Args:
+            event: Juju event.
+
+        Returns:
+            None
+        """
+        logger.info("Received Certificate Creation Request via action")
+        if not self.unit.is_leader():
+            return
+        replicas_relation = self.model.get_relation("replicas")
+        if not replicas_relation:
+            self.unit.status = WaitingStatus("Waiting for peer relation to be created")
+            event.defer()
+            return
+
+        sans = None
+        if event.params["sans"]:
+            sans = event.params["sans"].split(" ")
+
+        if self._self_signed_certificates:
+            if not self._self_signed_root_certificates_are_stored:
+                self.unit.status = WaitingStatus("Root Certificates are not yet set")
+                event.defer()
+                return
+            private_key = generate_private_key()
+            csr = generate_csr(
+                private_key=private_key,
+                subject=event.params["cn"],
+                sans=sans,
+            )
+            certificate = self._generate_self_signed_certificates(csr.decode())
+            ca_chain = [self._self_signed_ca_certificate, certificate]
+            event.set_results(
+                {
+                    "private-key": private_key.decode(),
+                    "certificate": certificate,
+                    "ca-chain": ca_chain,
+                    "issuing-ca": self._self_signed_ca_certificate,
+                }
             )
 
     def get_missing_configuration_options(self) -> List[str]:

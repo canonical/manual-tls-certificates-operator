@@ -479,3 +479,30 @@ class TestCharm(unittest.TestCase):
         self.harness.update_config(key_values=key_values)
 
         patch_revoke_all_certificates.assert_called_with()
+
+    @patch("charm.generate_certificate")
+    def test_generate_certificate_action(self, patch_generate_certificate):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        ca_certificate = "UHl0aG9uIGlzIGZ1bg=="
+        certificate = "eafeawewaf=="
+        certificate_bytes = certificate.encode("utf-8")
+        patch_generate_certificate.return_value = certificate_bytes
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+        self.harness.update_relation_data(
+            relation_id=peer_relation_id,
+            app_or_unit=self.harness.charm.app.name,
+            key_values={
+                "self_signed_ca_certificate": ca_certificate,
+                "self_signed_ca_private_key": "whatever ca private key",
+                "self_signed_ca_private_key_password": "whatever ca password",
+            },
+        )
+        event = Mock()
+        event.params = {"sans": "", "cn": "test"}
+
+        self.harness.charm._on_generate_certificate_action(event=event)
+        event.set_results.assert_called_once()
