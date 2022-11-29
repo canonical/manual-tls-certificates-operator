@@ -4,7 +4,7 @@
 generate-certificate:
   description: Generate a certificate along with private key.
   params:
-    cn:
+    common-name:
       type: string
       description: >-
         CN (Common Name) field of the new certificate
@@ -14,5 +14,5 @@ generate-certificate:
         Space delimited list of Subject Alternate Name/IP addresse(s).
       default: ''
   required:
-    - cn
+    - common-name
   additionalProperties: False

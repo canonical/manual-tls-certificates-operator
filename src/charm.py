@@ -20,7 +20,7 @@ from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ign
     TLSCertificatesProvidesV1,
     generate_csr,
 )
-from ops.charm import CharmBase, ConfigChangedEvent
+from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
@@ -418,7 +418,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 relation_id=event.relation_id,
             )
 
-    def _on_generate_certificate_action(self, event) -> None:
+    def _on_generate_certificate_action(self, event: ActionEvent) -> None:
         """Generates TLS Certificate.
 
         Generates a private key and certificate for an external service.
@@ -428,13 +428,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
-        logger.info("Received Certificate Creation Request via action")
         if not self.unit.is_leader():
-            return
-        replicas_relation = self.model.get_relation("replicas")
-        if not replicas_relation:
-            self.unit.status = WaitingStatus("Waiting for peer relation to be created")
-            event.defer()
+            event.fail(message="Action cannot be run on non-leader unit")
             return
 
         sans = None
@@ -443,13 +438,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
         if self._self_signed_certificates:
             if not self._self_signed_root_certificates_are_stored:
-                self.unit.status = WaitingStatus("Root Certificates are not yet set")
-                event.defer()
+                event.fail(message="Root certificates not yet set")
                 return
+
             private_key = generate_private_key()
             csr = generate_csr(
                 private_key=private_key,
-                subject=event.params["cn"],
+                subject=event.params["common-name"],
                 sans=sans,
             )
             certificate = self._generate_self_signed_certificates(csr.decode())
@@ -462,6 +457,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
                     "issuing-ca": self._self_signed_ca_certificate,
                 }
             )
+        else:
+            event.fail(message="Action not supported as charm is not configured to be self-signed")
 
     def get_missing_configuration_options(self) -> List[str]:
         """Returns the list of missing configuration options.
