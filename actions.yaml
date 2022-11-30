@@ -1,8 +1,11 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-generate-certificate:
-  description: Generate a certificate along with private key.
+generate-self-signed-certificate:
+  description: >-
+    Generate a certificate along with private key.
+    Supported only when the tls-certificate-operator
+    is configured to be self-signed.
   params:
     common-name:
       type: string

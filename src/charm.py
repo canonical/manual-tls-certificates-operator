@@ -48,7 +48,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
             self._on_certificate_creation_request,
         )
         self.framework.observe(
-            self.on.generate_certificate_action, self._on_generate_certificate_action
+            self.on.generate_self_signed_certificate_action,
+            self._on_generate_self_signed_certificate_action,
         )
 
     @property
@@ -418,7 +419,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 relation_id=event.relation_id,
             )
 
-    def _on_generate_certificate_action(self, event: ActionEvent) -> None:
+    def _on_generate_self_signed_certificate_action(self, event: ActionEvent) -> None:
         """Generates TLS Certificate.
 
         Generates a private key and certificate for an external service.
@@ -432,33 +433,34 @@ class TLSCertificatesOperatorCharm(CharmBase):
             event.fail(message="Action cannot be run on non-leader unit")
             return
 
+        if not self._self_signed_certificates:
+            event.fail(message="Action not supported as charm is not configured to be self-signed")
+            return
+
+        if not self._self_signed_root_certificates_are_stored:
+            event.fail(message="Root certificates not yet set")
+            return
+
         sans = None
         if event.params["sans"]:
             sans = event.params["sans"].split(" ")
 
-        if self._self_signed_certificates:
-            if not self._self_signed_root_certificates_are_stored:
-                event.fail(message="Root certificates not yet set")
-                return
-
-            private_key = generate_private_key()
-            csr = generate_csr(
-                private_key=private_key,
-                subject=event.params["common-name"],
-                sans=sans,
-            )
-            certificate = self._generate_self_signed_certificates(csr.decode())
-            ca_chain = [self._self_signed_ca_certificate, certificate]
-            event.set_results(
-                {
-                    "private-key": private_key.decode(),
-                    "certificate": certificate,
-                    "ca-chain": ca_chain,
-                    "issuing-ca": self._self_signed_ca_certificate,
-                }
-            )
-        else:
-            event.fail(message="Action not supported as charm is not configured to be self-signed")
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            subject=event.params["common-name"],
+            sans=sans,
+        )
+        certificate = self._generate_self_signed_certificates(csr.decode())
+        ca_chain = [self._self_signed_ca_certificate, certificate]
+        event.set_results(
+            {
+                "private-key": private_key.decode(),
+                "certificate": certificate,
+                "ca-chain": ca_chain,
+                "issuing-ca": self._self_signed_ca_certificate,
+            }
+        )
 
     def get_missing_configuration_options(self) -> List[str]:
         """Returns the list of missing configuration options.
