@@ -479,3 +479,85 @@ class TestCharm(unittest.TestCase):
         self.harness.update_config(key_values=key_values)
 
         patch_revoke_all_certificates.assert_called_with()
+
+    def test_given_self_signed_option_is_true_and_unit_is_leader_and_root_certificates_are_stored_when_generate_certificate_action_triggered_then_certificates_are_set(  # noqa: E501
+        self,
+    ):
+        peer_relation_id = self.harness.add_relation("replicas", self.harness.charm.app.name)
+        self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
+        self.harness.set_leader(True)
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+        )
+
+        event = Mock()
+        sans = "www.canonical.com test.com"
+        event.params = {"sans": sans, "common-name": "test"}
+        self.harness.charm._on_generate_self_signed_certificate_action(event=event)
+
+        event.set_results.assert_called_once()
+        results = event.set_results.call_args.args[0]
+        keys_to_check = ["private-key", "certificate", "ca-chain", "issuing-ca"]
+        for key in keys_to_check:
+            self.assertIn(key, results)
+            self.assertIsNotNone(results[key])
+
+        certificate = results.get("certificate").encode()
+        cert = x509.load_pem_x509_certificate(certificate)
+        san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+        subj_alt_names = san_ext.value.get_values_for_type(DNSName)
+        self.assertEqual(subj_alt_names, sans.split(" "))
+
+    def test_given_self_signed_option_is_true_and_unit_is_leader_and_self_signed_certs_are_not_yet_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
+        self,
+    ):
+        key_values = {"generate-self-signed-certificates": "true"}
+        self.harness.set_leader(True)
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
+
+        self.harness.update_config(key_values=key_values)
+
+        event = Mock()
+        event.params = {"sans": "", "common-name": "test"}
+        self.harness.charm._on_generate_self_signed_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Root certificates not yet set")
+
+    def test_given_self_signed_option_is_true_and_unit_is_not_leader_and_root_certificates_are_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
+        self,
+    ):
+        key_values = {"generate-self-signed-certificates": "true"}
+        self.harness.set_leader(False)
+        self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
+        self.harness.update_config(key_values=key_values)
+
+        event = Mock()
+        event.params = {"sans": "", "common-name": "test"}
+        self.harness.charm._on_generate_self_signed_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action cannot be run on non-leader unit")
+
+    def test_given_self_signed_option_is_false_and_unit_is_leader_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
+        self,
+    ):
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(
+            filename="tests/ca_certificate.pem"
+        ).strip()
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+        key_values = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        self.harness.set_leader(True)
+        self.harness.update_config(key_values=key_values)
+
+        event = Mock()
+        event.params = {"sans": "", "common-name": "test"}
+        self.harness.charm._on_generate_self_signed_certificate_action(event=event)
+        event.fail.assert_called_once_with(
+            message="Action not supported as charm is not configured to be self-signed"
+        )

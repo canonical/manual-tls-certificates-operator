@@ -1,0 +1,21 @@
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+generate-self-signed-certificate:
+  description: >-
+    Generate a certificate along with private key.
+    Supported only when the tls-certificate-operator
+    is configured to be self-signed.
+  params:
+    common-name:
+      type: string
+      description: >-
+        CN (Common Name) field of the new certificate
+    sans:
+      type: string
+      description: >-
+        Space delimited list of Subject Alternate Name/IP addresse(s).
+      default: ''
+  required:
+    - common-name
+  additionalProperties: False
