@@ -506,7 +506,7 @@ class TestCharm(unittest.TestCase):
         cert = x509.load_pem_x509_certificate(certificate)
         san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
         subj_alt_names = san_ext.value.get_values_for_type(DNSName)
-        self.assertEqual(subj_alt_names, sans.split(" "))
+        self.assertCountEqual(subj_alt_names, sans.split(" "))
 
     def test_given_self_signed_option_is_true_and_unit_is_leader_and_self_signed_certs_are_not_yet_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
         self,
