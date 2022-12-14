@@ -10,7 +10,7 @@ on:
 jobs:
   lint-report:
     name: Lint report
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Install tox
@@ -20,7 +20,7 @@ jobs:
 
   static-analysis:
     name: Static analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Install tox
@@ -30,7 +30,7 @@ jobs:
 
   unit-tests-with-coverage:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Install tox
@@ -40,7 +40,7 @@ jobs:
 
   integration-test:
     name: Integration tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -50,3 +50,27 @@ jobs:
           provider: microk8s
       - name: Run integration tests
         run: tox -e integration
+      - name: Archive Tested Charm
+        uses: actions/upload-artifact@v3
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: tested-charm
+          path: .tox/**/tls-certificates-operator_ubuntu-20.04-amd64.charm
+          retention-days: 5
+
+  publish-charm:
+    name: Publish Charm
+    needs: integration-test
+    runs-on: ubuntu-20.04
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Fetch Tested Charm
+        uses: actions/download-artifact@v3
+        with:
+          name: tested-charm
+      - name: Upload charm to Charmhub edge channel
+        env:
+          CHARMCRAFT_AUTH: "${{ secrets.CHARMHUB_TOKEN }}"
+        run: charmcraft upload ./tls-certificates-operator_ubuntu-20.04-amd64.charm --release edge
