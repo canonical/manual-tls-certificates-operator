@@ -70,7 +70,10 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: tested-charm
+      - name: Select Charmhub channel
+        uses: canonical/charming-actions/channel@2.0.0-rc
+        id: channel
       - name: Upload charm to Charmhub edge channel
         env:
           CHARMCRAFT_AUTH: "${{ secrets.CHARMHUB_TOKEN }}"
-        run: charmcraft upload ./tls-certificates-operator_ubuntu-20.04-amd64.charm --release edge
+        run: charmcraft upload ./tls-certificates-operator_ubuntu-20.04-amd64.charm --release ${{ steps.channel.outputs.name }}
