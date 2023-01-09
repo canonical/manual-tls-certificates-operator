@@ -66,6 +66,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install charmcraft
+        run: snap install charmcraft --classic
       - name: Fetch Tested Charm
         uses: actions/download-artifact@v3
         with:
