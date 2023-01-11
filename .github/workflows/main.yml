@@ -72,6 +72,8 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: tested-charm
+      - name: Move charm in current directory
+        run: find ./ -name tls-certificates-operator_ubuntu-20.04-amd64.charm -exec mv -t ./ {} \;
       - name: Select Charmhub channel
         uses: canonical/charming-actions/channel@2.0.0-rc
         id: channel
