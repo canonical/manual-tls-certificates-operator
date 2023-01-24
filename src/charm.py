@@ -35,7 +35,7 @@ from self_signed_certificates import (
 logger = logging.getLogger(__name__)
 
 
-"Dummy change to trigger CI, trigger 2"
+"Dummy change to trigger CI, trigger 2, trigger 3"
 class TLSCertificatesOperatorCharm(CharmBase):
     """Main class to handle Juju events."""
 
