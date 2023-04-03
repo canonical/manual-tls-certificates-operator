@@ -17,3 +17,4 @@ parts:
       - libssl-dev
       - rustc
       - cargo
+      - pkg-config
