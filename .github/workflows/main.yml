@@ -57,6 +57,18 @@ jobs:
           name: tested-charm
           path: .tox/**/tls-certificates-operator_ubuntu-22.04-amd64.charm
           retention-days: 5
+      - name: Archive charmcraft logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: charmcraft-logs
+          path: /home/runner/.local/state/charmcraft/log/*.log
+      - name: Archive juju crashdump
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: juju-crashdump
+          path: juju-crashdump-*.tar.xz
 
   publish-charm:
     name: Publish Charm
