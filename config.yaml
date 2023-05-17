@@ -5,15 +5,24 @@ options:
   generate-self-signed-certificates:
     type: boolean
     default: false
-    description: Generate self-signed certificates and ignores provided certificates.
+    description: |
+      This feature is deprecated, please use the self-signed-certificates operator.
+      
+      Generate self-signed certificates and ignores provided certificates.
   ca-common-name:
     type: string
     default:
-    description: Common name to be used only if `generate-self-signed-certificates` set to true.
+    description: |
+      This feature is deprecated, please use the self-signed-certificates operator.
+      
+      Common name to be used only if `generate-self-signed-certificates` set to true.
   certificate-validity:
     type: int
     default: 365
-    description: Certificate validity (in days) only if `generate-self-signed-certificates` set to true.
+    description: |
+      This feature is deprecated, please use the self-signed-certificates operator.
+      
+      Certificate validity (in days) only if `generate-self-signed-certificates` set to true.
   certificate:
     type: string
     default:
