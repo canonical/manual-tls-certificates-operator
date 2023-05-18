@@ -16,9 +16,10 @@ juju deploy tls-certificates-operator \
 juju relate tls-certificates-operator your-charm
 ```
 
-### With self-signed certificates
+### With self-signed certificates (deprecated)
 
-> **Warning**: This configuration option is unsecure and should be used for testing only.
+> **Warning**: This feature is deprecated and will be dropped in the future, please use the 
+> [self-signed-certificates](https://charmhub.io/self-signed-certificates) operator.
 
 ```bash
 juju deploy tls-certificates-operator \

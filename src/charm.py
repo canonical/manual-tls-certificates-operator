@@ -296,6 +296,10 @@ class TLSCertificatesOperatorCharm(CharmBase):
             event.defer()
             return
         if self._self_signed_certificates:
+            logger.warning(
+                "The `self-signed` feature is deprecated and will be dropped in the furure, "
+                "please use the self-signed-certificates operator."
+            )
             if self.unit.is_leader():
                 if not self._config_ca_common_name:
                     self.unit.status = BlockedStatus(
