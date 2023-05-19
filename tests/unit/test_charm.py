@@ -13,7 +13,7 @@ from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ign
 from cryptography import x509
 from cryptography.x509 import DNSName
 from ops import testing
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus, Relation, Application
+from ops.model import ActiveStatus, Application, BlockedStatus, Relation, WaitingStatus
 
 from charm import TLSCertificatesOperatorCharm
 from self_signed_certificates import (
