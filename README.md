@@ -36,6 +36,8 @@ List of configuration options:
 - **certificate (string)**: Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
 - **ca-certificate (string)**: Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
 - **ca-chain (string)**: Base64 encoded CA Chain (do not use if 'generate-self-signed-certificates' is set to true).
+- **ca-certificate-validity(int)**: Integer representing the number of days for which the self-signed certificates are valid (only use if 'generate-self-signed-certificates' is set to true). Its value should not be smaller than `certificate-validity`.
+- **certificate-validity(int)**: Integer representing the number of days for which the self-signed certificates are valid (only use if 'generate-self-signed-certificates' is set to true). Its value should not be larger than `ca-certificate-validity`.
 
 
 ## Relations
