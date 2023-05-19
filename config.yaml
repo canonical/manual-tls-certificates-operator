@@ -16,6 +16,13 @@ options:
       This feature is deprecated, please use the self-signed-certificates operator.
       
       Common name to be used only if `generate-self-signed-certificates` set to true.
+  ca-certificate-validity:
+    type: int
+    default: 365
+    description: |
+      This feature is deprecated, please use the self-signed-certificates operator.
+
+      CA Certificate validity (in days) only if `generate-self-signed-certificates` set to true.
   certificate-validity:
     type: int
     default: 365

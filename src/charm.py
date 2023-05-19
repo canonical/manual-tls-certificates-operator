@@ -59,7 +59,22 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             int: Certificate validity (in days)
         """
-        return int(self.model.config.get("certificate-validity", 365))
+        certificate_validity = int(self.model.config.get("certificate-validity", 365))
+        if certificate_validity > self._ca_certificate_validity:
+            logger.warning(
+                f"certificate validity is larger than CA certificate validity: "
+                f"{certificate_validity} > {self._ca_certificate_validity}"
+            )
+        return certificate_validity
+
+    @property
+    def _ca_certificate_validity(self) -> int:
+        """Returns CA certificate validity (in days).
+
+        Returns:
+            int: CA Certificate validity (in days)
+        """
+        return int(self.model.config.get("ca-certificate-validity", 365))
 
     @property
     def _self_signed_certificates(self) -> bool:
@@ -260,6 +275,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             private_key=private_key,
             subject=self._config_ca_common_name,  # type: ignore[arg-type]  # noqa: E501
             private_key_password=private_key_password.encode(),
+            validity=self._ca_certificate_validity,
         )
         self._store_self_signed_ca_certificate(ca_certificate.decode())
         self._store_self_signed_ca_private_key(private_key.decode())
