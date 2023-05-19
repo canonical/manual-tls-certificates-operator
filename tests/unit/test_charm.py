@@ -13,7 +13,7 @@ from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ign
 from cryptography import x509
 from cryptography.x509 import DNSName
 from ops import testing
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus, Relation, Application
 
 from charm import TLSCertificatesOperatorCharm
 from self_signed_certificates import (
@@ -181,6 +181,10 @@ class TestCharm(unittest.TestCase):
         )
 
         rel = self.harness.charm.model.get_relation("replicas")
+
+        assert isinstance(rel, Relation)
+        assert isinstance(rel.app, Application)
+
         cert = x509.load_pem_x509_certificate(
             rel.data[rel.app]["self_signed_ca_certificate"].encode("utf-8")
         )
@@ -201,11 +205,15 @@ class TestCharm(unittest.TestCase):
             key_values={
                 "generate-self-signed-certificates": "true",
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": n,
+                "ca-certificate-validity": str(n),
             }
         )
 
         rel = self.harness.charm.model.get_relation("replicas")
+
+        assert isinstance(rel, Relation)
+        assert isinstance(rel.app, Application)
+
         cert = x509.load_pem_x509_certificate(
             rel.data[rel.app]["self_signed_ca_certificate"].encode("utf-8")
         )
@@ -224,7 +232,7 @@ class TestCharm(unittest.TestCase):
             key_values={
                 "generate-self-signed-certificates": "true",
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": 100,
+                "ca-certificate-validity": "100",
             }
         )
 
