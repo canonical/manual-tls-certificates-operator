@@ -62,8 +62,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         certificate_validity = int(self.model.config.get("certificate-validity", 365))
         if certificate_validity > self._ca_certificate_validity:
             logger.warning(
-                f"certificate validity is larger than CA certificate validity: "
-                f"{certificate_validity} > {self._ca_certificate_validity}"
+                f"certificate validity is larger than CA certificate validity"
             )
         return certificate_validity
 
