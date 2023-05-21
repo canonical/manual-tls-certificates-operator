@@ -3,7 +3,6 @@
 import base64
 import datetime
 import json
-import logging
 import unittest
 from unittest.mock import Mock, patch
 
