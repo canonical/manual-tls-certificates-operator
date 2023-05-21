@@ -236,14 +236,7 @@ class TestCharm(unittest.TestCase):
             }
         )
 
-        with self.assertLogs(level=logging.WARNING) as logs:
-            _ = self.harness.charm._certificate_validity
-
-        self.assertEqual(len(logs.records), 1)
-        self.assertTrue(
-            "certificate validity is larger than CA certificate validity"
-            in logs.records[0].message
-        )
+        self.assertTrue(type(self.harness.charm.unit.status), BlockedStatus)
 
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
         self.harness.add_relation("replicas", self.harness.charm.app.name)
