@@ -1,6 +1,7 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 import base64
+import datetime
 import json
 import unittest
 from unittest.mock import Mock, patch
@@ -11,7 +12,7 @@ from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ign
 from cryptography import x509
 from cryptography.x509 import DNSName
 from ops import testing
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, Application, BlockedStatus, Relation, WaitingStatus
 
 from charm import TLSCertificatesOperatorCharm
 from self_signed_certificates import (
@@ -167,6 +168,74 @@ class TestCharm(unittest.TestCase):
             ),
             self.harness.charm.unit.status,
         )
+
+    def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_default_validity(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(True)
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+
+        self.harness.update_config(
+            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "RootCA"}
+        )
+
+        rel = self.harness.charm.model.get_relation("replicas")
+
+        assert isinstance(rel, Relation)
+        assert isinstance(rel.app, Application)
+
+        cert = x509.load_pem_x509_certificate(
+            rel.data[rel.app]["self_signed_ca_certificate"].encode("utf-8")
+        )
+        assert (
+            cert.not_valid_after.date()
+            == (datetime.datetime.now() + datetime.timedelta(days=365)).date()
+        )
+
+    def test_given_unit_is_leader_and_generate_self_signed_certificate_set_to_true_custom_validity(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(True)
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+
+        n = 500
+
+        self.harness.update_config(
+            key_values={
+                "generate-self-signed-certificates": "true",
+                "ca-common-name": "RootCA",
+                "ca-certificate-validity": str(n),
+            }
+        )
+
+        rel = self.harness.charm.model.get_relation("replicas")
+
+        assert isinstance(rel, Relation)
+        assert isinstance(rel.app, Application)
+
+        cert = x509.load_pem_x509_certificate(
+            rel.data[rel.app]["self_signed_ca_certificate"].encode("utf-8")
+        )
+        assert (
+            cert.not_valid_after.date()
+            == (datetime.datetime.now() + datetime.timedelta(days=n)).date()
+        )
+
+    def test_given_not_consistent_ca_certificate_and_certificate_validity(  # noqa: E501
+        self,
+    ):
+        self.harness.set_leader(True)
+        self.harness.add_relation("replicas", self.harness.charm.app.name)
+
+        self.harness.update_config(
+            key_values={
+                "generate-self-signed-certificates": "true",
+                "ca-common-name": "RootCA",
+                "ca-certificate-validity": "100",
+            }
+        )
+
+        self.assertTrue(type(self.harness.charm.unit.status), BlockedStatus)
 
     def test_given_missing_configuration_options_when_config_changed_then_status_is_blocked(self):
         self.harness.add_relation("replicas", self.harness.charm.app.name)
@@ -327,7 +396,8 @@ class TestCharm(unittest.TestCase):
         "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_creation_request_then_certificates_are_not_passed(  # noqa: E501
-        self, patch_set_relation_certificates
+        self,
+        patch_set_relation_certificates,
     ):
         event = Mock()
         event.relation_id = 1234

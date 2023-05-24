@@ -62,6 +62,15 @@ class TLSCertificatesOperatorCharm(CharmBase):
         return int(self.model.config.get("certificate-validity", 365))
 
     @property
+    def _ca_certificate_validity(self) -> int:
+        """Returns CA certificate validity (in days).
+
+        Returns:
+            int: CA Certificate validity (in days)
+        """
+        return int(self.model.config.get("ca-certificate-validity", 365))
+
+    @property
     def _self_signed_certificates(self) -> bool:
         """Returns whether the 'generate-self-signed-certificates' config is set to True.
 
@@ -260,6 +269,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             private_key=private_key,
             subject=self._config_ca_common_name,  # type: ignore[arg-type]  # noqa: E501
             private_key_password=private_key_password.encode(),
+            validity=self._ca_certificate_validity,
         )
         self._store_self_signed_ca_certificate(ca_certificate.decode())
         self._store_self_signed_ca_private_key(private_key.decode())
@@ -307,6 +317,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
                         "`generate-self-signed-certificates` is set to True."
                     )
                     return
+
+                if self._certificate_validity > self._ca_certificate_validity:
+                    self.unit.status = BlockedStatus(
+                        "certificate validity is larger than CA certificate validity"
+                    )
+                    return
+
                 self._generate_root_certificates()
                 self.tls_certificates.revoke_all_certificates()
                 logger.info("Revoked all previously issued certificates.")
