@@ -6,7 +6,7 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore
+from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore
     generate_csr,
 )
 from cryptography import x509
@@ -314,7 +314,7 @@ class TestCharm(unittest.TestCase):
 
     @patch("charm.generate_certificate")
     @patch(
-        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_self_signed_option_is_true_and_unit_is_leader_and_root_certificates_are_stored_when_certificate_creation_request_then_certificates_are_set(  # noqa: E501
         self,
@@ -356,7 +356,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(
-        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_user_provided_certificates_and_unit_is_leader_and_root_certificates_are_stored_when_certificate_creation_request_then_certificates_are_set(  # noqa: E501
         self,
@@ -393,7 +393,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(
-        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.set_relation_certificate"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_configuration_options_are_set_and_unit_is_not_leader_when_certificate_creation_request_then_certificates_are_not_passed(  # noqa: E501
         self,
@@ -490,7 +490,7 @@ class TestCharm(unittest.TestCase):
 
     @patch("charm.generate_certificate")
     @patch(
-        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.revoke_all_certificates"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.revoke_all_certificates"  # noqa: E501, W505
     )
     def test_given_self_signed_option_is_true_and_unit_is_leader_when_config_changed_then_all_certificates_revoked(  # noqa: E501
         self,
@@ -526,7 +526,7 @@ class TestCharm(unittest.TestCase):
         patch_revoke_all_certificates.assert_called_with()
 
     @patch(
-        "charms.tls_certificates_interface.v1.tls_certificates.TLSCertificatesProvidesV1.revoke_all_certificates"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.revoke_all_certificates"  # noqa: E501, W505
     )
     def test_given_user_provided_certificates_and_unit_is_leader_when_config_changed_then_all_certificates_are_revoked(  # noqa: E501
         self,

@@ -15,9 +15,9 @@ import secrets
 import string
 from typing import List, Optional
 
-from charms.tls_certificates_interface.v1.tls_certificates import (  # type: ignore[import]
+from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import]
     CertificateCreationRequestEvent,
-    TLSCertificatesProvidesV1,
+    TLSCertificatesProvidesV2,
     generate_csr,
 )
 from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent
@@ -41,7 +41,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        self.tls_certificates = TLSCertificatesProvidesV1(self, "certificates")
+        self.tls_certificates = TLSCertificatesProvidesV2(self, "certificates")
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.tls_certificates.on.certificate_creation_request,
