@@ -47,7 +47,9 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
+          juju-channel: 3.1/stable
           provider: microk8s
+          channel: 1.27-strict/stable
       - name: Run integration tests
         run: tox -e integration
       - name: Archive Tested Charm
