@@ -111,6 +111,26 @@ class TestTLSCertificatesOperator:
     async def test_given_tls_requirer_is_deployed_and_related_then_certificate_is_created_and_passed_correctly(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+        config = {
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+        }
+        await ops_test.model.deploy(
+            entity_url=charm,
+            application_name=APPLICATION_NAME,
+            config=config,
+            series="jammy",
+        )
+
+        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
+
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
@@ -125,14 +145,18 @@ class TestTLSCertificatesOperator:
             timeout=1000,
         )
         action_output = await run_get_certificate_action(ops_test)
-        assert action_output["certificate"] == self.get_certificate_from_file(
-            filename="tests/certificate.pem"
+        assert (
+            action_output["certificate"]
+            == self.get_certificate_from_file(filename="tests/certificate.pem").strip('\n')
         )
-        assert action_output["ca-certificate"] == self.get_certificate_from_file(
-            filename="tests/ca_certificate.pem"
+        assert (
+            action_output["ca-certificate"]
+            == self.get_certificate_from_file(filename="tests/ca_certificate.pem").strip('\n')
         )
-        assert action_output["chain"] == self.get_certificate_from_file(
-            filename="tests/ca_chain.pem"
+        joined_chain = '\n'.join(action_output["chain"])
+        assert (
+            joined_chain
+            == self.get_certificate_from_file(filename="tests/ca_chain.pem").strip('\n')
         )
 
 
