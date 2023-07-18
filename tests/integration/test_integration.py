@@ -145,18 +145,15 @@ class TestTLSCertificatesOperator:
             timeout=1000,
         )
         action_output = await run_get_certificate_action(ops_test)
-        assert (
-            action_output["certificate"]
-            == self.get_certificate_from_file(filename="tests/certificate.pem").strip('\n')
-        )
-        assert (
-            action_output["ca-certificate"]
-            == self.get_certificate_from_file(filename="tests/ca_certificate.pem").strip('\n')
-        )
-        joined_chain = '\n'.join(action_output["chain"])
-        assert (
-            joined_chain
-            == self.get_certificate_from_file(filename="tests/ca_chain.pem").strip('\n')
+        assert action_output["certificate"] == self.get_certificate_from_file(
+            filename="tests/certificate.pem"
+        ).strip("\n")
+        assert action_output["ca-certificate"] == self.get_certificate_from_file(
+            filename="tests/ca_certificate.pem"
+        ).strip("\n")
+        joined_chain = "\n".join(action_output["chain"])
+        assert joined_chain == self.get_certificate_from_file(filename="tests/ca_chain.pem").strip(
+            "\n"
         )
 
 
