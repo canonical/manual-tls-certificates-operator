@@ -151,10 +151,17 @@ class TestTLSCertificatesOperator:
         assert action_output["ca-certificate"] == self.get_certificate_from_file(
             filename="tests/ca_certificate.pem"
         ).strip("\n")
-        joined_chain = "\n".join(action_output["chain"])
-        assert joined_chain == self.get_certificate_from_file(filename="tests/ca_chain.pem").strip(
-            "\n"
+        formatted_chain = (
+            action_output["chain"]
+            .replace("[", "")
+            .replace("]", "")
+            .replace("'", "")
+            .replace(", ", "\n")
+            .replace("\\n", "\n")
         )
+        assert formatted_chain == self.get_certificate_from_file(
+            filename="tests/ca_chain.pem"
+        ).strip("\n")
 
 
 async def run_get_certificate_action(ops_test) -> dict:
