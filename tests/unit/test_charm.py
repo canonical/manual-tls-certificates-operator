@@ -21,8 +21,6 @@ from self_signed_certificates import (
     generate_private_key,
 )
 
-testing.SIMULATE_CAN_CONNECT = True
-
 
 class TestCharm(unittest.TestCase):
     @staticmethod
@@ -159,7 +157,7 @@ class TestCharm(unittest.TestCase):
         self.harness.set_leader(True)
         self.harness.add_relation("replicas", self.harness.charm.app.name)
 
-        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+        self.harness.update_config(key_values={"generate-self-signed-certificates": True})
 
         self.assertEqual(
             BlockedStatus(
@@ -176,7 +174,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("replicas", self.harness.charm.app.name)
 
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "RootCA"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "RootCA"}
         )
 
         rel = self.harness.charm.model.get_relation("replicas")
@@ -202,9 +200,9 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": str(n),
+                "ca-certificate-validity": n,
             }
         )
 
@@ -229,9 +227,9 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": "100",
+                "ca-certificate-validity": 100,
             }
         )
 
@@ -281,7 +279,7 @@ class TestCharm(unittest.TestCase):
     def test_given_unit_is_not_leader_and_self_signed_certs_are_not_yet_stored_when_config_changed_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(False)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -308,7 +306,7 @@ class TestCharm(unittest.TestCase):
                 "self_signed_ca_private_key_password": "whatever password",
             },
         )
-        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+        self.harness.update_config(key_values={"generate-self-signed-certificates": True})
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
@@ -330,7 +328,7 @@ class TestCharm(unittest.TestCase):
         certificate_bytes = certificate.encode("utf-8")
         patch_generate_certificate.return_value = certificate_bytes
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.update_relation_data(
             relation_id=peer_relation_id,
@@ -454,7 +452,7 @@ class TestCharm(unittest.TestCase):
         event = Mock()
         self.harness.set_leader(True)
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -505,7 +503,7 @@ class TestCharm(unittest.TestCase):
         certificate_bytes = certificate.encode("utf-8")
         patch_generate_certificate.return_value = certificate_bytes
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.update_relation_data(
             relation_id=peer_relation_id,
@@ -519,7 +517,7 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "whatever else",
             }
         )
@@ -557,7 +555,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
 
         event = Mock()
@@ -581,7 +579,7 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_option_is_true_and_unit_is_leader_and_self_signed_certs_are_not_yet_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(True)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -595,7 +593,7 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_option_is_true_and_unit_is_not_leader_and_root_certificates_are_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(False)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
         self.harness.update_config(key_values=key_values)

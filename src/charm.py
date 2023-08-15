@@ -34,6 +34,8 @@ from self_signed_certificates import (
 
 logger = logging.getLogger(__name__)
 
+CERTIFICATES_RELATION = "certificates"
+
 
 class TLSCertificatesOperatorCharm(CharmBase):
     """Main class to handle Juju events."""
@@ -41,7 +43,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        self.tls_certificates = TLSCertificatesProvidesV2(self, "certificates")
+        self.tls_certificates = TLSCertificatesProvidesV2(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.tls_certificates.on.certificate_creation_request,
@@ -50,6 +52,18 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self.framework.observe(
             self.on.generate_self_signed_certificate_action,
             self._on_generate_self_signed_certificate_action,
+        )
+        self.framework.observe(
+            self.on.get_all_certificate_requests_action,
+            self._on_get_all_certificate_requests_action,
+        )
+        self.framework.observe(
+            self.on.get_certificate_request_action,
+            self._on_get_certificate_request_action,
+        )
+        self.framework.observe(
+            self.on.provide_certificate_action,
+            self._on_provide_certificate_action,
         )
 
     @property
@@ -156,11 +170,11 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
     @property
     def _config_certificate(self) -> Optional[str]:
-        return self._get_value_from_relation_data("config_certificate")
+        return self._get_value_from_peer_relation_data("config_certificate")
 
     @property
     def _config_ca_chain(self) -> List[str]:
-        relation_data_config_ca_chain = self._get_value_from_relation_data("config_ca_chain")
+        relation_data_config_ca_chain = self._get_value_from_peer_relation_data("config_ca_chain")
         if relation_data_config_ca_chain:
             return json.loads(relation_data_config_ca_chain)
         else:
@@ -168,19 +182,19 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
     @property
     def _config_ca_certificate(self) -> Optional[str]:
-        return self._get_value_from_relation_data("config_ca_certificate")
+        return self._get_value_from_peer_relation_data("config_ca_certificate")
 
     @property
     def _self_signed_ca_certificate(self) -> Optional[str]:
-        return self._get_value_from_relation_data("self_signed_ca_certificate")
+        return self._get_value_from_peer_relation_data("self_signed_ca_certificate")
 
     @property
     def _self_signed_ca_private_key(self) -> Optional[str]:
-        return self._get_value_from_relation_data("self_signed_ca_private_key")
+        return self._get_value_from_peer_relation_data("self_signed_ca_private_key")
 
     @property
     def _self_signed_ca_private_key_password(self) -> Optional[str]:
-        return self._get_value_from_relation_data("self_signed_ca_private_key_password")
+        return self._get_value_from_peer_relation_data("self_signed_ca_private_key_password")
 
     @property
     def _self_signed_root_certificates_are_stored(self) -> bool:
@@ -239,7 +253,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             raise RuntimeError("No peer relation")
         peer_relation.data[self.app].update({key: value.strip()})
 
-    def _get_value_from_relation_data(self, key: str) -> Optional[str]:
+    def _get_value_from_peer_relation_data(self, key: str) -> Optional[str]:
         """Returns value from relation data.
 
         Args:
@@ -342,6 +356,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 )
                 return
             if not self._config_certificates_are_valid:
+                # TODO, which certs are not valid? should we provide a name?
                 self.unit.status = BlockedStatus("Certificates are not valid")
                 return
             if self.unit.is_leader():
@@ -482,6 +497,75 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 "issuing-ca": self._self_signed_ca_certificate,
             }
         )
+
+    def _on_get_all_certificate_requests_action(self, event: ActionEvent) -> None:
+        """Returns all certificate requests.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            None
+        """
+        if not self.unit.is_leader():
+            event.fail(message="Action cannot be run on non-leader unit")
+
+        event.set_results(self.tls_certificates.get_requirer_csrs_with_no_certs())
+
+    def _on_get_certificate_request_action(self, event: ActionEvent) -> None:
+        """Returns certificate request for a specific relation.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            None
+        """
+        if not self.unit.is_leader():
+            event.fail(message="Action cannot be run on non-leader unit")
+
+        event.set_results(
+            self.tls_certificates.get_requirer_csrs(relation_id=event.params["relation-id"])
+        )
+
+    def _on_provide_certificate_action(self, event: ActionEvent) -> None:
+        """Provides certificate to a specific requirer unit.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            None
+        """
+        if not self.unit.is_leader():
+            event.fail(message="Action cannot be run on non-leader unit")
+
+        try:
+            certificate_bytes = base64.b64decode(event.params["certificate"])
+            ca_certificate_bytes = base64.b64decode(event.params["ca-certificate"])
+            csr_bytes = base64.b64decode(event.params["certificate-signing-request"])
+            ca_chain_bytes = base64.b64decode(event.params["ca-chain"])
+        except (binascii.Error, TypeError) as e:
+            logger.error("Invalid input: %s", e)
+            event.fail(message="Invalid input.")
+
+        if not certificate_is_valid(certificate_bytes):
+            event.fail(message="certificate is not valid")
+        if not certificate_is_valid(ca_certificate_bytes):
+            event.fail(message="ca certificate is not valid")
+        if not certificate_is_valid(csr_bytes):
+            event.fail(message="certificate signing request is not valid")
+        if not certificate_is_valid(ca_chain_bytes):
+            event.fail(message="ca chain is not valid")
+
+        self.tls_certificates.set_relation_certificate(
+            certificate_signing_request=event.params["certificate-signing-request"],
+            certificate=event.params["certificate"],
+            ca=event.params["ca-certificate"],
+            chain=event.params["ca-chain"],
+            relation_id=event.params["relation-id"],
+        )
+        event.set_results({"result": "success"})
 
     def get_missing_configuration_options(self) -> List[str]:
         """Returns the list of missing configuration options.

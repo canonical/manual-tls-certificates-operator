@@ -19,3 +19,50 @@ generate-self-signed-certificate:
   required:
     - common-name
   additionalProperties: False
+
+get-all-certificate-requests:
+  description: >-
+    Get certificate requests from all connected requirer units.
+
+get-certificate-request:
+  description: >-
+    Get certificate requests from a specific requirer application.
+  params:
+    relation-id:
+      type: string
+      description: >-
+        ID of the relation between the tls-certificate-operator and the requirer.
+  required:
+    - relation-id
+
+provide-certificate:
+  description: >-
+    Provide a certificate to a specific requirer unit.
+  params:
+    relation-id:
+      type: string
+      description: >-
+        ID of the relation between the tls-certificate-operator and the requirer.
+    certificate-signing-request:
+      type: string
+      description: >-
+        The request to which the certificate is being provided.
+    certificate:
+      type: string
+      description: >-
+        Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
+    ca-chain:
+      type: string
+      description: >-
+        Base64 encoded CA chain (do not use if 'generate-self-signed-certificates' is set to true).
+        If not provided, the ca-chain will be composed of the application and the ca-certificate.
+    ca-certificate:
+      type: string
+      description: >-
+        Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
+  required:
+    - relation-id
+    - unit-name
+    - certificate
+    - ca-chain
+    - ca-certificate
