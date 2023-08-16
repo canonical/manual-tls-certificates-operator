@@ -356,7 +356,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 )
                 return
             if not self._config_certificates_are_valid:
-                # TODO, which certs are not valid? should we provide a name?
                 self.unit.status = BlockedStatus("Certificates are not valid")
                 return
             if self.unit.is_leader():
@@ -507,10 +506,9 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
-        if not self.unit.is_leader():
-            event.fail(message="Action cannot be run on non-leader unit")
-
-        event.set_results(self.tls_certificates.get_requirer_csrs_with_no_certs())
+        event.set_results(
+            {"Result": self.tls_certificates.get_requirer_units_csrs_with_no_certs()}
+        )
 
     def _on_get_certificate_request_action(self, event: ActionEvent) -> None:
         """Returns certificate request for a specific relation.
@@ -521,11 +519,12 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
-        if not self.unit.is_leader():
-            event.fail(message="Action cannot be run on non-leader unit")
-
         event.set_results(
-            self.tls_certificates.get_requirer_csrs(relation_id=event.params["relation-id"])
+            {
+                "Result": self.tls_certificates.get_requirer_csrs_by_unit(
+                    relation_id=event.params["relation-id"]
+                )
+            }
         )
 
     def _on_provide_certificate_action(self, event: ActionEvent) -> None:
@@ -538,34 +537,64 @@ class TLSCertificatesOperatorCharm(CharmBase):
             None
         """
         if not self.unit.is_leader():
-            event.fail(message="Action cannot be run on non-leader unit")
+            event.fail(message="Action cannot be run on non-leader unit.")
+            return
+
+        if not self._action_certificates_are_valid(event):
+            event.fail(message="Action input is not valid.")
+            return
+
+        ca_chain_list = parse_ca_chain(base64.b64decode(event.params["ca-chain"]).decode())
+        csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
+        certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
+        ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
         try:
+            self.tls_certificates.set_relation_certificate(
+                certificate_signing_request=csr,
+                certificate=certificate,
+                ca=ca_cert,
+                chain=ca_chain_list,
+                relation_id=event.params["relation-id"],
+                unit_name=event.params.get("unit-name", None),
+            )
+        except RuntimeError:
+            event.fail(message="Relation does not exist with the provided id.")
+            return
+        event.set_results({"Result": "Certificates successfully provided."})
+
+    def _action_certificates_are_valid(self, event: ActionEvent) -> bool:
+        """Validates certificates provided in action.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            bool: Wether certificates are valid.
+        """
+        try:
             certificate_bytes = base64.b64decode(event.params["certificate"])
+            print(certificate_bytes)
             ca_certificate_bytes = base64.b64decode(event.params["ca-certificate"])
             csr_bytes = base64.b64decode(event.params["certificate-signing-request"])
             ca_chain_bytes = base64.b64decode(event.params["ca-chain"])
         except (binascii.Error, TypeError) as e:
             logger.error("Invalid input: %s", e)
-            event.fail(message="Invalid input.")
+            return False
 
         if not certificate_is_valid(certificate_bytes):
-            event.fail(message="certificate is not valid")
+            return False
         if not certificate_is_valid(ca_certificate_bytes):
-            event.fail(message="ca certificate is not valid")
+            return False
         if not certificate_is_valid(csr_bytes):
-            event.fail(message="certificate signing request is not valid")
-        if not certificate_is_valid(ca_chain_bytes):
-            event.fail(message="ca chain is not valid")
+            return False
 
-        self.tls_certificates.set_relation_certificate(
-            certificate_signing_request=event.params["certificate-signing-request"],
-            certificate=event.params["certificate"],
-            ca=event.params["ca-certificate"],
-            chain=event.params["ca-chain"],
-            relation_id=event.params["relation-id"],
-        )
-        event.set_results({"result": "success"})
+        ca_chain_list = parse_ca_chain(ca_chain_bytes.decode())
+        for ca in ca_chain_list:
+            if not certificate_is_valid(ca.encode()):
+                return False
+
+        return True
 
     def get_missing_configuration_options(self) -> List[str]:
         """Returns the list of missing configuration options.

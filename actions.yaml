@@ -60,9 +60,13 @@ provide-certificate:
       type: string
       description: >-
         Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
+    unit-name:
+      type: string
+      description: >-
+        Name of the unit to which the certificate is being provided.
   required:
     - relation-id
-    - unit-name
+    - certificate-signing-request
     - certificate
     - ca-chain
     - ca-certificate

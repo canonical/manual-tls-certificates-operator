@@ -629,3 +629,98 @@ class TestCharm(unittest.TestCase):
         event.fail.assert_called_once_with(
             message="Action not supported as charm is not configured to be self-signed"
         )
+
+    def test_given_no_requirer_application_when_get_all_certificate_requests_action_then_empty_list_returned(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.charm._on_get_all_certificate_requests_action(event=event)
+        event.set_results.assert_called_once_with({"Result": []})
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_units_csrs_with_no_certs"  # noqa: E501, W505
+    )
+    def test_given_requirer_application_when_get_all_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
+        self, patch_get_requirer_units_csrs_with_no_certs
+    ):
+        example_unit_csrs = [
+            {
+                "relation_id": 1234,
+                "unit_name": "unit/0",
+                "application_name": "application",
+                "unit_csrs": [{"certificate_signing_request": "some csr"}],
+            }
+        ]
+        patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
+        event = Mock()
+        self.harness.charm._on_get_all_certificate_requests_action(event=event)
+        event.set_results.assert_called_once_with({"Result": example_unit_csrs})
+
+    def test_given_relation_id_not_exist_when_get_certificate_request_action_then_action_returns_empty_list(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        event.params = {"relation-id": 1235}
+        self.harness.charm._on_get_certificate_request_action(event=event)
+        event.set_results.assert_called_once_with({"Result": []})
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
+        self,
+        patch_set_relation_certificate,
+    ):
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": base64.b64encode(certificate.encode("utf-8")).decode(),
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.set_results.assert_called_once_with(
+            {"Result": "Certificates successfully provided."}
+        )
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
+        self,
+        patch_set_relation_certificate,
+    ):
+        self.harness.set_leader(True)
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": "wrong encoding",
+            "certificate": "wrong encoding",
+            "ca-certificate": "wrong encoding",
+            "ca-chain": "wrong encoding",
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action input is not valid.")
+
+    def given_unit_is_not_leader_when_provide_certificate_action_then_action_fails(self):
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": base64.b64encode("whatever cert".encode()).decode(),
+            "certificate": base64.b64encode("whatever cert".encode()).decode(),
+            "ca-certificate": base64.b64encode("whatever ca".encode()).decode(),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action cannot be run on non-leader unit.")
