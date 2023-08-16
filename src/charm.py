@@ -574,7 +574,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
         """
         try:
             certificate_bytes = base64.b64decode(event.params["certificate"])
-            print(certificate_bytes)
             ca_certificate_bytes = base64.b64decode(event.params["ca-certificate"])
             csr_bytes = base64.b64decode(event.params["certificate-signing-request"])
             ca_chain_bytes = base64.b64decode(event.params["ca-chain"])
