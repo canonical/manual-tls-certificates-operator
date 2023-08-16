@@ -16,6 +16,33 @@ juju deploy tls-certificates-operator \
 juju relate tls-certificates-operator your-charm
 ```
 
+### Passing user-provided certificates to requirer units manually
+
+The following Juju actions make it possible for the user to manually provide certificates to units of the requirer charm.
+
+To get all certificate requests that don't have certificates provided the following action is used, the action will return further information (relation_id, application_name and unit_name)
+
+```bash
+juju run tls-certificates-operator/leader get-all-certificate-requests
+```
+
+The second action is used to get the certificate request and its information of a specific relation by providing the relation_id as a parameter:
+Note that the "unit-name" parameter is not mandatory.
+```bash
+juju run tls-certificates-operator/leader get-certificate-request \
+  relation-id=<id>\
+  certificate="$(base64 -w0 certificate.pem)" \
+  ca-chain="$(base64 -w0 ca_chain.pem)" \
+  ca-certificate="$(base64 -w0 ca_certificate.pem)" \
+  certificate-signing-request="$(base64 -w0 csr.pem)\
+  unit-name=<unit-name>"
+```
+
+The third action allows the user to provide the certifcates and specify the csr and the unit name
+```bash
+juju run tls-certificates-operator/leader provide-certificate relation-id=<id>
+```
+
 ### With self-signed certificates (deprecated)
 
 > **Warning**: This feature is deprecated and will be dropped in the future, please use the 
