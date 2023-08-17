@@ -1,4 +1,4 @@
-# tls-certificates-operator
+# TLS Certificates Operator
 
 This charm is used for applications requiring TLS certificates.
 
