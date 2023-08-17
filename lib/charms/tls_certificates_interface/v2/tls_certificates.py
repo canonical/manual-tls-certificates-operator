@@ -272,7 +272,6 @@ juju relate <tls-certificates provider charm> <tls-certificates requirer charm>
 
 """  # noqa: D405, D410, D411, D214, D416
 
-import base64
 import copy
 import json
 import logging
@@ -1082,7 +1081,7 @@ class TLSCertificatesProvidesV2(Object):
                 relation
                 for relation in self.model.relations[self.relationship_name]
                 if relation.id == relation_id
-            ]  # noqa: E501
+            ]
             if relation_id is not None
             else self.model.relations.get(self.relationship_name, [])
         )
@@ -1090,9 +1089,10 @@ class TLSCertificatesProvidesV2(Object):
             provider_relation_data = _load_relation_data(relation.data[self.charm.app])
             provider_certificates = provider_relation_data.get("certificates", [])
             for certificate in provider_certificates:
-                certificates[relation.app.name].update(  # type: ignore[union-attr]
-                    {certificate["certificate_signing_request"]: certificate["certificate"]}
-                )
+                if not certificate.get("revoked", False):
+                    certificates[relation.app.name].update(  # type: ignore[union-attr]
+                        {certificate["certificate_signing_request"]: certificate["certificate"]}
+                    )
         return certificates
 
     def _on_relation_changed(self, event: RelationChangedEvent) -> None:
@@ -1168,7 +1168,7 @@ class TLSCertificatesProvidesV2(Object):
                 )
                 self.remove_certificate(certificate=certificate["certificate"])
 
-    def get_requirer_units_csrs_with_no_certs(
+    def get_requirer_csrs_with_no_certs(
         self,
     ) -> List[Dict[str, Union[int, str, List[Dict[str, str]]]]]:
         """Filters the requirer's units csrs.
@@ -1176,27 +1176,22 @@ class TLSCertificatesProvidesV2(Object):
         Keeps the ones for which no certificate was provided.
 
         Returns:
-            list: List of dictonries that contain the unit's csrs
+            list: List of dictionaries that contain the unit's csrs
             that don't have a certificate issued.
         """
-        all_unit_csr_mappings = copy.deepcopy(self.get_requirer_csrs_by_unit())
-        for unit_csrs in all_unit_csr_mappings:
-            base64_keys_list = list(
-                map(
-                    lambda item: base64.b64encode(item.encode()).decode(),
-                    self.get_issued_certificates(unit_csrs["relation_id"])[  # type: ignore[arg-type]
-                        unit_csrs["application_name"]  # type: ignore[index]
-                    ].keys(),
-                )
-            )
-            for csr in unit_csrs["unit_csrs"]:  # type: ignore[union-attr]
-                if csr["certificate_signing_request"] in base64_keys_list:  # type: ignore[index]
-                    unit_csrs["unit_csrs"].remove(csr)  # type: ignore[union-attr, arg-type]
-            if len(unit_csrs["unit_csrs"]) == 0:  # type: ignore[arg-type]
-                all_unit_csr_mappings.remove(unit_csrs)
+        all_unit_csr_mappings = copy.deepcopy(self.get_requirer_csrs())
+        for unit_csr_mapping in all_unit_csr_mappings:
+            for csr in unit_csr_mapping["unit_csrs"]:  # type: ignore[union-attr]
+                if self.csr_has_valid_cert_issued(
+                    app_name=unit_csr_mapping["application_name"],  # type: ignore[arg-type]
+                    csr=csr["certificate_signing_request"],  # type: ignore[index]
+                ):
+                    unit_csr_mapping["unit_csrs"].remove(csr)  # type: ignore[union-attr, arg-type]
+            if len(unit_csr_mapping["unit_csrs"]) == 0:  # type: ignore[arg-type]
+                all_unit_csr_mappings.remove(unit_csr_mapping)
         return all_unit_csr_mappings
 
-    def get_requirer_csrs_by_unit(
+    def get_requirer_csrs(
         self, relation_id: Optional[int] = None
     ) -> List[Dict[str, Union[int, str, List[Dict[str, str]]]]]:
         """Returns a list of requirers' CSRs grouped by unit.
@@ -1206,7 +1201,7 @@ class TLSCertificatesProvidesV2(Object):
         CSRs are returned in base64 encoded format.
 
         Returns:
-            list: List of dictonries that contain the unit's csrs
+            list: List of dictionaries that contain the unit's csrs
             with the following information
             relation_id, application_name and unit_name.
         """
@@ -1217,7 +1212,7 @@ class TLSCertificatesProvidesV2(Object):
                 relation
                 for relation in self.model.relations[self.relationship_name]
                 if relation.id == relation_id
-            ]  # noqa: E501
+            ]
             if relation_id is not None
             else self.model.relations.get(self.relationship_name, [])
         )
@@ -1226,25 +1221,31 @@ class TLSCertificatesProvidesV2(Object):
             for unit in relation.units:
                 requirer_relation_data = _load_relation_data(relation.data[unit])
                 unit_csrs_list = requirer_relation_data.get("certificate_signing_requests", [])
-                transformed_unit_csrs_list = list(
-                    map(
-                        lambda item: {
-                            "certificate_signing_request": base64.b64encode(
-                                item["certificate_signing_request"].encode()
-                            ).decode("utf-8")
-                        },
-                        unit_csrs_list,
-                    )
-                )
                 unit_csr_mappings.append(
                     {
                         "relation_id": relation.id,
                         "application_name": relation.app.name,  # type: ignore[union-attr]
                         "unit_name": unit.name,
-                        "unit_csrs": transformed_unit_csrs_list,
+                        "unit_csrs": unit_csrs_list,
                     }
                 )
         return unit_csr_mappings
+
+    def csr_has_valid_cert_issued(self, app_name: str, csr: str) -> bool:
+        """Checks whether a certificate has been issued for a given CSR.
+
+        Args:
+            app_name (str): Application name that the CSR belongs to.
+            csr (str): Certificate Signing Request.
+
+        Returns:
+            bool: True/False depending on whether a certificate has been issued for the given CSR.
+        """
+        issued_certificates_per_csr = self.get_issued_certificates()[app_name]
+        for request, cert in issued_certificates_per_csr.items():
+            if request == csr:
+                return csr_matches_certificate(csr, cert)
+        return False
 
 
 class TLSCertificatesRequiresV2(Object):
@@ -1621,6 +1622,37 @@ class TLSCertificatesRequiresV2(Object):
                     certificate=certificate_dict["certificate"],
                     expiry=expiry_time.isoformat(),
                 )
+
+
+def csr_matches_certificate(csr: str, cert: str) -> bool:
+    """Check if a CSR matches a certificate.
+
+    expects to get the original string representations.
+
+    Args:
+        csr (str): Certificate Signing Request
+        cert (str): Certificate
+    Returns:
+        bool: True/False depending on whether the CSR matches the certificate.
+    """
+    try:
+        csr_object = x509.load_pem_x509_csr(csr.encode("utf-8"))
+        cert_object = x509.load_pem_x509_certificate(cert.encode("utf-8"))
+
+        if not csr_object.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ) == cert_object.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ):
+            return False
+        if not csr_object.subject == cert_object.subject:
+            return False
+    except ValueError:
+        logger.warning("Could not load certificate or CSR.")
+        return False
+    return True
 
 
 def _get_closest_future_time(

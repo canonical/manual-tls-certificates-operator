@@ -54,8 +54,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
             self._on_generate_self_signed_certificate_action,
         )
         self.framework.observe(
-            self.on.get_all_certificate_requests_action,
-            self._on_get_all_certificate_requests_action,
+            self.on.get_outstanding_certificate_requests_action,
+            self._on_get_outstanding_certificate_requests_action,
         )
         self.framework.observe(
             self.on.get_certificate_request_action,
@@ -497,8 +497,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
             }
         )
 
-    def _on_get_all_certificate_requests_action(self, event: ActionEvent) -> None:
-        """Returns all certificate requests.
+    def _on_get_outstanding_certificate_requests_action(self, event: ActionEvent) -> None:
+        """Returns outstanding certificate requests.
 
         Args:
             event: Juju event.
@@ -506,9 +506,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
-        event.set_results(
-            {"Result": self.tls_certificates.get_requirer_units_csrs_with_no_certs()}
-        )
+        event.set_results({"Result": self.tls_certificates.get_requirer_csrs_with_no_certs()})
 
     def _on_get_certificate_request_action(self, event: ActionEvent) -> None:
         """Returns certificate request for a specific relation.
@@ -521,7 +519,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         """
         event.set_results(
             {
-                "Result": self.tls_certificates.get_requirer_csrs_by_unit(
+                "Result": self.tls_certificates.get_requirer_csrs(
                     relation_id=event.params["relation-id"]
                 )
             }

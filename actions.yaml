@@ -20,9 +20,9 @@ generate-self-signed-certificate:
     - common-name
   additionalProperties: False
 
-get-all-certificate-requests:
+get-outstanding-certificate-requests:
   description: >-
-    Get certificate requests from all connected requirer units.
+    Get list of all outstanding certificate signing requests.
 
 get-certificate-request:
   description: >-

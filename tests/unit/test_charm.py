@@ -630,17 +630,17 @@ class TestCharm(unittest.TestCase):
             message="Action not supported as charm is not configured to be self-signed"
         )
 
-    def test_given_no_requirer_application_when_get_all_certificate_requests_action_then_empty_list_returned(  # noqa: E501
+    def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_empty_list_returned(  # noqa: E501
         self,
     ):
         event = Mock()
-        self.harness.charm._on_get_all_certificate_requests_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.set_results.assert_called_once_with({"Result": []})
 
     @patch(
-        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_units_csrs_with_no_certs"  # noqa: E501, W505
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_csrs_with_no_certs"  # noqa: E501, W505
     )
-    def test_given_requirer_application_when_get_all_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
+    def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         example_unit_csrs = [
@@ -653,7 +653,7 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
         event = Mock()
-        self.harness.charm._on_get_all_certificate_requests_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.set_results.assert_called_once_with({"Result": example_unit_csrs})
 
     def test_given_relation_id_not_exist_when_get_certificate_request_action_then_action_returns_empty_list(  # noqa: E501
