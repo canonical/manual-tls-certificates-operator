@@ -905,7 +905,6 @@ class TLSCertificatesProvidesV2(Object):
         certificate_signing_request: str,
         ca: str,
         chain: List[str],
-        unit_name: Optional[str] = None,
     ) -> None:
         """Adds certificate to relation data.
 
@@ -932,7 +931,6 @@ class TLSCertificatesProvidesV2(Object):
             "certificate_signing_request": certificate_signing_request,
             "ca": ca,
             "chain": chain,
-            "unit_name": unit_name,
         }
         provider_relation_data = _load_relation_data(relation.data[self.charm.app])
         provider_certificates = provider_relation_data.get("certificates", [])
@@ -1015,7 +1013,6 @@ class TLSCertificatesProvidesV2(Object):
         ca: str,
         chain: List[str],
         relation_id: int,
-        unit_name: Optional[str] = None,
     ) -> None:
         """Adds certificates to relation data.
 
@@ -1046,7 +1043,6 @@ class TLSCertificatesProvidesV2(Object):
             certificate_signing_request=certificate_signing_request.strip(),
             ca=ca.strip(),
             chain=[cert.strip() for cert in chain],
-            unit_name=unit_name,
         )
 
     def remove_certificate(self, certificate: str) -> None:
@@ -1182,7 +1178,7 @@ class TLSCertificatesProvidesV2(Object):
         all_unit_csr_mappings = copy.deepcopy(self.get_requirer_csrs())
         for unit_csr_mapping in all_unit_csr_mappings:
             for csr in unit_csr_mapping["unit_csrs"]:  # type: ignore[union-attr]
-                if self.csr_has_valid_cert_issued(
+                if self.certificate_issued_for_csr(
                     app_name=unit_csr_mapping["application_name"],  # type: ignore[arg-type]
                     csr=csr["certificate_signing_request"],  # type: ignore[index]
                 ):
@@ -1231,7 +1227,7 @@ class TLSCertificatesProvidesV2(Object):
                 )
         return unit_csr_mappings
 
-    def csr_has_valid_cert_issued(self, app_name: str, csr: str) -> bool:
+    def certificate_issued_for_csr(self, app_name: str, csr: str) -> bool:
         """Checks whether a certificate has been issued for a given CSR.
 
         Args:
@@ -1639,15 +1635,15 @@ def csr_matches_certificate(csr: str, cert: str) -> bool:
         csr_object = x509.load_pem_x509_csr(csr.encode("utf-8"))
         cert_object = x509.load_pem_x509_certificate(cert.encode("utf-8"))
 
-        if not csr_object.public_key().public_bytes(
+        if csr_object.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        ) == cert_object.public_key().public_bytes(
+        ) != cert_object.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         ):
             return False
-        if not csr_object.subject == cert_object.subject:
+        if csr_object.subject != cert_object.subject:
             return False
     except ValueError:
         logger.warning("Could not load certificate or CSR.")

@@ -33,8 +33,7 @@ juju run tls-certificates-operator/leader get-certificate-request \
   relation-id=<id>
 ```
 
-The third action allows the user to provide the certifcates and specify the csr and the unit name.
-Note that the "unit-name" parameter is not mandatory.
+The third action allows the user to provide the certifcates and specify the csr.
 ```bash
 juju run tls-certificates-operator/leader provide-certificate \
   relation-id=<id> \
@@ -42,7 +41,6 @@ juju run tls-certificates-operator/leader provide-certificate \
   ca-chain="$(base64 -w0 ca_chain.pem)" \
   ca-certificate="$(base64 -w0 ca_certificate.pem)" \
   certificate-signing-request="$(base64 -w0 csr.pem)\
-  unit-name=<unit-name>"
 ```
 
 ### With self-signed certificates (deprecated)

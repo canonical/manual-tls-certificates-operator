@@ -554,7 +554,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 ca=ca_cert,
                 chain=ca_chain_list,
                 relation_id=event.params["relation-id"],
-                unit_name=event.params.get("unit-name", None),
             )
         except RuntimeError:
             event.fail(message="Relation does not exist with the provided id.")

@@ -59,10 +59,6 @@ provide-certificate:
       type: string
       description: >-
         Base64 encoded CA Certificate..
-    unit-name:
-      type: string
-      description: >-
-        Name of the unit to which the certificate is being provided.
   required:
     - relation-id
     - certificate-signing-request
