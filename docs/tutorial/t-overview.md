@@ -11,8 +11,6 @@ In this tutorial we will walk through how to:
 Here's an overview of the steps required with links to our separate tutorials that deal with each individual step:
 * [Set up the environment](/t/tls-certificates-operator-tutorial-set-up-the-environment/11606)
 * [Deploy TLS Certificates Operator](/t/tls-certificates-operator-tutorial-deploy/11607)
-* [Configure TLS Certificates Operator](/t/tls-certificates-operator-tutorial-configure/11608)
-* [Relate TLS Certificates Operator to other applications](/t/tls-certificates-operator-tutorial-relate-tls-certificates-operator-to-other-charms/11609)
 * [Cleanup your environment](/t/tls-certificates-operator-tutorial-cleanup-the-environment/11610)
 
 # License:
