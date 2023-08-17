@@ -50,16 +50,15 @@ provide-certificate:
     certificate:
       type: string
       description: >-
-        Base64 encoded TLS certificate (do not use if 'generate-self-signed-certificates' is set to true).
+        Base64 encoded TLS certificate.
     ca-chain:
       type: string
       description: >-
-        Base64 encoded CA chain (do not use if 'generate-self-signed-certificates' is set to true).
-        If not provided, the ca-chain will be composed of the application and the ca-certificate.
+        Base64 encoded CA chain.
     ca-certificate:
       type: string
       description: >-
-        Base64 encoded CA Certificate (do not use if 'generate-self-signed-certificates' is set to true).
+        Base64 encoded CA Certificate..
     unit-name:
       type: string
       description: >-

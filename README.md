@@ -27,13 +27,14 @@ juju run tls-certificates-operator/leader get-outstanding-certificate-requests
 ```
 
 The second action is used to get the certificate request and its information of a specific relation by providing the relation_id as a parameter:
-Note that the "unit-name" parameter is not mandatory.
+
 ```bash
 juju run tls-certificates-operator/leader get-certificate-request \
   relation-id=<id>
 ```
 
-The third action allows the user to provide the certifcates and specify the csr and the unit name
+The third action allows the user to provide the certifcates and specify the csr and the unit name.
+Note that the "unit-name" parameter is not mandatory.
 ```bash
 juju run tls-certificates-operator/leader provide-certificate \
   relation-id=<id> \
