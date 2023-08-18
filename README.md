@@ -26,14 +26,14 @@ The following action will return all certificate requests that don't have certif
 juju run tls-certificates-operator/leader get-outstanding-certificate-requests
 ```
 
-The second action is used to get the certificate request and its information of a specific relation by providing the relation_id as a parameter:
+The second action is used to get the certificate requests and their information from a specific relation by providing the relation_id as a parameter:
 
 ```bash
 juju run tls-certificates-operator/leader get-certificate-request \
   relation-id=<id>
 ```
 
-The third action allows the user to provide the certifcates and specify the csr.
+The third action allows the user to provide the certificates and specify the csr.
 ```bash
 juju run tls-certificates-operator/leader provide-certificate \
   relation-id=<id> \

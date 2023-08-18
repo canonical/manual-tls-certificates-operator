@@ -251,6 +251,9 @@ class TLSCertificatesOperatorCharm(CharmBase):
         peer_relation = self.model.get_relation("replicas")
         if not peer_relation:
             raise RuntimeError("No peer relation")
+        if not self.model.unit.is_leader():
+            logger.info("Not leader, returning.")
+            return None
         peer_relation.data[self.app].update({key: value.strip()})
 
     def _get_value_from_peer_relation_data(self, key: str) -> Optional[str]:

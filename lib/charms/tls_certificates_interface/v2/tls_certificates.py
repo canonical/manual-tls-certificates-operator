@@ -1194,7 +1194,6 @@ class TLSCertificatesProvidesV2(Object):
 
         It returns CSRs from all relations if relation_id is not specified.
         CSRs are returned per relation id, application name and unit name.
-        CSRs are returned in base64 encoded format.
 
         Returns:
             list: List of dictionaries that contain the unit's csrs
