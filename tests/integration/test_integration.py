@@ -5,7 +5,7 @@ import base64
 import logging
 
 import pytest
-from juju.errors import JujuError
+from juju.errors import JujuError  # type: ignore[import]
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class TestTLSCertificatesOperator:
             apps=[APPLICATION_NAME],
             status="active",
             timeout=1000,
-            wait_for_units=2,
+            wait_for_exact_units=2,
         )
 
         await ops_test.model.applications[APPLICATION_NAME].scale(1)
@@ -111,6 +111,17 @@ class TestTLSCertificatesOperator:
     async def test_given_tls_requirer_is_deployed_and_related_then_certificate_is_created_and_passed_correctly(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
+        await ops_test.model.deploy(
+            TLS_REQUIRER_CHARM_NAME,
+            application_name=TLS_REQUIRER_CHARM_NAME,
+            channel="edge",
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_REQUIRER_CHARM_NAME],
+            status="active",
+            timeout=1000,
+        )
+
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
@@ -130,12 +141,6 @@ class TestTLSCertificatesOperator:
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
-
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="edge",
-        )
         await ops_test.model.add_relation(
             relation1=f"{APPLICATION_NAME}:certificates", relation2=f"{TLS_REQUIRER_CHARM_NAME}"
         )
