@@ -21,8 +21,6 @@ from self_signed_certificates import (
     generate_private_key,
 )
 
-testing.SIMULATE_CAN_CONNECT = True
-
 
 class TestCharm(unittest.TestCase):
     @staticmethod
@@ -159,7 +157,7 @@ class TestCharm(unittest.TestCase):
         self.harness.set_leader(True)
         self.harness.add_relation("replicas", self.harness.charm.app.name)
 
-        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+        self.harness.update_config(key_values={"generate-self-signed-certificates": True})
 
         self.assertEqual(
             BlockedStatus(
@@ -176,7 +174,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("replicas", self.harness.charm.app.name)
 
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "RootCA"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "RootCA"}
         )
 
         rel = self.harness.charm.model.get_relation("replicas")
@@ -202,9 +200,9 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": str(n),
+                "ca-certificate-validity": n,
             }
         )
 
@@ -229,9 +227,9 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "RootCA",
-                "ca-certificate-validity": "100",
+                "ca-certificate-validity": 100,
             }
         )
 
@@ -281,7 +279,7 @@ class TestCharm(unittest.TestCase):
     def test_given_unit_is_not_leader_and_self_signed_certs_are_not_yet_stored_when_config_changed_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(False)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -308,7 +306,7 @@ class TestCharm(unittest.TestCase):
                 "self_signed_ca_private_key_password": "whatever password",
             },
         )
-        self.harness.update_config(key_values={"generate-self-signed-certificates": "true"})
+        self.harness.update_config(key_values={"generate-self-signed-certificates": True})
 
         self.assertEqual(ActiveStatus(), self.harness.charm.unit.status)
 
@@ -330,7 +328,7 @@ class TestCharm(unittest.TestCase):
         certificate_bytes = certificate.encode("utf-8")
         patch_generate_certificate.return_value = certificate_bytes
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.update_relation_data(
             relation_id=peer_relation_id,
@@ -454,7 +452,7 @@ class TestCharm(unittest.TestCase):
         event = Mock()
         self.harness.set_leader(True)
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -505,7 +503,7 @@ class TestCharm(unittest.TestCase):
         certificate_bytes = certificate.encode("utf-8")
         patch_generate_certificate.return_value = certificate_bytes
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
         self.harness.update_relation_data(
             relation_id=peer_relation_id,
@@ -519,7 +517,7 @@ class TestCharm(unittest.TestCase):
 
         self.harness.update_config(
             key_values={
-                "generate-self-signed-certificates": "true",
+                "generate-self-signed-certificates": True,
                 "ca-common-name": "whatever else",
             }
         )
@@ -557,7 +555,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation_unit(peer_relation_id, self.harness.charm.unit.name)
         self.harness.set_leader(True)
         self.harness.update_config(
-            key_values={"generate-self-signed-certificates": "true", "ca-common-name": "whatever"}
+            key_values={"generate-self-signed-certificates": True, "ca-common-name": "whatever"}
         )
 
         event = Mock()
@@ -581,7 +579,7 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_option_is_true_and_unit_is_leader_and_self_signed_certs_are_not_yet_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(True)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
 
@@ -595,7 +593,7 @@ class TestCharm(unittest.TestCase):
     def test_given_self_signed_option_is_true_and_unit_is_not_leader_and_root_certificates_are_stored_when_generate_certificate_action_triggered_then_action_failed(  # noqa: E501
         self,
     ):
-        key_values = {"generate-self-signed-certificates": "true"}
+        key_values = {"generate-self-signed-certificates": True}
         self.harness.set_leader(False)
         self.harness.add_relation(relation_name="replicas", remote_app=self.harness.charm.app.name)
         self.harness.update_config(key_values=key_values)
@@ -631,3 +629,98 @@ class TestCharm(unittest.TestCase):
         event.fail.assert_called_once_with(
             message="Action not supported as charm is not configured to be self-signed"
         )
+
+    def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_empty_list_returned(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        event.set_results.assert_called_once_with({"Result": []})
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_csrs_with_no_certs"  # noqa: E501, W505
+    )
+    def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
+        self, patch_get_requirer_units_csrs_with_no_certs
+    ):
+        example_unit_csrs = [
+            {
+                "relation_id": 1234,
+                "unit_name": "unit/0",
+                "application_name": "application",
+                "unit_csrs": [{"certificate_signing_request": "some csr"}],
+            }
+        ]
+        patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
+        event = Mock()
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        event.set_results.assert_called_once_with({"Result": example_unit_csrs})
+
+    def test_given_relation_id_not_exist_when_get_certificate_request_action_then_action_returns_empty_list(  # noqa: E501
+        self,
+    ):
+        event = Mock()
+        event.params = {"relation-id": 1235}
+        self.harness.charm._on_get_certificate_request_action(event=event)
+        event.set_results.assert_called_once_with({"Result": []})
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
+        self,
+        patch_set_relation_certificate,
+    ):
+        self.harness.set_leader(True)
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
+        ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": base64.b64encode(certificate.encode("utf-8")).decode(),
+            "certificate": certificate_bytes.decode("utf-8"),
+            "ca-certificate": ca_certificate_bytes.decode("utf-8"),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.set_results.assert_called_once_with(
+            {"Result": "Certificates successfully provided."}
+        )
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
+    )
+    def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
+        self,
+        patch_set_relation_certificate,
+    ):
+        self.harness.set_leader(True)
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": "wrong encoding",
+            "certificate": "wrong encoding",
+            "ca-certificate": "wrong encoding",
+            "ca-chain": "wrong encoding",
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action input is not valid.")
+
+    def given_unit_is_not_leader_when_provide_certificate_action_then_action_fails(self):
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": base64.b64encode("whatever cert".encode()).decode(),
+            "certificate": base64.b64encode("whatever cert".encode()).decode(),
+            "ca-certificate": base64.b64encode("whatever ca".encode()).decode(),
+            "ca-chain": ca_chain_bytes.decode("utf-8"),
+            "relation-id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action cannot be run on non-leader unit.")
