@@ -1,17 +1,6 @@
 # How to configure per-unit TLS certificates
 TLS Certificates Operator allows to configure different certificates for different units of the same desired application.
 
-## Requirements
-In order to use this feature, the TLS Certificates Operator should have no configured certificates.
-
-If you want to remove them, issue the following:
-```shell
-juju config tls-certificates-operator --reset certificate
-juju config tls-certificates-operator --reset ca-certificate
-juju config tls-certificates-operator --reset ca-chain
-```
-At this point, the charm should be in `Waiting/Idle` state.
-
 ## 1. Retrieve the certificate signing request
 The first thing is to retrieve the certificate signing request created by the requirer application.
 To do so, the TLS Certificates Operator provides two actions:

@@ -1,11 +1,29 @@
 The TLS Certificates Operator charm is responsible for distributing certificates through relationships. Certificates are provided by the operator through Juju configs.
 
+## Usage
+To deploy the TLS Certificates Operator, all you need to do is run the following command, which will fetch the charm from [Charmhub](https://charmhub.io/tls-certificates-operator) and deploy it to your model:
+```shell
+juju deploy tls-certificates-operator
+```
+
+Juju will now fetch TLS Certificates Operator and begin deploying it to the local MicroK8s. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
+```shell
+juju status --watch 1s
+```
+The deployment of the charm is completed when its status is in `Active/Idle` state.
+
+At this point you can relate the TLS Certificates Operator to your charm through the `tls-certificates` interface:
+```shell
+juju relate tls-certificates-operator <your-charm>
+```
+Wait for `juju status --watch 1s` to show all applications/units as `active`.
+
 ## In this documentation
 
-|                                                                                                                                                                                   |                                                                                                                                                                  |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Tutorial](/t/tls-certificates-operator-tutorial-overview/11600?channel=edge) </br>  Get started - a hands-on introduction to using TLS Certificates Operator for new users </br> | [How-to guides](/t/tls-certificates-operator-how-to-configure-per-unit-certificates/11612) </br> **Step-by-step guides** covering key operations and common tasks |
-| [Reference](https://charmhub.io/tls-certificates-operator/actions) </br> **Technical information** - specifications, APIs, architecture                                           | [Explanation]() </br> Concepts - discussion and clarification of key topics                                               |
+|                                                                                                                                                                   |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [How-to guides](/t/tls-certificates-operator-how-to-configure-per-unit-certificates/11612) </br> **Step-by-step guides** covering key operations and common tasks |
+| [Reference](https://charmhub.io/tls-certificates-operator/actions) </br> **Technical information** - specifications, APIs, architecture                           |
 
 ## Project and community
 
@@ -17,11 +35,6 @@ TLS Certificates Operator is a member of the Ubuntu family. It’s an open sourc
 # Contents
 | Level | Path                 | Navlink                                                                                                                                                |
 |-------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1     | tutorial             | [Tutorial]()                                                                                                                                           |
-| 2     | t-overview           | [Overview](/t/tls-certificates-operator-tutorial-overview/11605)                                                                                       |
-| 2     | t-setup-environment  | [Set up the environment](/t/tls-certificates-operator-tutorial-set-up-the-environment/11606)                                                           |
-| 2     | t-deploy             | [Deploy TLS Certificates Operator](/t/tls-certificates-operator-tutorial-deploy/11607)                                                                 |
-| 2     | t-cleanup            | [Clean up the environment](/t/tls-certificates-operator-tutorial-cleanup-the-environment/11610)                                                        |
 | 1     | how-to               | [How-to guides]()                                                                                                                                      |
 | 2     | h-configure-per-unit | [Configure certificates per unit](/t/tls-certificates-operator-how-to-configure-per-unit-certificates/11612)                                           |
 | 1     | reference            | [Reference]()                                                                                                                                          |
@@ -30,4 +43,3 @@ TLS Certificates Operator is a member of the Ubuntu family. It’s an open sourc
 | 2     | r-integrations       | [Integrations](https://charmhub.io/tls-certificates-operator/integrations)                                                                             |
 | 2     | r-libraries          | [Libraries](https://charmhub.io/tls-certificates-operator/libraries)                                                                                   |
 | 2     | r-resources          | [Resources](https://charmhub.io/tls-certificates-operator/resources)                                                                                   |
-| 1     | explanation          | [Explanation]()                                                                                                                                        |
