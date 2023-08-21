@@ -26,7 +26,7 @@ get-outstanding-certificate-requests:
 
 get-certificate-request:
   description: >-
-    Get certificate requests from a specific requirer application.
+    Get certificate signing requests from a specific requirer application.
   params:
     relation-id:
       type: string
