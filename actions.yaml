@@ -20,11 +20,11 @@ provide-certificate:
   description: >-
     Provide a certificate to a specific requirer unit.
   params:
-    relation-id:
+    relation_id:
       type: string
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
-    certificate-signing-request:
+    certificate_signing_request:
       type: string
       description: >-
         The request to which the certificate is being provided.
@@ -32,11 +32,11 @@ provide-certificate:
       type: string
       description: >-
         Base64 encoded TLS certificate.
-    ca-chain:
+    ca_chain:
       type: string
       description: >-
         Base64 encoded CA chain.
-    ca-certificate:
+    ca_certificate:
       type: string
       description: >-
         Base64 encoded CA Certificate..

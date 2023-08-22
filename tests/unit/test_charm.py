@@ -65,7 +65,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
         event = Mock()
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with({"Result": example_unit_csrs})
+        event.set_results.assert_called_once_with({"result": example_unit_csrs})
 
     def test_given_relation_id_not_exist_when_get_certificate_request_action_then_action_returns_empty_list(  # noqa: E501
         self,
@@ -74,7 +74,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("certificates", "requirer")
         event.params = {"relation-id": 1235}
         self.harness.charm._on_get_certificate_request_action(event=event)
-        event.set_results.assert_called_once_with({"Result": []})
+        event.set_results.assert_called_once_with({"result": []})
 
     @patch(
         "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
@@ -96,15 +96,15 @@ class TestCharm(unittest.TestCase):
 
         event = Mock()
         event.params = {
-            "certificate-signing-request": TestCharm._decode_from_base64(csr),
+            "certificate_signing_request": TestCharm._decode_from_base64(csr),
             "certificate": TestCharm._decode_from_base64(certificate_bytes),
-            "ca-certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
-            "ca-chain": TestCharm._decode_from_base64(ca_chain_bytes),
-            "relation-id": 1234,
+            "ca_certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
+            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
+            "relation_id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.set_results.assert_called_once_with(
-            {"Result": "Certificates successfully provided."}
+            {"result": "Certificates successfully provided."}
         )
 
     @patch(

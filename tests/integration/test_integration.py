@@ -91,35 +91,34 @@ class TestTLSCertificatesOperator:
             series="jammy",
         )
 
+        relation = await ops_test.model.add_relation(
+            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
+        )
+
         await ops_test.model.wait_for_idle(
             apps=[APPLICATION_NAME],
             status="active",
             timeout=1000,
         )
 
-        await ops_test.model.add_relation(
-            relation1=f"{APPLICATION_NAME}:certificates", relation2=f"{TLS_REQUIRER_CHARM_NAME}"
-        )
-
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        csr = self.get_certificate_from_file(filename="tests/csr.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
-        csr_bytes = self.get_certificate_from_file(filename="tests/csr.pem")
+        csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
-        get_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
-
-        relation_id = get_csrs_action_output["Result"][0]["relation_id"]
+        await run_get_outstanding_csrs_action(ops_test)
 
         await run_provide_certificate_action(
             ops_test,
-            relation_id=relation_id,
+            relation_id=relation.id,
             certificate=certificate_bytes.decode("utf-8"),
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
-            csr=csr_bytes,
+            csr=csr_bytes.decode("utf-8"),
         )
 
         await ops_test.model.wait_for_idle(
