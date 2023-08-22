@@ -1,5 +1,5 @@
-# How to configure per-unit TLS certificates
-TLS Certificates Operator allows to configure different certificates for different units of the same desired application.
+# How to provide TLS certificates to requesting charms
+TLS Certificates Operator allows the provisioning of certificates to requiring charms.
 
 ## 1. Retrieve the certificate signing request
 The first thing is to retrieve the certificate signing request created by the requirer application.
