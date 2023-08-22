@@ -100,11 +100,6 @@ class TestTLSCertificatesOperator:
         await ops_test.model.add_relation(
             relation1=f"{APPLICATION_NAME}:certificates", relation2=f"{TLS_REQUIRER_CHARM_NAME}"
         )
-        await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
-            status="active",
-            timeout=1000,
-        )
 
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
@@ -125,6 +120,12 @@ class TestTLSCertificatesOperator:
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
             csr=csr_bytes,
+        )
+
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_REQUIRER_CHARM_NAME],
+            status="active",
+            timeout=1000,
         )
 
         action_output = await run_get_certificate_action(ops_test)
