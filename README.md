@@ -18,17 +18,17 @@ The second action is used to get the certificate requests and their information 
 
 ```bash
 juju run tls-certificates-operator/leader get-certificate-request \
-  relation-id=<id>
+  relation_id=<id>
 ```
 
 The third action allows the user to provide the certificates and specify the csr.
 ```bash
 juju run tls-certificates-operator/leader provide-certificate \
-  relation-id=<id> \
+  relation_id=<id> \
   certificate="$(base64 -w0 certificate.pem)" \
-  ca-chain="$(base64 -w0 ca_chain.pem)" \
-  ca-certificate="$(base64 -w0 ca_certificate.pem)" \
-  certificate-signing-request="$(base64 -w0 csr.pem)\
+  ca_chain="$(base64 -w0 ca_chain.pem)" \
+  ca_certificate="$(base64 -w0 ca_certificate.pem)" \
+  certificate_signing_request="$(base64 -w0 csr.pem)\
 ```
 
 ## Relations

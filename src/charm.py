@@ -90,7 +90,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         event.set_results(
             {
                 "result": self.tls_certificates.get_requirer_csrs(
-                    relation_id=event.params["relation-id"]
+                    relation_id=event.params["relation_id"]
                 )
             }
         )
@@ -176,7 +176,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             bool: True/False
         """
         try:
-            if self.model.get_relation(relation_name):
+            if self.model.relations.get(relation_name, []):
                 return True
             return False
         except KeyError:

@@ -9,19 +9,19 @@ get-certificate-request:
   description: >-
     Get certificate signing requests from a specific requirer application.
   params:
-    relation-id:
+    relation_id:
       type: string
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
   required:
-    - relation-id
+    - relation_id
 
 provide-certificate:
   description: >-
     Provide a certificate to a specific requirer unit.
   params:
     relation_id:
-      type: string
+      type: integer
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
     certificate_signing_request:
@@ -41,8 +41,8 @@ provide-certificate:
       description: >-
         Base64 encoded CA Certificate..
   required:
-    - relation-id
-    - certificate-signing-request
+    - relation_id
+    - certificate_signing_request
     - certificate
-    - ca-chain
-    - ca-certificate
+    - ca_chain
+    - ca_certificate

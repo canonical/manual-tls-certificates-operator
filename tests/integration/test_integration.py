@@ -1,6 +1,7 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import ast
 import base64
 import logging
 
@@ -104,13 +105,15 @@ class TestTLSCertificatesOperator:
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
         certificate_bytes = base64.b64encode(certificate.encode("utf-8"))
         ca_certificate_bytes = base64.b64encode(ca_certificate.encode("utf-8"))
         ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
-        csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
-        await run_get_outstanding_csrs_action(ops_test)
+        action_output = await run_get_outstanding_csrs_action(ops_test)
+
+        action_result_list = ast.literal_eval(action_output["result"])
+        csr = action_result_list[0]["unit_csrs"][0]["certificate_signing_request"]
+        csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
         await run_provide_certificate_action(
             ops_test,
@@ -177,7 +180,7 @@ async def run_get_outstanding_csrs_action(ops_test) -> dict:
 
 async def run_provide_certificate_action(
     ops_test,
-    relation_id: str,
+    relation_id: int,
     certificate: str,
     ca_certificate: str,
     ca_chain: str,
@@ -187,7 +190,7 @@ async def run_provide_certificate_action(
 
     Args:
         ops_test (OpsTest): OpsTest
-        relation_id (str): Relation ID
+        relation_id (int): Relation ID
         certificate (str): Certificate
         ca_certificate (str): CA Certificate
         ca_chain (str): CA Chain

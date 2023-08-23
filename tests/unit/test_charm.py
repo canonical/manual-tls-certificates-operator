@@ -72,7 +72,7 @@ class TestCharm(unittest.TestCase):
     ):
         event = Mock()
         self.harness.add_relation("certificates", "requirer")
-        event.params = {"relation-id": 1235}
+        event.params = {"relation_id": 1235}
         self.harness.charm._on_get_certificate_request_action(event=event)
         event.set_results.assert_called_once_with({"result": []})
 
@@ -118,11 +118,11 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("certificates", "requirer")
         event = Mock()
         event.params = {
-            "certificate-signing-request": "wrong encoding",
+            "certificate_signing_request": "wrong encoding",
             "certificate": "wrong encoding",
-            "ca-certificate": "wrong encoding",
-            "ca-chain": "wrong encoding",
-            "relation-id": 1234,
+            "ca_certificate": "wrong encoding",
+            "ca_chain": "wrong encoding",
+            "relation_id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(message="Action input is not valid.")
@@ -135,11 +135,11 @@ class TestCharm(unittest.TestCase):
         ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
         event = Mock()
         event.params = {
-            "certificate-signing-request": TestCharm._decode_from_base64(csr),
+            "certificate_signing_request": TestCharm._decode_from_base64(csr),
             "certificate": TestCharm._decode_from_base64(certificate),
-            "ca-certificate": TestCharm._decode_from_base64(ca),
-            "ca-chain": TestCharm._decode_from_base64(ca_chain_bytes),
-            "relation-id": 1234,
+            "ca_certificate": TestCharm._decode_from_base64(ca),
+            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
+            "relation_id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(message="Action cannot be run on non-leader unit.")
