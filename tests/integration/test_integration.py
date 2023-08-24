@@ -34,10 +34,13 @@ class TestTLSCertificatesOperator:
             await ops_test.model.remove_application(
                 app_name=APPLICATION_NAME, block_until_done=True
             )
+            await ops_test.model.remove_application(
+                app_name=TLS_REQUIRER_CHARM_NAME, block_until_done=True
+            )
         except JujuError:
             pass
 
-    async def test_given_no_errors_when_deploy_then_status_is_active(  # noqa: E501
+    async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
         await ops_test.model.deploy(
@@ -46,15 +49,56 @@ class TestTLSCertificatesOperator:
             series="jammy",
         )
 
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
+        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="waiting", timeout=1000)
 
-    async def test_given_scale_when_deploy_then_status_is_active(  # noqa: E501
+    async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
+        await ops_test.model.deploy(
+            TLS_REQUIRER_CHARM_NAME,
+            application_name=TLS_REQUIRER_CHARM_NAME,
+            channel="edge",
+        )
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_REQUIRER_CHARM_NAME],
+            status="active",
+            timeout=1000,
+        )
+        await ops_test.model.add_relation(
+            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
+        )
+
+        await ops_test.model.wait_for_idle(
+            apps=[APPLICATION_NAME],
+            status="active",
+            timeout=1000,
+        )
+
+    async def test_given_requirer_requests_certificate_creation_when_deploy_and_scale_then_status_is_active(  # noqa: E501
+        self, ops_test, charm, cleanup
+    ):
+        await ops_test.model.deploy(
+            TLS_REQUIRER_CHARM_NAME,
+            application_name=TLS_REQUIRER_CHARM_NAME,
+            channel="edge",
+        )
+        await ops_test.model.deploy(
+            entity_url=charm,
+            application_name=APPLICATION_NAME,
+            series="jammy",
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_REQUIRER_CHARM_NAME],
+            status="active",
+            timeout=1000,
+        )
+        await ops_test.model.add_relation(
+            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)

@@ -12,11 +12,12 @@ import binascii
 import logging
 
 from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import]
+    CertificateCreationRequestEvent,
     TLSCertificatesProvidesV2,
 )
 from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, WaitingStatus
 
 from helpers import certificate_is_valid, certificate_request_is_valid, parse_ca_chain
 
@@ -33,6 +34,10 @@ class TLSCertificatesOperatorCharm(CharmBase):
         super().__init__(*args)
         self.tls_certificates = TLSCertificatesProvidesV2(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.tls_certificates.on.certificate_creation_request,
+            self._on_certificate_creation_request,
+        )
         self.framework.observe(
             self.on.get_outstanding_certificate_requests_action,
             self._on_get_outstanding_certificate_requests_action,
@@ -57,7 +62,18 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Returns:
             None
         """
-        self.unit.status = ActiveStatus("Ready to manually provide certificates.")
+        self.unit.status = WaitingStatus("Waiting for certificate creation request.")
+
+    def _on_certificate_creation_request(self, event: CertificateCreationRequestEvent) -> None:
+        """Triggered when a certificate creation request is received.
+
+        Args:
+            event (CertificateCreationRequestEvent): Juju event.
+
+        Returns:
+            None
+        """
+        self.unit.status = ActiveStatus("Ready to provide certificates.")
 
     def _on_get_outstanding_certificate_requests_action(self, event: ActionEvent) -> None:
         """Returns outstanding certificate requests.
