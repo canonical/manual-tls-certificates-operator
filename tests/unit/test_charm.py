@@ -10,7 +10,6 @@ from charm import TLSCertificatesOperatorCharm
 
 
 class TestCharm(unittest.TestCase):
-    # TODO use these methods
     @staticmethod
     def _decode_from_base64(bytes_content: bytes) -> str:
         return bytes_content.decode("utf-8")
@@ -36,6 +35,7 @@ class TestCharm(unittest.TestCase):
     def setUp(self):
         self.harness = testing.Harness(TLSCertificatesOperatorCharm)
         self.addCleanup(self.harness.cleanup)
+        self.harness.set_leader(True)
         self.harness.begin()
 
     def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_empty_list_returned(  # noqa: E501
@@ -83,7 +83,6 @@ class TestCharm(unittest.TestCase):
         self,
         patch_set_relation_certificate,
     ):
-        self.harness.set_leader(True)
         self.harness.add_relation("certificates", "requirer")
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
@@ -114,7 +113,6 @@ class TestCharm(unittest.TestCase):
         self,
         patch_set_relation_certificate,
     ):
-        self.harness.set_leader(True)
         self.harness.add_relation("certificates", "requirer")
         event = Mock()
         event.params = {
@@ -126,20 +124,3 @@ class TestCharm(unittest.TestCase):
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(message="Action input is not valid.")
-
-    def given_unit_is_not_leader_when_provide_certificate_action_then_action_fails(self):
-        csr = TestCharm._encode_in_base64("whatever csr")
-        certificate = TestCharm._encode_in_base64("whatever cert")
-        ca = TestCharm._encode_in_base64("whatever ca")
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
-        event = Mock()
-        event.params = {
-            "certificate_signing_request": TestCharm._decode_from_base64(csr),
-            "certificate": TestCharm._decode_from_base64(certificate),
-            "ca_certificate": TestCharm._decode_from_base64(ca),
-            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
-            "relation_id": 1234,
-        }
-        self.harness.charm._on_provide_certificate_action(event=event)
-        event.fail.assert_called_once_with(message="Action cannot be run on non-leader unit.")

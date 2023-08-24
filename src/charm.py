@@ -32,6 +32,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
+        if not self.unit.is_leader():
+            raise NotImplementedError("Scaling is not implemented for this charm")
         self.tls_certificates = TLSCertificatesProvidesV2(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
@@ -122,10 +124,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
         """
         if not self._relation_created("certificates"):
             event.fail(message="No certificates relation has been created yet.")
-            return
-
-        if not self.unit.is_leader():
-            event.fail(message="Action cannot be run on non-leader unit.")
             return
 
         if not self._action_certificates_are_valid(event):

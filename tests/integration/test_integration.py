@@ -79,43 +79,6 @@ class TestTLSCertificatesOperator:
             timeout=1000,
         )
 
-    async def test_given_requirer_requests_certificate_creation_when_deploy_and_scale_then_status_is_active(  # noqa: E501
-        self, ops_test, charm, cleanup
-    ):
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="edge",
-        )
-        await ops_test.model.deploy(
-            entity_url=charm,
-            application_name=APPLICATION_NAME,
-            series="jammy",
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
-            status="active",
-            timeout=1000,
-        )
-        await ops_test.model.add_relation(
-            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
-        )
-
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
-
-        await ops_test.model.applications[APPLICATION_NAME].scale(2)
-
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="active",
-            timeout=1000,
-            wait_for_exact_units=2,
-        )
-
-        await ops_test.model.applications[APPLICATION_NAME].scale(1)
-
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
-
     async def test_given_tls_requirer_is_deployed_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
         self, ops_test, charm, cleanup
     ):
