@@ -53,9 +53,58 @@ class TestCharm(unittest.TestCase):
                 "unit_csrs": [{"certificate_signing_request": "some csr"}],
             }
         ]
-        self.harness.charm._on_certificate_creation_request(Mock())
+        self.harness.charm._set_active_status(Mock())
         self.assertEqual(
             ActiveStatus("1 outstanding requests, use juju actions to provide certificates"),
+            self.harness.charm.unit.status,
+        )
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
+    )
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_csrs_with_no_certs"  # noqa: E501, W505
+    )
+    def test_given_one_outstanding_request_when_provide_certificate_then_status_is_active_and_no_outstanding_requests(  # noqa: E501
+        self, patch_get_requirer_units_csrs_with_no_certs, _
+    ):
+        patch_get_requirer_units_csrs_with_no_certs.side_effect = [
+            [
+                {
+                    "relation_id": 1234,
+                    "unit_name": "unit/0",
+                    "application_name": "application",
+                    "unit_csrs": [{"certificate_signing_request": "some csr"}],
+                }
+            ],
+            [],
+        ]
+        self.harness.charm._set_active_status(Mock())
+        self.assertEqual(
+            ActiveStatus("1 outstanding requests, use juju actions to provide certificates"),
+            self.harness.charm.unit.status,
+        )
+        self.harness.add_relation("certificates", "requirer")
+        csr = self.get_certificate_from_file(filename="tests/csr.pem")
+        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        csr = TestCharm._encode_in_base64(csr)
+        certificate_bytes = TestCharm._encode_in_base64(certificate)
+        ca_certificate_bytes = TestCharm._encode_in_base64(ca_certificate)
+        ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
+
+        event = Mock()
+        event.params = {
+            "certificate_signing_request": TestCharm._decode_from_base64(csr),
+            "certificate": TestCharm._decode_from_base64(certificate_bytes),
+            "ca_certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
+            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
+            "relation_id": 1234,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        self.assertEqual(
+            ActiveStatus("No outstanding requests."),
             self.harness.charm.unit.status,
         )
 
@@ -101,8 +150,7 @@ class TestCharm(unittest.TestCase):
         "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
-        self,
-        patch_set_relation_certificate,
+        self, _
     ):
         self.harness.add_relation("certificates", "requirer")
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
@@ -131,8 +179,7 @@ class TestCharm(unittest.TestCase):
         "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.set_relation_certificate"  # noqa: E501, W505
     )
     def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
-        self,
-        patch_set_relation_certificate,
+        self, _
     ):
         self.harness.add_relation("certificates", "requirer")
         event = Mock()

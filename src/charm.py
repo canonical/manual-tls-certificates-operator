@@ -13,10 +13,9 @@ import logging
 from typing import Dict, List
 
 from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import]
-    CertificateCreationRequestEvent,
     TLSCertificatesProvidesV2,
 )
-from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent
+from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent, EventBase
 from ops.main import main
 from ops.model import ActiveStatus
 
@@ -43,7 +42,11 @@ class TLSCertificatesOperatorCharm(CharmBase):
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(
             self.tls_certificates.on.certificate_creation_request,
-            self._on_certificate_creation_request,
+            self._set_active_status,
+        )
+        self.framework.observe(
+            self.on.certificates_relation_departed,
+            self._set_active_status,
         )
         self.framework.observe(
             self.on.get_outstanding_certificate_requests_action,
@@ -70,21 +73,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
             None
         """
         self.unit.status = ActiveStatus("Ready to provide certificates.")
-
-    def _on_certificate_creation_request(self, event: CertificateCreationRequestEvent) -> None:
-        """Triggered when a certificate creation request is received.
-
-        Args:
-            event (CertificateCreationRequestEvent): Juju event.
-
-        Returns:
-            None
-        """
-        outstanding_requests_num = len(self._get_outstanding_requests())
-        self.unit.status = ActiveStatus(
-            f"{outstanding_requests_num} outstanding requests, "
-            f"use juju actions to provide certificates"
-        )
 
     def _on_get_outstanding_certificate_requests_action(self, event: ActionEvent) -> None:
         """Returns outstanding certificate requests.
@@ -161,6 +149,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             event.fail(message="Relation does not exist with the provided id.")
             return
         event.set_results({"result": "Certificates successfully provided."})
+        self._set_active_status(event=event)
 
     def _action_certificates_are_valid(
         self,
@@ -214,6 +203,24 @@ class TLSCertificatesOperatorCharm(CharmBase):
         for element in self.tls_certificates.get_requirer_csrs_with_no_certs():
             certificate_request_list += element["unit_csrs"]
         return certificate_request_list
+
+    def _set_active_status(self, event: EventBase) -> None:
+        """Sets active status with number of outstanding requests.
+
+        Args:
+            event (EventBase): Juju event.
+
+        Returns:
+            None
+        """
+        outstanding_requests_num = len(self._get_outstanding_requests())
+        if outstanding_requests_num == 0:
+            self.unit.status = ActiveStatus("No outstanding requests.")
+            return None
+        self.unit.status = ActiveStatus(
+            f"{outstanding_requests_num} outstanding requests, "
+            f"use juju actions to provide certificates"
+        )
 
     def _relation_created(self, relation_name: str) -> bool:
         """Returns whether given relation was created.
