@@ -1,10 +1,10 @@
 # tls-certificates-operator
 
-This charm is used for applications requiring TLS certificates.
+This charm is used to provide X.509 certificates in environments where certificates are obtained through a manual process.
 
 ## Usage
 
-### Passing user-provided certificates to requirer units manually
+### Providing X.509 certificates to requesting units
 
 The following three Juju actions make it possible for the user to manually provide certificates to units of the requirer charm.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2021 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Methods used to generate self-signed certificates."""
@@ -14,7 +14,7 @@ def certificate_is_valid(certificate: bytes) -> bool:
     """Returns whether a certificate is valid.
 
     Args:
-        certificate:
+        certificate: Certificate in bytes
 
     Returns:
         bool: True/False
@@ -26,17 +26,17 @@ def certificate_is_valid(certificate: bytes) -> bool:
         return False
 
 
-def certificate_request_is_valid(certificate_request: bytes) -> bool:
+def certificate_signing_request_is_valid(certificate_signing_request: bytes) -> bool:
     """Returns whether a certificate request is valid.
 
     Args:
-        certificate_request:
+        certificate_signing_request: Certificate signing request in bytes
 
     Returns:
         bool: True/False
     """
     try:
-        x509.load_pem_x509_csr(certificate_request)
+        x509.load_pem_x509_csr(certificate_signing_request)
         return True
     except ValueError:
         return False

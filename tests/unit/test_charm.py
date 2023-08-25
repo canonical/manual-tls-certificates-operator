@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from ops import testing
+from ops.model import ActiveStatus
 
 from charm import TLSCertificatesOperatorCharm
 
@@ -37,6 +38,26 @@ class TestCharm(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.set_leader(True)
         self.harness.begin()
+
+    @patch(
+        "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2.get_requirer_csrs_with_no_certs"  # noqa: E501, W505
+    )
+    def test_given_outstanding_requests_when_certificate_creation_request_then_status_is_active(
+        self, patch_get_requirer_units_csrs_with_no_certs
+    ):
+        patch_get_requirer_units_csrs_with_no_certs.return_value = [
+            {
+                "relation_id": 1234,
+                "unit_name": "unit/0",
+                "application_name": "application",
+                "unit_csrs": [{"certificate_signing_request": "some csr"}],
+            }
+        ]
+        self.harness.charm._on_certificate_creation_request(Mock())
+        self.assertEqual(
+            ActiveStatus("1 outstanding requests, use juju actions to provide certificates"),
+            self.harness.charm.unit.status,
+        )
 
     def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_empty_list_returned(  # noqa: E501
         self,

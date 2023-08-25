@@ -49,7 +49,7 @@ class TestTLSCertificatesOperator:
             series="jammy",
         )
 
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="waiting", timeout=1000)
+        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test, charm, cleanup
