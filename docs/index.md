@@ -27,7 +27,7 @@ TLS Certificates Operator is a member of the Ubuntu family. It’s an open sourc
 * [Code of conduct](https://ubuntu.com/community/ethos/code-of-conduct)
 * Contribute and report bugs to the [charm](https://github.com/canonical/tls-certificates-operator)
 
-# Contents
+# Navigation
 | Level | Path                     | Navlink                                                                                    |
 |-------|--------------------------|--------------------------------------------------------------------------------------------|
 | 1     | how-to                   | [How-to guides]()                                                                          |
