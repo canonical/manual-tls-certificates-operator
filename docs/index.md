@@ -18,7 +18,6 @@ juju relate tls-certificates-operator <your-charm>
 |                                                                                                                                                          |
 |----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [How-to guides](/t/tls-certificates-operator-how-to-provision-certificates/11612) </br> **Step-by-step guides** covering key operations and common tasks |
-| [Reference](https://charmhub.io/tls-certificates-operator/actions) </br> **Technical information** - specifications, APIs, architecture                  |
 
 ## Project and community
 
@@ -27,14 +26,8 @@ TLS Certificates Operator is a member of the Ubuntu family. It’s an open sourc
 * [Code of conduct](https://ubuntu.com/community/ethos/code-of-conduct)
 * Contribute and report bugs to the [charm](https://github.com/canonical/tls-certificates-operator)
 
-# Contents
+# Navigation
 | Level | Path                     | Navlink                                                                                    |
 |-------|--------------------------|--------------------------------------------------------------------------------------------|
 | 1     | how-to                   | [How-to guides]()                                                                          |
 | 2     | h-provision-certificates | [Provision certificates](/t/tls-certificates-operator-how-to-provision-certificates/11612) |
-| 1     | reference                | [Reference]()                                                                              |
-| 2     | r-actions                | [Actions](https://charmhub.io/tls-certificates-operator/actions)                           |
-| 2     | r-configurations         | [Configurations](https://charmhub.io/tls-certificates-operator/configure)                  |
-| 2     | r-integrations           | [Integrations](https://charmhub.io/tls-certificates-operator/integrations)                 |
-| 2     | r-libraries              | [Libraries](https://charmhub.io/tls-certificates-operator/libraries)                       |
-| 2     | r-resources              | [Resources](https://charmhub.io/tls-certificates-operator/resources)                       |
