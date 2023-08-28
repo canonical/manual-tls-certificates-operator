@@ -15,7 +15,7 @@ from typing import Dict, List
 from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import]
     TLSCertificatesProvidesV2,
 )
-from ops.charm import ActionEvent, CharmBase, ConfigChangedEvent, EventBase
+from ops.charm import ActionEvent, CharmBase, EventBase, InstallEvent
 from ops.main import main
 from ops.model import ActiveStatus
 
@@ -61,13 +61,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
             self._on_provide_certificate_action,
         )
 
-    def _on_install(self, event: ConfigChangedEvent) -> None:
+    def _on_install(self, event: InstallEvent) -> None:
         """Handles the install event.
 
         The charm will be in Active Status and ready to handle actions.
 
         Args:
-            event (ConfigChangedEvent): Juju event.
+            event (InstallEvent): Juju event.
 
         Returns:
             None
