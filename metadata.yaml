@@ -5,15 +5,11 @@ name: tls-certificates-operator
 docs: https://discourse.charmhub.io/t/tls-certificates-operator-docs-index/11461
 description: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
-  by the operator through Juju configs.
+  by the operator through Juju actions.
 summary: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
-  by the operator through Juju configs.
+  by the operator through Juju actions.
 
 provides:
   certificates:
     interface: tls-certificates
-
-peers:
-  replicas:
-    interface: tls-certificates-replica

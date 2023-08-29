@@ -1,25 +1,6 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-generate-self-signed-certificate:
-  description: >-
-    Generate a certificate along with private key.
-    Supported only when the tls-certificate-operator
-    is configured to be self-signed.
-  params:
-    common-name:
-      type: string
-      description: >-
-        CN (Common Name) field of the new certificate
-    sans:
-      type: string
-      description: >-
-        Space delimited list of Subject Alternate Name/IP addresse(s).
-      default: ''
-  required:
-    - common-name
-  additionalProperties: False
-
 get-outstanding-certificate-requests:
   description: >-
     Get list of all outstanding certificate signing requests.
@@ -28,22 +9,22 @@ get-certificate-request:
   description: >-
     Get certificate signing requests from a specific requirer application.
   params:
-    relation-id:
+    relation_id:
       type: string
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
   required:
-    - relation-id
+    - relation_id
 
 provide-certificate:
   description: >-
     Provide a certificate to a specific requirer unit.
   params:
-    relation-id:
-      type: string
+    relation_id:
+      type: integer
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
-    certificate-signing-request:
+    certificate_signing_request:
       type: string
       description: >-
         The request to which the certificate is being provided.
@@ -51,17 +32,17 @@ provide-certificate:
       type: string
       description: >-
         Base64 encoded TLS certificate.
-    ca-chain:
+    ca_chain:
       type: string
       description: >-
         Base64 encoded CA chain.
-    ca-certificate:
+    ca_certificate:
       type: string
       description: >-
         Base64 encoded CA Certificate..
   required:
-    - relation-id
-    - certificate-signing-request
+    - relation_id
+    - certificate_signing_request
     - certificate
-    - ca-chain
-    - ca-certificate
+    - ca_chain
+    - ca_certificate
