@@ -4,17 +4,12 @@
 get-outstanding-certificate-requests:
   description: >-
     Get list of all outstanding certificate signing requests.
-
-get-certificate-request:
-  description: >-
-    Get certificate signing requests from a specific requirer application.
+    If a relation_id is provided, only requests for that relation are returned.
   params:
     relation_id:
       type: string
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
-  required:
-    - relation_id
 
 provide-certificate:
   description: >-
