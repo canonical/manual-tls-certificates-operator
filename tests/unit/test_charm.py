@@ -137,13 +137,13 @@ class TestCharm(unittest.TestCase):
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.set_results.assert_called_once_with({"result": example_unit_csrs})
 
-    def test_given_relation_id_not_exist_when_get_certificate_request_action_then_action_returns_empty_list(  # noqa: E501
+    def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
         self,
     ):
         event = Mock()
         self.harness.add_relation("certificates", "requirer")
         event.params = {"relation_id": 1235}
-        self.harness.charm._on_get_certificate_request_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.set_results.assert_called_once_with({"result": []})
 
     @patch(

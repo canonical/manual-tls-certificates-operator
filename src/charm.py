@@ -53,10 +53,6 @@ class TLSCertificatesOperatorCharm(CharmBase):
             self._on_get_outstanding_certificate_requests_action,
         )
         self.framework.observe(
-            self.on.get_certificate_request_action,
-            self._on_get_certificate_request_action,
-        )
-        self.framework.observe(
             self.on.provide_certificate_action,
             self._on_provide_certificate_action,
         )
@@ -87,25 +83,10 @@ class TLSCertificatesOperatorCharm(CharmBase):
             event.fail(message="No certificates relation has been created yet.")
             return None
 
-        event.set_results({"result": self.tls_certificates.get_requirer_csrs_with_no_certs()})
-
-    def _on_get_certificate_request_action(self, event: ActionEvent) -> None:
-        """Returns certificate request for a specific relation.
-
-        Args:
-            event: Juju event.
-
-        Returns:
-            None
-        """
-        if not self._relation_created("certificates"):
-            event.fail(message="No certificates relation has been created yet.")
-            return None
-
         event.set_results(
             {
-                "result": self.tls_certificates.get_requirer_csrs(
-                    relation_id=event.params["relation_id"]
+                "result": self.tls_certificates.get_requirer_csrs_with_no_certs(
+                    relation_id=event.params.get("relation_id")
                 )
             }
         )
