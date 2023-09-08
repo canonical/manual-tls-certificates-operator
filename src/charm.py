@@ -210,12 +210,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Args:
             relation_name (str): Relation name
         """
-        try:
-            if self.model.relations.get(relation_name, []):
-                return True
-            return False
-        except KeyError:
-            return False
+        return bool(self.model.relations.get(relation_name, []))
 
     def _decode_base64(self, data, label):
         try:
