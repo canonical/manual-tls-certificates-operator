@@ -152,12 +152,11 @@ class TLSCertificatesOperatorCharm(CharmBase):
             bool: Wether certificates are valid.
         """
         try:
-            certificate_bytes = base64.b64decode(certificate)
-            ca_certificate_bytes = base64.b64decode(ca_certificate)
-            csr_bytes = base64.b64decode(certificate_signing_request)
-            ca_chain_bytes = base64.b64decode(ca_chain)
-        except (binascii.Error, TypeError) as e:
-            logger.error("Invalid input: %s", e)
+            certificate_bytes = self._decode_base64(certificate, 'certificate')
+            ca_certificate_bytes = self._decode_base64(ca_certificate, 'ca_certificate')
+            csr_bytes = self._decode_base64(certificate_signing_request, 'certificate_signing_request')
+            ca_chain_bytes = self._decode_base64(ca_chain, 'ca_chain')
+        except ValueError:
             return False
 
         if not certificate_is_valid(certificate_bytes):
@@ -215,6 +214,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
             return False
         except KeyError:
             return False
+
+    def _decode_base64(self, data, label):
+        try:
+            return base64.b64decode(data)
+        except (binascii.Error, TypeError) as e:
+            error_msg = "Invalid input for '{}': {}".format(label, e)
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
 
 if __name__ == "__main__":
