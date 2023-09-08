@@ -4,6 +4,13 @@ This charm is used to provide X.509 certificates in environments where certifica
 
 ## Usage
 
+Deploy the charm and integrate it to a certificate requirer:
+
+```bash
+juju deploy tls-certificates-operator
+juju integrate tls-certificates-operator <TLS Certificates Requirer>
+```
+
 ### Providing X.509 certificates to requesting units
 
 The following Juju actions make it possible for the user to manually provide certificates to units of the requirer charm.
@@ -27,6 +34,6 @@ juju run tls-certificates-operator/leader provide-certificate \
   certificate_signing_request="$(base64 -w0 csr.pem)\
 ```
 
-## Relations
+## Integrations
 
-This charm provides certificates using the `tls-certificates` relation.
+This charm provides certificates using the `tls-certificates` integration.

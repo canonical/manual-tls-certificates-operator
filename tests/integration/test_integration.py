@@ -6,7 +6,7 @@ import base64
 import logging
 
 import pytest
-from juju.errors import JujuError  # type: ignore[import]
+from juju.errors import JujuError
 
 logger = logging.getLogger(__name__)
 
