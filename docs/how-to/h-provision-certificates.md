@@ -10,13 +10,13 @@ To do so, the TLS Certificates Operator provides two actions:
 The following sections explain how to run both of them.
 
 ### a. Retrieve all certificates signing requests without an associated certificate
-The following action will return all certificate signing requests that don't have certificates already provided, along with further information (`relation_id`, `application_name` and `unit_name`):
+The following action will return all certificate signing requests that don't have certificates already provided, along with further information (`relation-id`, `application_name` and `unit_name`):
 ```shell
 juju run tls-certificates-operator/leader get-outstanding-certificate-requests
 ```
 
 ### b. Retrieve a specific certificate signing request
-The following action is used to get the certificate signing request and its information of a specific relation by providing the `relation_id` as a parameter:
+The following action is used to get the certificate signing request and its information of a specific relation by providing the `relation-id` as a parameter:
 ```shell
 juju run tls-certificates-operator/leader get-certificate-request \
   relation-id=<id>
@@ -32,8 +32,8 @@ The following action is used to provide the certificate to the requirer, allowin
 juju run tls-certificates-operator/leader provide-certificate \
   relation-id=<id> \
   certificate="$(base64 -w0 certificate.pem)" \
-  ca-chain="$(base64 -w0 ca_chain.pem)" \
-  ca-certificate="$(base64 -w0 ca_certificate.pem)" \
+  ca-chain="$(base64 -w0 ca-chain.pem)" \
+  ca-certificate="$(base64 -w0 ca-certificate.pem)" \
   certificate-signing-request="$(base64 -w0 csr.pem)" \
   unit-name="<unit-name>"
 ```

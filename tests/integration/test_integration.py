@@ -209,11 +209,13 @@ async def run_provide_certificate_action(
     tls_operator_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
     action = await tls_operator_unit.run_action(
         action_name="provide-certificate",
-        relation_id=relation_id,
-        certificate_signing_request=csr,
-        certificate=certificate,
-        ca_chain=ca_chain,
-        ca_certificate=ca_certificate,
+        **{
+            "relation-id": relation_id,
+            "certificate": certificate,
+            "ca-certificate": ca_certificate,
+            "ca-chain": ca_chain,
+            "certificate-signing-request": csr,
+        },
     )
     action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
     return action_output

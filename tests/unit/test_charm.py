@@ -96,11 +96,11 @@ class TestCharm(unittest.TestCase):
 
         event = Mock()
         event.params = {
-            "certificate_signing_request": TestCharm._decode_from_base64(csr),
+            "certificate-signing-request": TestCharm._decode_from_base64(csr),
             "certificate": TestCharm._decode_from_base64(certificate_bytes),
-            "ca_certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
-            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
-            "relation_id": 1234,
+            "ca-certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
+            "ca-chain": TestCharm._decode_from_base64(ca_chain_bytes),
+            "relation-id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         self.assertEqual(
@@ -164,11 +164,11 @@ class TestCharm(unittest.TestCase):
 
         event = Mock()
         event.params = {
-            "certificate_signing_request": TestCharm._decode_from_base64(csr),
+            "certificate-signing-request": TestCharm._decode_from_base64(csr),
             "certificate": TestCharm._decode_from_base64(certificate_bytes),
-            "ca_certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
-            "ca_chain": TestCharm._decode_from_base64(ca_chain_bytes),
-            "relation_id": 1234,
+            "ca-certificate": TestCharm._decode_from_base64(ca_certificate_bytes),
+            "ca-chain": TestCharm._decode_from_base64(ca_chain_bytes),
+            "relation-id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.set_results.assert_called_once_with(
@@ -184,11 +184,11 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("certificates", "requirer")
         event = Mock()
         event.params = {
-            "certificate_signing_request": "wrong encoding",
+            "certificate-signing-request": "wrong encoding",
             "certificate": "wrong encoding",
-            "ca_certificate": "wrong encoding",
-            "ca_chain": "wrong encoding",
-            "relation_id": 1234,
+            "ca-certificate": "wrong encoding",
+            "ca-chain": "wrong encoding",
+            "relation-id": 1234,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(message="Action input is not valid.")
