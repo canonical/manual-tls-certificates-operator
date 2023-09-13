@@ -4,9 +4,9 @@
 get-outstanding-certificate-requests:
   description: >-
     Get list of all outstanding certificate signing requests.
-    If a relation_id is provided, only requests for that relation are returned.
+    If a relation-id is provided, only requests for that relation are returned.
   params:
-    relation_id:
+    relation-id:
       type: string
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
@@ -15,11 +15,11 @@ provide-certificate:
   description: >-
     Provide a certificate to a specific requirer unit.
   params:
-    relation_id:
+    relation-id:
       type: integer
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
-    certificate_signing_request:
+    certificate-signing-request:
       type: string
       description: >-
         The request to which the certificate is being provided.
@@ -27,17 +27,17 @@ provide-certificate:
       type: string
       description: >-
         Base64 encoded TLS certificate.
-    ca_chain:
+    ca-chain:
       type: string
       description: >-
         Base64 encoded CA chain.
-    ca_certificate:
+    ca-certificate:
       type: string
       description: >-
         Base64 encoded CA Certificate..
   required:
-    - relation_id
-    - certificate_signing_request
+    - relation-id
+    - certificate-signing-request
     - certificate
-    - ca_chain
-    - ca_certificate
+    - ca-chain
+    - ca-certificate

@@ -86,7 +86,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
         event.set_results(
             {
                 "result": self.tls_certificates.get_requirer_csrs_with_no_certs(
-                    relation_id=event.params.get("relation_id")
+                    relation_id=event.params.get("relation-id")
                 )
             }
         )
@@ -106,17 +106,17 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
         if not self._action_certificates_are_valid(
             certificate=event.params["certificate"],
-            ca_certificate=event.params["ca_certificate"],
-            certificate_signing_request=event.params["certificate_signing_request"],
-            ca_chain=event.params["ca_chain"],
+            ca_certificate=event.params["ca-certificate"],
+            certificate_signing_request=event.params["certificate-signing-request"],
+            ca_chain=event.params["ca-chain"],
         ):
             event.fail(message="Action input is not valid.")
             return
 
-        ca_chain_list = parse_ca_chain(base64.b64decode(event.params["ca_chain"]).decode())
-        csr = base64.b64decode(event.params["certificate_signing_request"]).decode("utf-8").strip()
+        ca_chain_list = parse_ca_chain(base64.b64decode(event.params["ca-chain"]).decode())
+        csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
-        ca_cert = base64.b64decode(event.params["ca_certificate"]).decode("utf-8").strip()
+        ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
         try:
             self.tls_certificates.set_relation_certificate(
@@ -124,7 +124,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
                 certificate=certificate,
                 ca=ca_cert,
                 chain=ca_chain_list,
-                relation_id=event.params["relation_id"],
+                relation_id=event.params["relation-id"],
             )
         except RuntimeError:
             event.fail(message="Relation does not exist with the provided id.")
@@ -152,12 +152,13 @@ class TLSCertificatesOperatorCharm(CharmBase):
             bool: Wether certificates are valid.
         """
         try:
-            certificate_bytes = base64.b64decode(certificate)
-            ca_certificate_bytes = base64.b64decode(ca_certificate)
-            csr_bytes = base64.b64decode(certificate_signing_request)
-            ca_chain_bytes = base64.b64decode(ca_chain)
-        except (binascii.Error, TypeError) as e:
-            logger.error("Invalid input: %s", e)
+            certificate_bytes = self._decode_base64(certificate, "certificate")
+            ca_certificate_bytes = self._decode_base64(ca_certificate, "ca_certificate")
+            csr_bytes = self._decode_base64(
+                certificate_signing_request, "certificate_signing_request"
+            )
+            ca_chain_bytes = self._decode_base64(ca_chain, "ca_chain")
+        except ValueError:
             return False
 
         if not certificate_is_valid(certificate_bytes):
@@ -209,12 +210,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
         Args:
             relation_name (str): Relation name
         """
+        return bool(self.model.relations.get(relation_name, []))
+
+    def _decode_base64(self, data, label):
         try:
-            if self.model.relations.get(relation_name, []):
-                return True
-            return False
-        except KeyError:
-            return False
+            return base64.b64decode(data)
+        except (binascii.Error, TypeError) as e:
+            logger.error("Invalid input for '%s': %s", label, e)
+            raise ValueError()
 
 
 if __name__ == "__main__":
