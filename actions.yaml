@@ -7,7 +7,7 @@ get-outstanding-certificate-requests:
     If a relation-id is provided, only requests for that relation are returned.
   params:
     relation-id:
-      type: string
+      type: integer
       description: >-
         ID of the relation between the tls-certificate-operator and the requirer.
 
