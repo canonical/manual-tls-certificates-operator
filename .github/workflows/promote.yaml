@@ -40,3 +40,4 @@ jobs:
           destination-channel: latest/${{ env.promote-to }}
           origin-channel: latest/${{ env.promote-from }}
           charmcraft-channel: latest/stable
+          base-channel: "22.04"
