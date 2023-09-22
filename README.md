@@ -7,7 +7,7 @@ This charm is used to provide X.509 certificates in environments where certifica
 Deploy the charm and integrate it to a certificate requirer:
 
 ```bash
-juju deploy tls-certificates-operator
+juju deploy tls-certificates-operator --channel beta
 juju integrate tls-certificates-operator <TLS Certificates Requirer>
 ```
 

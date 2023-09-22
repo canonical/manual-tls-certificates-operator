@@ -308,7 +308,7 @@ LIBAPI = 2
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 13
+LIBPATCH = 15
 
 PYDEPS = ["cryptography", "jsonschema"]
 
@@ -640,6 +640,17 @@ def generate_ca(
         private_key_object.public_key()  # type: ignore[arg-type]
     )
     subject_identifier = key_identifier = subject_identifier_object.public_bytes()
+    key_usage = x509.KeyUsage(
+        digital_signature=True,
+        key_encipherment=True,
+        key_cert_sign=True,
+        key_agreement=False,
+        content_commitment=False,
+        data_encipherment=False,
+        crl_sign=False,
+        encipher_only=False,
+        decipher_only=False,
+    )
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -657,6 +668,7 @@ def generate_ca(
             ),
             critical=False,
         )
+        .add_extension(key_usage, critical=True)
         .add_extension(
             x509.BasicConstraints(ca=True, path_length=None),
             critical=True,
@@ -1204,16 +1216,19 @@ class TLSCertificatesProvidesV2(Object):
             that don't have a certificate issued.
         """
         all_unit_csr_mappings = copy.deepcopy(self.get_requirer_csrs(relation_id=relation_id))
+        filtered_all_unit_csr_mappings: List[Dict[str, Union[int, str, List[Dict[str, str]]]]] = []
         for unit_csr_mapping in all_unit_csr_mappings:
+            csrs_without_certs = []
             for csr in unit_csr_mapping["unit_csrs"]:  # type: ignore[union-attr]
-                if self.certificate_issued_for_csr(
+                if not self.certificate_issued_for_csr(
                     app_name=unit_csr_mapping["application_name"],  # type: ignore[arg-type]
                     csr=csr["certificate_signing_request"],  # type: ignore[index]
                 ):
-                    unit_csr_mapping["unit_csrs"].remove(csr)  # type: ignore[union-attr, arg-type]
-            if len(unit_csr_mapping["unit_csrs"]) == 0:  # type: ignore[arg-type]
-                all_unit_csr_mappings.remove(unit_csr_mapping)
-        return all_unit_csr_mappings
+                    csrs_without_certs.append(csr)
+            if csrs_without_certs:
+                unit_csr_mapping["unit_csrs"] = csrs_without_certs  # type: ignore[assignment]
+                filtered_all_unit_csr_mappings.append(unit_csr_mapping)
+        return filtered_all_unit_csr_mappings
 
     def get_requirer_csrs(
         self, relation_id: Optional[int] = None
