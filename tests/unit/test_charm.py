@@ -44,15 +44,15 @@ class TestCharm(unittest.TestCase):
         self.harness.begin()
 
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
+        csr_bytes = TestCharm._encode_in_base64(csr)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
-        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        csr = TestCharm._encode_in_base64(csr)
         certificate_bytes = TestCharm._encode_in_base64(certificate)
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         ca_certificate_bytes = TestCharm._encode_in_base64(ca_certificate)
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
 
-        self.decoded_csr = TestCharm._decode_from_base64(csr)
+        self.decoded_csr = TestCharm._decode_from_base64(csr_bytes)
         self.decoded_certificate = TestCharm._decode_from_base64(certificate_bytes)
         self.decoded_ca_certificate = TestCharm._decode_from_base64(ca_certificate_bytes)
         self.decoded_ca_chain = TestCharm._decode_from_base64(ca_chain_bytes)
@@ -200,30 +200,22 @@ class TestCharm(unittest.TestCase):
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr = TestCharm._encode_in_base64(csr)
+        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             {
                 "relation_id": relation_id,
                 "application_name": requirer_app_name,
                 "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [
-                    {
-                        "certificate_signing_request": base64.b64decode(
-                            TestCharm._decode_from_base64(csr)
-                        )
-                        .decode("utf-8")
-                        .strip()
-                    }
-                ],
+                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
             }
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
+        incorrect_cert = self.decoded_ca_certificate
 
         event = Mock()
         event.params = {
             "certificate-signing-request": self.decoded_csr,
-            "certificate": self.decoded_ca_certificate,
+            "certificate": incorrect_cert,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
             "relation-id": relation_id,
@@ -239,22 +231,13 @@ class TestCharm(unittest.TestCase):
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr = TestCharm._encode_in_base64(csr)
+        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             {
                 "relation_id": relation_id,
                 "application_name": requirer_app_name,
                 "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [
-                    {
-                        "certificate_signing_request": base64.b64decode(
-                            TestCharm._decode_from_base64(csr)
-                        )
-                        .decode("utf-8")
-                        .strip()
-                    }
-                ],
+                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
             }
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
@@ -281,22 +264,13 @@ class TestCharm(unittest.TestCase):
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr = TestCharm._encode_in_base64(csr)
+        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             {
                 "relation_id": relation_id,
                 "application_name": requirer_app_name,
                 "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [
-                    {
-                        "certificate_signing_request": base64.b64decode(
-                            TestCharm._decode_from_base64(csr)
-                        )
-                        .decode("utf-8")
-                        .strip()
-                    }
-                ],
+                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
             }
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs

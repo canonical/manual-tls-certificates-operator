@@ -141,11 +141,20 @@ class TLSCertificatesOperatorCharm(CharmBase):
         event.set_results({"result": "Certificates successfully provided."})
         self._set_active_status(event=event)
 
-    def _csr_exists_in_requirer(self, csr: str, relation_id: str) -> bool:
+    def _csr_exists_in_requirer(self, csr: str, relation_id: int) -> bool:
+        """Validates certificates provided in action.
+
+        Args:
+            csr (str): certificate signing request in their original str representation.
+            relation_id (int): Relation id with the requirer.
+
+        Returns:
+            bool: Whether the csr exists on the requirer.
+        """
         all_unit_csr_mappings = self.tls_certificates.get_requirer_csrs(relation_id)
         for csr_mappings in all_unit_csr_mappings:
             for csrs in csr_mappings["unit_csrs"]:
-                if csr in csrs["certificate_signing_request"]:
+                if csr == csrs["certificate_signing_request"]:
                     return True
         return False
 
@@ -166,7 +175,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             ca_chain (str): CA Chain in base64 string format
 
         Returns:
-            bool: Wether certificates are valid.
+            bool: Whether certificates are valid.
         """
         try:
             certificate_bytes = self._decode_base64(certificate, "certificate")
