@@ -160,9 +160,6 @@ class TestTLSCertificatesOperator:
             timeout=1000,
         )
 
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        ca_chain_bytes = base64.b64encode(ca_chain.encode("utf-8"))
-
         action_output = await run_get_outstanding_csrs_action(ops_test)
 
         action_result_list = ast.literal_eval(action_output["result"])
@@ -174,6 +171,8 @@ class TestTLSCertificatesOperator:
         ca_certificate_pem = certs["ca_cert"].public_bytes(serialization.Encoding.PEM)
         certificate_bytes = base64.b64encode(certificate_pem)
         ca_certificate_bytes = base64.b64encode(ca_certificate_pem)
+        ca_chain_pem = ca_certificate_pem + certificate_pem
+        ca_chain_bytes = base64.b64encode(ca_chain_pem)
 
         action_output = await run_provide_certificate_action(
             ops_test,
@@ -202,7 +201,7 @@ class TestTLSCertificatesOperator:
             .replace(", ", "\n")
             .replace("\\n", "\n")
         )
-        assert formatted_chain == ca_chain.strip("\n")
+        assert formatted_chain == ca_chain_pem.decode("utf-8").strip("\n")
 
 
 async def run_get_certificate_action(ops_test) -> dict:
