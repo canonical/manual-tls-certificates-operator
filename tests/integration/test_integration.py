@@ -168,7 +168,7 @@ class TestTLSCertificatesOperator:
         ca_chain_pem = ca_certificate_pem + certificate_pem
         ca_chain_bytes = base64.b64encode(ca_chain_pem)
 
-        action_output = await run_provide_certificate_action(
+        await run_provide_certificate_action(
             ops_test,
             relation_id=relation.id,
             certificate=certificate_bytes.decode("utf-8"),
