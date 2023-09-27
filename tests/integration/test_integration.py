@@ -29,12 +29,6 @@ class TestTLSCertificatesOperator:
         return charm
 
     @staticmethod
-    def get_certificate_from_file(filename: str) -> str:
-        with open(filename, "r") as file:
-            certificate = file.read()
-        return certificate
-
-    @staticmethod
     def get_certificate_from_csr(csr: str) -> {}:
         csr_bytes = csr.encode("utf-8")
         csr = x509.load_pem_x509_csr(csr_bytes, default_backend())
