@@ -29,7 +29,15 @@ class TestTLSCertificatesOperator:
         return charm
 
     @staticmethod
-    def get_certificate_from_csr(csr: str) -> {}:
+    def get_certificate_from_csr(csr: str) -> dict:
+        """Creates a Certificate and a CA certificate from a CSR.
+
+        Args:
+            csr (str): certificate signing request in their original str representation.
+
+        Returns:
+            dict: Containing the Certificate and CA certificate on their x509 object format.
+        """
         csr_bytes = csr.encode("utf-8")
         csr = x509.load_pem_x509_csr(csr_bytes, default_backend())
 
