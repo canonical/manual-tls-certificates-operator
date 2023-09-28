@@ -29,7 +29,7 @@ class TestTLSCertificatesOperator:
         return charm
 
     @staticmethod
-    def get_certificate_from_csr(csr: str) -> dict:
+    def get_certificate_and_ca_certificate_from_csr(csr: str) -> dict:
         """Creates a Certificate and a CA certificate from a CSR.
 
         Args:
@@ -168,7 +168,7 @@ class TestTLSCertificatesOperator:
         csr = action_result_list[0]["unit_csrs"][0]["certificate_signing_request"]
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
-        certs = self.get_certificate_from_csr(csr)
+        certs = self.get_certificate_and_ca_certificate_from_csr(csr)
         certificate_pem = certs["certificate"].public_bytes(serialization.Encoding.PEM)
         ca_certificate_pem = certs["ca_cert"].public_bytes(serialization.Encoding.PEM)
         certificate_bytes = base64.b64encode(certificate_pem)
