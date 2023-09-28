@@ -259,7 +259,7 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
-    def test_given_runtime_error_during_when_provide_certificate_action_then_event_fails(
+    def test_given_runtime_error_during_set_relation_certificate_when_provide_certificate_action_then_event_fails(
         self, patch_set_relation_cert, patch_get_requirer_csrs
     ):
         requirer_app_name = "requirer"
