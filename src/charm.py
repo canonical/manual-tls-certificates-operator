@@ -14,6 +14,7 @@ from typing import Dict, List
 
 from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import]
     TLSCertificatesProvidesV2,
+    csr_matches_certificate,
 )
 from ops.charm import ActionEvent, CharmBase, EventBase, InstallEvent
 from ops.main import main
@@ -118,6 +119,14 @@ class TLSCertificatesOperatorCharm(CharmBase):
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
         ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
+        if not self._csr_exists_in_requirer(csr=csr, relation_id=event.params["relation-id"]):
+            event.fail(message="Certificate signing request was not found in requirer data.")
+            return
+
+        if not csr_matches_certificate(csr=csr, cert=certificate):
+            event.fail(message="Certificate and CSR do not match.")
+            return
+
         try:
             self.tls_certificates.set_relation_certificate(
                 certificate_signing_request=csr,
@@ -131,6 +140,23 @@ class TLSCertificatesOperatorCharm(CharmBase):
             return
         event.set_results({"result": "Certificates successfully provided."})
         self._set_active_status(event=event)
+
+    def _csr_exists_in_requirer(self, csr: str, relation_id: int) -> bool:
+        """Validates certificates provided in action.
+
+        Args:
+            csr (str): certificate signing request in their original str representation.
+            relation_id (int): Relation id with the requirer.
+
+        Returns:
+            bool: Whether the csr exists on the requirer.
+        """
+        all_unit_csr_mappings = self.tls_certificates.get_requirer_csrs(relation_id)
+        for csr_mappings in all_unit_csr_mappings:
+            for csrs in csr_mappings["unit_csrs"]:
+                if csr == csrs["certificate_signing_request"]:
+                    return True
+        return False
 
     def _action_certificates_are_valid(
         self,
@@ -149,7 +175,7 @@ class TLSCertificatesOperatorCharm(CharmBase):
             ca_chain (str): CA Chain in base64 string format
 
         Returns:
-            bool: Wether certificates are valid.
+            bool: Whether certificates are valid.
         """
         try:
             certificate_bytes = self._decode_base64(certificate, "certificate")

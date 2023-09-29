@@ -31,7 +31,7 @@ juju run tls-certificates-operator/leader provide-certificate \
   certificate="$(base64 -w0 certificate.pem)" \
   ca-chain="$(base64 -w0 ca-chain.pem)" \
   ca-certificate="$(base64 -w0 ca-certificate.pem)" \
-  certificate-signing-request="$(base64 -w0 csr.pem)\
+  certificate-signing-request="$(base64 -w0 csr.pem)" \
 ```
 
 ## Integrations
