@@ -76,7 +76,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
-    def test_given_no_units_with_no_certs_then_status_is_active_and_no_outstanding_requests(
+    def test_given_no_units_with_no_certs_when_charm_is_deployed_then_status_is_active_and_no_outstanding_requests(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         patch_get_requirer_units_csrs_with_no_certs.return_value = []
