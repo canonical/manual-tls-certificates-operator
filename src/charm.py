@@ -21,6 +21,7 @@ from ops.main import main
 from ops.model import ActiveStatus
 
 from helpers import (
+    ca_chain_is_valid,
     certificate_is_valid,
     certificate_signing_request_is_valid,
     parse_ca_chain,
@@ -198,6 +199,8 @@ class TLSCertificatesOperatorCharm(CharmBase):
         for ca in ca_chain_list:
             if not certificate_is_valid(ca.encode()):
                 return False
+        if not ca_chain_is_valid(ca_chain_list):
+            return False
 
         return True
 

@@ -4,6 +4,7 @@
 import unittest
 
 from helpers import (
+    ca_chain_is_valid,
     certificate_is_valid,
     certificate_signing_request_is_valid,
     parse_ca_chain,
@@ -62,3 +63,28 @@ class TestHelpers(unittest.TestCase):
         ca_chain = "Not a CA Chain"
         with self.assertRaises(ValueError):
             parse_ca_chain(ca_chain)
+
+    def test_given_valid_ca_chain_when_ca_chain_is_valid_then_returns_true(self):
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_chain_list = parse_ca_chain(ca_chain)
+        self.assertTrue(ca_chain_is_valid(ca_chain_list))
+
+    def test_given_empty_list_ca_chain_when_ca_chain_is_valid_returns_false(self):
+        ca_chain_list = []
+        self.assertFalse(ca_chain_is_valid(ca_chain_list))
+
+    def test_given_one_certificate_in_ca_chain_when_ca_chain_is_valid_returns_false(self):
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_chain_list = parse_ca_chain(ca_chain)[:-1]
+        self.assertFalse(ca_chain_is_valid(ca_chain_list))
+
+    def test_given_invalid_issuer_ca_chain_when_ca_chain_is_valid_returns_false(self):
+        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_chain_list = parse_ca_chain(ca_chain)
+        ca_chain_list.reverse()
+        self.assertFalse(ca_chain_is_valid(ca_chain_list))
+
+    def test_given_invalid_certificate_in_ca_chain_when_ca_chain_is_valid_then_returns_false(self):
+        ca_chain = "Not a CA Chain"
+        ca_chain_list = [ca_chain, ca_chain]
+        self.assertFalse(ca_chain_is_valid(ca_chain_list))
