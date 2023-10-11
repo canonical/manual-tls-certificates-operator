@@ -1,0 +1,41 @@
+name: Auto-update Charm Libraries
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0,12 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-lib:
+    name: Check libraries
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch charm libraries
+        run: |
+          sudo snap install charmcraft --classic --channel latest/stable
+          charmcraft fetch-lib
+        env:
+          CHARMCRAFT_AUTH: "${{ secrets.CHARMCRAFT_AUTH }}"
+
+      - name: Create a PR for local changes
+        uses: peter-evans/create-pull-request@v4.2.3 # what is this action?
+        with:
+          token: ${{ secrets.TELCO_GITHUB_BOT_TOKEN }} # what is this token? How to create it?
+          commit-message: "chore: update charm libraries"
+          committer: "Github Actions <github-actions@github.com>"
+          author: "Github Actions <github-actions@github.com>"
+          title: "Update charm libraries"
+          body: |
+            Automated action to fetch latest version of charm libraries. The branch of this PR 
+            will be wiped during the next check. Unless you really know what you're doing, you 
+            most likely don't want to push any commits to this branch.
+          branch: "chore/auto-libs"
+          delete-branch: true
