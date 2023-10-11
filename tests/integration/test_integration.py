@@ -117,12 +117,8 @@ class TestTLSCertificatesOperator:
             application_name=APPLICATION_NAME,
             series="jammy",
         )
-        await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
-            status="active",
-            timeout=1000,
-        )
-        await ops_test.model.add_relation(
+
+        await ops_test.model.integrate(
             relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
         )
 
@@ -140,11 +136,6 @@ class TestTLSCertificatesOperator:
             application_name=TLS_REQUIRER_CHARM_NAME,
             channel="edge",
         )
-        await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
-            status="active",
-            timeout=1000,
-        )
 
         await ops_test.model.deploy(
             entity_url=charm,
@@ -152,7 +143,7 @@ class TestTLSCertificatesOperator:
             series="jammy",
         )
 
-        relation = await ops_test.model.add_relation(
+        relation = await ops_test.model.integrate(
             relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
         )
 
@@ -186,7 +177,7 @@ class TestTLSCertificatesOperator:
         )
 
         await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
+            apps=[APPLICATION_NAME, TLS_REQUIRER_CHARM_NAME],
             status="active",
             timeout=1000,
         )
