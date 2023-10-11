@@ -12,7 +12,7 @@ import binascii
 import logging
 from typing import Dict, List
 
-from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore
+from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
     TLSCertificatesProvidesV2,
     csr_matches_certificate,
 )
