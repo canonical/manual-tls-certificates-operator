@@ -224,6 +224,25 @@ class TestCharm(unittest.TestCase):
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(message="Certificate and CSR do not match.")
 
+    @patch("charm.ca_chain_is_valid")
+    def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
+        self, patch_ca_chain_valid
+    ):
+        relation_id = self.harness.add_relation("certificates", "requirer")
+        patch_ca_chain_valid.return_value = False
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": self.decoded_csr,
+            "certificate": self.decoded_certificate,
+            "ca-certificate": self.decoded_ca_certificate,
+            "ca-chain": self.decoded_ca_chain,
+            "relation-id": relation_id,
+        }
+
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Action input is not valid.")
+
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
