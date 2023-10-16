@@ -12,7 +12,7 @@ jobs:
     name: Lint report
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -22,7 +22,7 @@ jobs:
     name: Static analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -32,7 +32,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -79,7 +79,7 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install charmcraft
         run: sudo snap install charmcraft --classic
       - name: Fetch Tested Charm
