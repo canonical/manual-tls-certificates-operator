@@ -26,9 +26,9 @@ jobs:
           CHARMCRAFT_AUTH: "${{ secrets.CHARMCRAFT_AUTH }}"
 
       - name: Create a PR for local changes
-        uses: peter-evans/create-pull-request@v4.2.3 # what is this action?
+        uses: peter-evans/create-pull-request@v4.2.3
         with:
-          token: ${{ secrets.TELCO_GITHUB_BOT_TOKEN }} # what is this token? How to create it?
+          token: ${{ secrets.TELCO_GITHUB_BOT_TOKEN }}
           commit-message: "chore: update charm libraries"
           committer: "Github Actions <github-actions@github.com>"
           author: "Github Actions <github-actions@github.com>"
