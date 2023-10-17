@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 from ops import testing
 from ops.model import ActiveStatus
 
-from charm import TLSCertificatesOperatorCharm
+from charm import ManualTLSCertificatesCharm
 
 TLS_CERTIFICATES_PROVIDES_PATH = (
     "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2"
@@ -38,7 +38,7 @@ class TestCharm(unittest.TestCase):
         return certificate
 
     def setUp(self):
-        self.harness = testing.Harness(TLSCertificatesOperatorCharm)
+        self.harness = testing.Harness(ManualTLSCertificatesCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.set_leader(True)
         self.harness.begin()

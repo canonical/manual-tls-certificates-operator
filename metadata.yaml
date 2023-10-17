@@ -1,9 +1,9 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-name: tls-certificates-operator
+name: manual-tls-certificates
 
-display-name: TLS Certificates Operator
+display-name: Manual TLS Certificates
 docs: https://discourse.charmhub.io/t/tls-certificates-operator-docs-index/11461
 description: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
@@ -11,9 +11,9 @@ description: |
 summary: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
   by the operator through Juju actions.
-website: https://charmhub.io/tls-certificates-operator
-source: https://github.com/canonical/tls-certificates-operator
-issues: https://github.com/canonical/tls-certificates-operator/issues
+website: https://charmhub.io/manual-tls-certificates
+source: https://github.com/canonical/manual-tls-certificates-operator
+issues: https://github.com/canonical/manual-tls-certificates-operator/issues
 
 provides:
   certificates:
