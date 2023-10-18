@@ -9,7 +9,7 @@ get-outstanding-certificate-requests:
     relation-id:
       type: integer
       description: >-
-        ID of the relation between the tls-certificate-operator and the requirer.
+        ID of the relation between the manual-tls-certificates and the requirer.
 
 provide-certificate:
   description: >-
@@ -18,7 +18,7 @@ provide-certificate:
     relation-id:
       type: integer
       description: >-
-        ID of the relation between the tls-certificate-operator and the requirer.
+        ID of the relation between the manual-tls-certificates and the requirer.
     certificate-signing-request:
       type: string
       description: >-
