@@ -16,11 +16,11 @@ from juju.errors import JujuError
 
 logger = logging.getLogger(__name__)
 
-APPLICATION_NAME = "tls-certificates-operator"
+APPLICATION_NAME = "manual-tls-certificates"
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 
 
-class TestTLSCertificatesOperator:
+class TestManualTLSCertificates:
     @pytest.fixture(scope="module")
     @pytest.mark.abort_on_fail
     async def charm(self, ops_test):
@@ -215,7 +215,7 @@ async def run_get_certificate_action(ops_test) -> dict:
 
 
 async def run_get_outstanding_csrs_action(ops_test) -> dict:
-    """Runs `get-outstanding-certificate-requests` on the `tls-certificates-operator/0` unit.
+    """Runs `get-outstanding-certificate-requests` on the `manual-tls-certificates/0` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -223,8 +223,8 @@ async def run_get_outstanding_csrs_action(ops_test) -> dict:
     Returns:
         dict: Action output
     """
-    tls_operator_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
-    action = await tls_operator_unit.run_action(
+    manual_tls_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
+    action = await manual_tls_unit.run_action(
         action_name="get-outstanding-certificate-requests",
     )
     action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
@@ -239,7 +239,7 @@ async def run_provide_certificate_action(
     ca_chain: str,
     csr: str,
 ) -> dict:
-    """Runs `provide-certificate` on the `tls-certificates-operator/0` unit.
+    """Runs `provide-certificate` on the `manual-tls-certificates/0` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -252,8 +252,8 @@ async def run_provide_certificate_action(
     Returns:
         dict: Action output
     """
-    tls_operator_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
-    action = await tls_operator_unit.run_action(
+    manual_tls_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
+    action = await manual_tls_unit.run_action(
         action_name="provide-certificate",
         **{
             "relation-id": relation_id,

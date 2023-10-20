@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 CERTIFICATES_RELATION = "certificates"
 
 
-class TLSCertificatesOperatorCharm(CharmBase):
+class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
 
     def __init__(self, *args):
@@ -250,4 +250,4 @@ class TLSCertificatesOperatorCharm(CharmBase):
 
 
 if __name__ == "__main__":
-    main(TLSCertificatesOperatorCharm)
+    main(ManualTLSCertificatesCharm)
