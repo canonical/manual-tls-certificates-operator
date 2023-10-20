@@ -19,14 +19,14 @@ If the optional parameter relation-id is provided then only the information of t
 The following action will return all certificate requests that don't have certificates already provided, along with further information (relation-id, application_name and unit_name)
 
 ```bash
-juju run tls-certificates-operator/leader get-outstanding-certificate-requests \
+juju run-action tls-certificates-operator/leader get-outstanding-certificate-requests \
   relation-id=<id>
 ```
 
 
 The second action allows the user to provide the certificates and specify the csr.
 ```bash
-juju run tls-certificates-operator/leader provide-certificate \
+juju run-action tls-certificates-operator/leader provide-certificate \
   relation-id=<id> \
   certificate="$(base64 -w0 certificate.pem)" \
   ca-chain="$(base64 -w0 ca-chain.pem)" \
