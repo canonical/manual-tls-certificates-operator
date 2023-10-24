@@ -38,8 +38,6 @@ class ManualTLSCertificatesCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        if not self.unit.is_leader():
-            raise NotImplementedError("Scaling is not implemented for this charm")
         self.tls_certificates = TLSCertificatesProvidesV2(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(

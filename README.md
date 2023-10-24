@@ -18,12 +18,14 @@ If the optional parameter relation-id is provided then only the information of t
 
 The following action will return all certificate requests that don't have certificates already provided, along with further information (relation-id, application_name and unit_name)
 
+NOTE: If you happen to scale `manual-tls-certificates`, you must run actions on the leader unit. However, there is currently no benefit to scaling this charm.
+
 ```bash
-juju run manual-tls-certificates/leader get-outstanding-certificate-requests relation-id=<id>
+juju run manual-tls-certificates/leader get-outstanding-certificate-requests relation-id=${relation_id}
 ```
 
-
 The second action allows the user to provide the certificates and specify the csr.
+
 ```bash
 juju run manual-tls-certificates/leader provide-certificate \
   relation-id=<id> \

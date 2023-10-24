@@ -13,6 +13,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from juju.errors import JujuError
+from juju.relation import Relation
+from juju.unit import Unit
+from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +23,15 @@ APPLICATION_NAME = "manual-tls-certificates"
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 
 
-class TestManualTLSCertificates:
+async def get_leader_unit(model, application_name: str) -> Unit:
+    """Returns the leader unit for the given application."""
+    for unit in model.units.values():
+        if unit.application == application_name and await unit.is_leader_from_status():
+            return unit
+    raise RuntimeError(f"Leader unit for `{application_name}` not found.")
+
+
+class TestManualTLSCertificatesOperator:
     @pytest.fixture(scope="module")
     @pytest.mark.abort_on_fail
     async def charm(self, ops_test):
@@ -39,7 +50,7 @@ class TestManualTLSCertificates:
             dict: Containing the Certificate and CA certificate on their x509 object format.
         """
         csr_bytes = csr.encode("utf-8")
-        csr = x509.load_pem_x509_csr(csr_bytes, default_backend())
+        csr_parsed = x509.load_pem_x509_csr(csr_bytes, default_backend())
 
         ca_private_key = rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
@@ -68,9 +79,9 @@ class TestManualTLSCertificates:
         )
         cert = (
             x509.CertificateBuilder()
-            .subject_name(csr.subject)
+            .subject_name(csr_parsed.subject)
             .issuer_name(ca_subject)
-            .public_key(csr.public_key())
+            .public_key(csr_parsed.public_key())
             .serial_number(x509.random_serial_number())
             .not_valid_before(datetime.datetime.utcnow())
             .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
@@ -94,8 +105,9 @@ class TestManualTLSCertificates:
             pass
 
     async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
-        self, ops_test, charm, cleanup
+        self, ops_test: OpsTest, charm, cleanup
     ):
+        assert ops_test.model
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
@@ -105,8 +117,9 @@ class TestManualTLSCertificates:
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
-        self, ops_test, charm, cleanup
+        self, ops_test: OpsTest, charm, cleanup
     ):
+        assert ops_test.model
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
@@ -128,9 +141,10 @@ class TestManualTLSCertificates:
             timeout=1000,
         )
 
-    async def test_given_tls_requirer_is_deployed_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
-        self, ops_test, charm, cleanup
+    async def test_given_tls_requirer_is_deployed_with_3_units_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
+        self, ops_test: OpsTest, charm, cleanup
     ):
+        assert ops_test.model
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
@@ -141,16 +155,19 @@ class TestManualTLSCertificates:
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+            num_units=3,
         )
 
         relation = await ops_test.model.integrate(
             relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
         )
+        assert isinstance(relation, Relation)
 
         await ops_test.model.wait_for_idle(
             apps=[APPLICATION_NAME],
             status="active",
             timeout=1000,
+            wait_for_at_least_units=3,
         )
 
         action_output = await run_get_outstanding_csrs_action(ops_test)
@@ -198,7 +215,7 @@ class TestManualTLSCertificates:
 
 
 async def run_get_certificate_action(ops_test) -> dict:
-    """Runs `get-certificate` on the `tls-requirer-requirer/0` unit.
+    """Runs `get-certificate` on the `tls-certificates-requirer/leader` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -206,7 +223,7 @@ async def run_get_certificate_action(ops_test) -> dict:
     Returns:
         dict: Action output
     """
-    tls_requirer_unit = ops_test.model.units[f"{TLS_REQUIRER_CHARM_NAME}/0"]
+    tls_requirer_unit = await get_leader_unit(ops_test.model, TLS_REQUIRER_CHARM_NAME)
     action = await tls_requirer_unit.run_action(
         action_name="get-certificate",
     )
@@ -214,8 +231,8 @@ async def run_get_certificate_action(ops_test) -> dict:
     return action_output
 
 
-async def run_get_outstanding_csrs_action(ops_test) -> dict:
-    """Runs `get-outstanding-certificate-requests` on the `manual-tls-certificates/0` unit.
+async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
+    """Runs `get-outstanding-certificate-requests` on the `manual-tls-certificates/leader` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -223,7 +240,8 @@ async def run_get_outstanding_csrs_action(ops_test) -> dict:
     Returns:
         dict: Action output
     """
-    manual_tls_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
+    assert ops_test.model
+    manual_tls_unit = await get_leader_unit(ops_test.model, APPLICATION_NAME)
     action = await manual_tls_unit.run_action(
         action_name="get-outstanding-certificate-requests",
     )
@@ -239,7 +257,7 @@ async def run_provide_certificate_action(
     ca_chain: str,
     csr: str,
 ) -> dict:
-    """Runs `provide-certificate` on the `manual-tls-certificates/0` unit.
+    """Runs `provide-certificate` on the `manual-tls-certificates/leader` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -252,7 +270,7 @@ async def run_provide_certificate_action(
     Returns:
         dict: Action output
     """
-    manual_tls_unit = ops_test.model.units[f"{APPLICATION_NAME}/0"]
+    manual_tls_unit = await get_leader_unit(ops_test.model, APPLICATION_NAME)
     action = await manual_tls_unit.run_action(
         action_name="provide-certificate",
         **{
