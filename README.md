@@ -21,7 +21,7 @@ The following action will return all certificate requests that don't have certif
 NOTE: If you happen to scale `manual-tls-certificates`, you must run actions on the leader unit. However, there is currently no benefit to scaling this charm.
 
 ```bash
-juju run manual-tls-certificates/leader get-outstanding-certificate-requests relation-id=${relation_id}
+juju run manual-tls-certificates/leader get-outstanding-certificate-requests relation-id=<id>
 ```
 
 The second action allows the user to provide the certificates and specify the csr.
