@@ -1,6 +1,7 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 import base64
+import json
 import unittest
 from unittest.mock import Mock, patch
 
@@ -93,6 +94,17 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    def test_given_no_non_json_serializable_data_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
+        self, patch_get_requirer_units_csrs_with_no_certs
+    ):
+        self.harness.add_relation("certificates", "requirer")
+        example_invalid_data = {"non_serializable_data": {1, 2, 3}}
+        patch_get_requirer_units_csrs_with_no_certs.return_value = example_invalid_data
+        event = Mock()
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        event.fail.assert_called()
+
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
@@ -108,7 +120,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
         event = Mock()
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with({"result": example_unit_csrs})
+        event.set_results.assert_called_once_with({"result": json.dumps(example_unit_csrs)})
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
@@ -118,7 +130,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_units_csrs_with_no_certs.return_value = []
         event = Mock()
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with({"result": []})
+        event.set_results.assert_called_once_with({"result": "[]"})
 
     def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
         self,
@@ -127,7 +139,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("certificates", "requirer")
         event.params = {"relation_id": 1235}
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with({"result": []})
+        event.set_results.assert_called_once_with({"result": "[]"})
 
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(self):
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
