@@ -90,8 +90,9 @@ class ManualTLSCertificatesCharm(CharmBase):
                     relation_id=event.params.get("relation-id")
                 )
             )
-        except (TypeError, OverflowError, Exception) as e:
-            event.fail(message=f"Failed to get outstanding requests: {e}")
+        except (TypeError, OverflowError) as e:
+            logger.error("Failed to get outstanding requests: %s", e)
+            event.fail(message="Failed to parse outstanding requests")
             return None
 
         event.set_results(

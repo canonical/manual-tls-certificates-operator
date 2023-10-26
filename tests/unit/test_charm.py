@@ -102,7 +102,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_invalid_data
         event = Mock()
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.fail.assert_called()
+        event.fail.assert_called_once_with(message="Failed to parse outstanding requests")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
