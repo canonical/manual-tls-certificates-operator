@@ -1,9 +1,9 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import ast
 import base64
 import datetime
+import json
 import logging
 
 import pytest
@@ -170,10 +170,12 @@ class TestManualTLSCertificatesOperator:
             wait_for_at_least_units=3,
         )
 
-        action_output = await run_get_outstanding_csrs_action(ops_test)
+        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
 
-        action_result_list = ast.literal_eval(action_output["result"])
-        csr = action_result_list[0]["unit_csrs"][0]["certificate_signing_request"]
+        get_outstanding_csrs_action_output = json.loads(
+            get_outstanding_csrs_action_output["result"]
+        )
+        csr = get_outstanding_csrs_action_output[0]["unit_csrs"][0]["certificate_signing_request"]
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
         certs = self.get_certificate_and_ca_certificate_from_csr(csr)
@@ -199,12 +201,16 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
 
-        action_output = await run_get_certificate_action(ops_test)
+        get_certificate_action_output = await run_get_certificate_action(ops_test)
 
-        assert action_output["certificate"] == certificate_pem.decode("utf-8").strip("\n")
-        assert action_output["ca-certificate"] == ca_certificate_pem.decode("utf-8").strip("\n")
+        assert get_certificate_action_output["certificate"] == certificate_pem.decode(
+            "utf-8"
+        ).strip("\n")
+        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
+            "utf-8"
+        ).strip("\n")
         formatted_chain = (
-            action_output["chain"]
+            get_certificate_action_output["chain"]
             .replace("[", "")
             .replace("]", "")
             .replace("'", "")
