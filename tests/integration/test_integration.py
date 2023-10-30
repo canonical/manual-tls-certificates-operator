@@ -1,9 +1,9 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import ast
 import base64
 import datetime
+import json
 import logging
 
 import pytest
@@ -170,10 +170,13 @@ class TestManualTLSCertificatesOperator:
             wait_for_at_least_units=3,
         )
 
-        action_output = await run_get_outstanding_csrs_action(ops_test)
+        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
 
-        action_result_list = ast.literal_eval(action_output["result"])
-        csr = action_result_list[0]["unit_csrs"][0]["certificate_signing_request"]
+        get_outstanding_csrs_action_output = json.loads(
+            get_outstanding_csrs_action_output["result"]
+        )
+        csr = get_outstanding_csrs_action_output[0]["unit_csrs"][0]["certificate_signing_request"]
+        unit_name = get_outstanding_csrs_action_output[0]["unit_name"]
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
         certs = self.get_certificate_and_ca_certificate_from_csr(csr)
@@ -199,12 +202,18 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
 
-        action_output = await run_get_certificate_action(ops_test)
+        get_certificate_action_output = await run_get_certificate_action(
+            ops_test, unit_name=unit_name
+        )
 
-        assert action_output["certificate"] == certificate_pem.decode("utf-8").strip("\n")
-        assert action_output["ca-certificate"] == ca_certificate_pem.decode("utf-8").strip("\n")
+        assert get_certificate_action_output["certificate"] == certificate_pem.decode(
+            "utf-8"
+        ).strip("\n")
+        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
+            "utf-8"
+        ).strip("\n")
         formatted_chain = (
-            action_output["chain"]
+            get_certificate_action_output["chain"]
             .replace("[", "")
             .replace("]", "")
             .replace("'", "")
@@ -214,19 +223,19 @@ class TestManualTLSCertificatesOperator:
         assert formatted_chain == ca_chain_pem.decode("utf-8").strip("\n")
 
 
-async def run_get_certificate_action(ops_test) -> dict:
-    """Runs `get-certificate` on the `tls-certificates-requirer/leader` unit.
+async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
+    """Runs `get-certificate` on the unit provided.
 
     Args:
         ops_test (OpsTest): OpsTest
 
+
     Returns:
         dict: Action output
+        str: Unit name
     """
-    tls_requirer_unit = await get_leader_unit(ops_test.model, TLS_REQUIRER_CHARM_NAME)
-    action = await tls_requirer_unit.run_action(
-        action_name="get-certificate",
-    )
+    tls_requirer_unit = ops_test.model.units[unit_name]
+    action = await tls_requirer_unit.run_action(action_name="get-certificate")
     action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
     return action_output
 

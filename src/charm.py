@@ -9,6 +9,7 @@ Certificates are provided by the operator trough Juju configs.
 
 import base64
 import binascii
+import json
 import logging
 from typing import Dict, List
 
@@ -83,11 +84,20 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="No certificates relation has been created yet.")
             return None
 
-        event.set_results(
-            {
-                "result": self.tls_certificates.get_requirer_csrs_with_no_certs(
+        try:
+            result = json.dumps(
+                self.tls_certificates.get_requirer_csrs_with_no_certs(
                     relation_id=event.params.get("relation-id")
                 )
+            )
+        except (TypeError, OverflowError) as e:
+            logger.error("Failed to get outstanding requests: %s", e)
+            event.fail(message="Failed to parse outstanding requests")
+            return None
+
+        event.set_results(
+            {
+                "result": result,
             }
         )
 
