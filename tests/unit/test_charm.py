@@ -94,7 +94,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
-    def test_given_no_non_json_serializable_data_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
+    def test_given_non_json_serializable_data_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         self.harness.add_relation("certificates", "requirer")
