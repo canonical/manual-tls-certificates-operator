@@ -1,4 +1,5 @@
 # Manual TLS Certificates
+[![CharmHub Badge](https://charmhub.io/manual-tls-certificates/badge.svg)](https://charmhub.io/manual-tls-certificates)
 
 This charm is used to provide X.509 certificates in environments where certificates are obtained through a manual process.
 
