@@ -23,7 +23,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.BOT_PRIVATE_SIGNING_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          git config --global commit.gpgsign auto
+          echo "${{ secrets.BOT_PUBLIC_SIGNING_KEY }}" > ~/.ssh/id_rsa.pub
+          chmod 644 ~/.ssh/id_rsa.pub
+          git config --global user.email "telco-engineers@lists.canonical.com"
+          git config --global user.name "telcobot"
+          git config --global user.signingkey ~/.ssh/id_rsa.pub
+          git config --global commit.gpgsign true
           git config --global gpg.format ssh
 
       - name: Fetch charm libraries
