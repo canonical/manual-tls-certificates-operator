@@ -18,6 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up SSH Key for Signing Commits
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BOT_PRIVATE_SIGNING_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          git config --global commit.gpgsign auto
+          git config --global gpg.format ssh
+
       - name: Fetch charm libraries
         run: |
           sudo snap install charmcraft --classic --channel latest/stable
