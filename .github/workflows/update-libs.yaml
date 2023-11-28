@@ -43,8 +43,8 @@ jobs:
         with:
           token: ${{ secrets.TELCO_GITHUB_BOT_TOKEN }}
           commit-message: "chore: update charm libraries"
-          committer: "Github Actions <github-actions@github.com>"
-          author: "Github Actions <github-actions@github.com>"
+          committer: "Github Actions <telco-engineers@lists.canonical.com>"
+          author: "Github Actions <telco-engineers@lists.canonical.com"
           title: "Update charm libraries"
           body: |
             Automated action to fetch latest version of charm libraries. The branch of this PR 
