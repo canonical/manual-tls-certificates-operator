@@ -11,7 +11,7 @@ permissions:
 jobs:
   update-lib:
     name: Check libraries
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,8 +43,8 @@ jobs:
         with:
           token: ${{ secrets.TELCO_GITHUB_BOT_TOKEN }}
           commit-message: "chore: update charm libraries"
-          committer: "Github Actions <telco-engineers@lists.canonical.com>"
-          author: "Github Actions <telco-engineers@lists.canonical.com"
+          committer: "Telcobot <telco-engineers@lists.canonical.com>"
+          author: "Telcobot <telco-engineers@lists.canonical.com"
           title: "Update charm libraries"
           body: |
             Automated action to fetch latest version of charm libraries. The branch of this PR 
