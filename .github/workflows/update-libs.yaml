@@ -45,7 +45,7 @@ jobs:
           commit-message: "chore: update charm libraries"
           committer: "Telcobot <telco-engineers@lists.canonical.com>"
           author: "Telcobot <telco-engineers@lists.canonical.com>"
-          title: "Update charm libraries"
+          title: "chore: Update charm libraries"
           body: |
             Automated action to fetch latest version of charm libraries. The branch of this PR 
             will be wiped during the next check. Unless you really know what you're doing, you 
