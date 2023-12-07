@@ -71,7 +71,7 @@ class TestHelpers(unittest.TestCase):
         self.assertTrue(ca_chain_is_valid(ca_chain_list))
 
     def test_given_empty_list_ca_chain_when_ca_chain_is_valid_returns_false(self):
-        ca_chain_list = []  # type: List[str]
+        ca_chain_list: List[str] = []
         self.assertFalse(ca_chain_is_valid(ca_chain_list))
 
     def test_given_one_certificate_in_ca_chain_when_ca_chain_is_valid_returns_false(self):
