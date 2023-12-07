@@ -9,8 +9,7 @@ description: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
   by the operator through Juju actions.
 summary: |
-  Charm responsible for distributing certificates through relationship. Certificates are provided
-  by the operator through Juju actions.
+  Charm for providing certificates from a manual process.
 website: https://charmhub.io/manual-tls-certificates
 source: https://github.com/canonical/manual-tls-certificates-operator
 issues: https://github.com/canonical/manual-tls-certificates-operator/issues
