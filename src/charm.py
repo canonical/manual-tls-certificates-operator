@@ -86,7 +86,7 @@ class ManualTLSCertificatesCharm(CharmBase):
 
         try:
             result = json.dumps(
-                self.tls_certificates.get_requirer_csrs_with_no_certs(
+                self.tls_certificates.get_outstanding_certificate_requests(
                     relation_id=event.params.get("relation-id")
                 )
             )
@@ -219,7 +219,7 @@ class ManualTLSCertificatesCharm(CharmBase):
             List: List of outstanding certificate requests.
         """
         certificate_request_list: List[Dict[str, str]] = []
-        for element in self.tls_certificates.get_requirer_csrs_with_no_certs():
+        for element in self.tls_certificates.get_outstanding_certificate_requests():
             certificate_request_list += element["unit_csrs"]
         return certificate_request_list
 

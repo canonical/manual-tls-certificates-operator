@@ -58,7 +58,7 @@ class TestCharm(unittest.TestCase):
         self.decoded_ca_certificate = TestCharm._decode_from_base64(ca_certificate_bytes)
         self.decoded_ca_chain = TestCharm._decode_from_base64(ca_chain_bytes)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_outstanding_requests_when_certificate_creation_request_then_status_is_active(
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
@@ -76,7 +76,7 @@ class TestCharm(unittest.TestCase):
             self.harness.charm.unit.status,
         )
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_no_units_with_no_certs_when_charm_is_deployed_then_status_is_active_and_no_outstanding_requests(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
@@ -93,7 +93,7 @@ class TestCharm(unittest.TestCase):
             message="No certificates relation has been created yet."
         )
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_non_json_serializable_data_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
@@ -104,7 +104,7 @@ class TestCharm(unittest.TestCase):
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.fail.assert_called_once_with(message="Failed to parse outstanding requests")
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
@@ -122,7 +122,7 @@ class TestCharm(unittest.TestCase):
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
         event.set_results.assert_called_once_with({"result": json.dumps(example_unit_csrs)})
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs_with_no_certs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
