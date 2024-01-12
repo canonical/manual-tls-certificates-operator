@@ -26,7 +26,7 @@ referencing==0.32.1
     # via
     #   jsonschema
     #   jsonschema-specifications
-rpds-py==0.16.2
+rpds-py==0.17.1
     # via
     #   jsonschema
     #   referencing
