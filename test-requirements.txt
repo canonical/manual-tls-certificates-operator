@@ -64,7 +64,7 @@ isort==5.13.2
     # via -r test-requirements.in
 jedi==0.19.1
     # via ipython
-jinja2==3.1.2
+jinja2==3.1.3
     # via pytest-operator
 juju==3.3.0.0
     # via
