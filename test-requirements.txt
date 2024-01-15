@@ -214,7 +214,7 @@ typer==0.7.0
     #   pytest-interface-tester
 types-pyyaml==6.0.12.12
     # via -r test-requirements.in
-types-setuptools==69.0.0.20240106
+types-setuptools==69.0.0.20240115
     # via -r test-requirements.in
 types-toml==0.10.8.7
     # via -r test-requirements.in
