@@ -48,7 +48,7 @@ flake8-copyright==0.2.4
     # via -r test-requirements.in
 flake8-docstrings==1.7.0
     # via -r test-requirements.in
-google-auth==2.26.1
+google-auth==2.26.2
     # via kubernetes
 hvac==2.1.0
     # via juju
