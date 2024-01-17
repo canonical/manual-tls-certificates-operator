@@ -95,7 +95,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 ops==2.9.0
     # via ops-scenario
-ops-scenario==5.8.1
+ops-scenario==6.0
     # via pytest-interface-tester
 packaging==23.2
     # via
