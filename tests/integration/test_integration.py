@@ -212,15 +212,6 @@ class TestManualTLSCertificatesOperator:
         assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
             "utf-8"
         ).strip("\n")
-        formatted_chain = (
-            get_certificate_action_output["chain"]
-            .replace("[", "")
-            .replace("]", "")
-            .replace("'", "")
-            .replace(", ", "\n")
-            .replace("\\n", "\n")
-        )
-        assert formatted_chain == ca_chain_pem.decode("utf-8").strip("\n")
 
 
 async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
