@@ -208,7 +208,7 @@ traitlets==5.14.1
     # via
     #   ipython
     #   matplotlib-inline
-typer==0.7.0
+typer==0.9.0
     # via
     #   ops-scenario
     #   pytest-interface-tester
