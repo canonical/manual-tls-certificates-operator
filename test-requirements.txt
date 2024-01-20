@@ -134,7 +134,7 @@ pycodestyle==2.11.1
     # via flake8
 pycparser==2.21
     # via cffi
-pydantic==1.10.13
+pydantic==1.10.14
     # via pytest-interface-tester
 pydocstyle==6.3.0
     # via flake8-docstrings
