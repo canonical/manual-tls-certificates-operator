@@ -36,7 +36,7 @@ decorator==5.1.1
     #   ipython
 executing==2.0.1
     # via stack-data
-flake8==6.1.0
+flake8==7.0.0
     # via
     #   flake8-builtins
     #   flake8-docstrings
