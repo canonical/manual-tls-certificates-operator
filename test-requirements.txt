@@ -4,6 +4,8 @@
 #
 #    pip-compile test-requirements.in
 #
+annotated-types==0.6.0
+    # via pydantic
 asttokens==2.4.1
     # via stack-data
 bcrypt==4.1.2
@@ -136,8 +138,10 @@ pycodestyle==2.11.1
     # via flake8
 pycparser==2.21
     # via cffi
-pydantic==1.10.14
+pydantic==2.5.3
     # via pytest-interface-tester
+pydantic-core==2.14.6
+    # via pydantic
 pydocstyle==6.3.0
     # via flake8-docstrings
 pyflakes==3.1.0
@@ -167,7 +171,7 @@ pytest-asyncio==0.21.1
     # via
     #   -r test-requirements.in
     #   pytest-operator
-pytest-interface-tester==1.0.7
+pytest-interface-tester==2.0.0
     # via -r test-requirements.in
 pytest-operator==0.32.0
     # via -r test-requirements.in
@@ -222,6 +226,7 @@ typing-extensions==4.9.0
     # via
     #   mypy
     #   pydantic
+    #   pydantic-core
     #   typing-inspect
 typing-inspect==0.9.0
     # via juju
