@@ -26,8 +26,10 @@ click==8.1.7
     # via
     #   black
     #   typer
-coverage[toml]==7.4.0
-    # via -r test-requirements.in
+coverage[toml]==7.4.1
+    # via
+    #   -r test-requirements.in
+    #   coverage
 cryptography==42.0.1
     # via paramiko
 decorator==5.1.1
