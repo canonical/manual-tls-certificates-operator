@@ -9,9 +9,10 @@ from ops import testing
 from ops.model import ActiveStatus
 
 from charm import ManualTLSCertificatesCharm
+from lib.charms.tls_certificates_interface.v3.tls_certificates import RequirerCSR
 
 TLS_CERTIFICATES_PROVIDES_PATH = (
-    "charms.tls_certificates_interface.v2.tls_certificates.TLSCertificatesProvidesV2"
+    "charms.tls_certificates_interface.v3.tls_certificates.TLSCertificatesProvidesV3"
 )
 
 
@@ -63,12 +64,13 @@ class TestCharm(unittest.TestCase):
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         patch_get_requirer_units_csrs_with_no_certs.return_value = [
-            {
-                "relation_id": 1234,
-                "unit_name": "unit/0",
-                "application_name": "application",
-                "unit_csrs": [{"certificate_signing_request": "some csr"}],
-            }
+            RequirerCSR(
+                relation_id=1234,
+                application_name="application",
+                unit_name="unit/0",
+                csr="some csr",
+                is_ca=False,
+            )
         ]
         self.harness.charm._set_active_status(Mock())
         self.assertEqual(
@@ -94,33 +96,22 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
-    def test_given_non_json_serializable_data_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
-        self, patch_get_requirer_units_csrs_with_no_certs
-    ):
-        self.harness.add_relation("certificates", "requirer")
-        example_invalid_data = {"non_serializable_data": {1, 2, 3}}
-        patch_get_requirer_units_csrs_with_no_certs.return_value = example_invalid_data
-        event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.fail.assert_called_once_with(message="Failed to parse outstanding requests")
-
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         self.harness.add_relation("certificates", "requirer")
-        example_unit_csrs = [
-            {
-                "relation_id": 1234,
-                "unit_name": "unit/0",
-                "application_name": "application",
-                "unit_csrs": [{"certificate_signing_request": "some csr"}],
-            }
-        ]
+        requirer_csr = RequirerCSR(
+            relation_id=1234,
+            application_name="application",
+            unit_name="unit/0",
+            csr="some csr",
+            is_ca=False,
+        )
+        example_unit_csrs = [requirer_csr]
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
         event = Mock()
         self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with({"result": json.dumps(example_unit_csrs)})
+        event.set_results.assert_called_once_with({"result": json.dumps([vars(requirer_csr)])})
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
@@ -180,16 +171,15 @@ class TestCharm(unittest.TestCase):
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr = TestCharm._encode_in_base64(csr)
 
         example_unit_csrs = [
-            {
-                "relation_id": relation_id,
-                "application_name": requirer_app_name,
-                "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [],
-            }
+            RequirerCSR(
+                relation_id=relation_id,
+                application_name=requirer_app_name,
+                unit_name=f"{requirer_app_name}/0",
+                csr="Some different CSR",
+                is_ca=False,
+            )
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
@@ -214,12 +204,13 @@ class TestCharm(unittest.TestCase):
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
-            {
-                "relation_id": relation_id,
-                "application_name": requirer_app_name,
-                "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
-            }
+            RequirerCSR(
+                relation_id=relation_id,
+                application_name=requirer_app_name,
+                unit_name=f"{requirer_app_name}/0",
+                csr=csr_from_file,
+                is_ca=False,
+            )
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
@@ -264,12 +255,13 @@ class TestCharm(unittest.TestCase):
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
-            {
-                "relation_id": relation_id,
-                "application_name": requirer_app_name,
-                "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
-            }
+            RequirerCSR(
+                relation_id=relation_id,
+                application_name=requirer_app_name,
+                unit_name=f"{requirer_app_name}/0",
+                csr=csr_from_file,
+                is_ca=False,
+            )
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
@@ -297,12 +289,13 @@ class TestCharm(unittest.TestCase):
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
-            {
-                "relation_id": relation_id,
-                "application_name": requirer_app_name,
-                "unit_name": f"{requirer_app_name}/0",
-                "unit_csrs": [{"certificate_signing_request": csr_from_file}],
-            }
+            RequirerCSR(
+                relation_id=relation_id,
+                application_name=requirer_app_name,
+                unit_name=f"{requirer_app_name}/0",
+                csr=csr_from_file,
+                is_ca=False,
+            )
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
         patch_set_relation_cert.side_effect = RuntimeError()

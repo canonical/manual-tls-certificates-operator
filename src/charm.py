@@ -11,10 +11,9 @@ import base64
 import binascii
 import json
 import logging
-from typing import Dict, List
 
-from charms.tls_certificates_interface.v2.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
-    TLSCertificatesProvidesV2,
+from charms.tls_certificates_interface.v3.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
+    TLSCertificatesProvidesV3,
     csr_matches_certificate,
 )
 from ops.charm import ActionEvent, CharmBase, EventBase, InstallEvent
@@ -39,7 +38,7 @@ class ManualTLSCertificatesCharm(CharmBase):
     def __init__(self, *args):
         """Observes config change and certificate request events."""
         super().__init__(*args)
-        self.tls_certificates = TLSCertificatesProvidesV2(self, CERTIFICATES_RELATION)
+        self.tls_certificates = TLSCertificatesProvidesV3(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(
             self.tls_certificates.on.certificate_creation_request,
@@ -84,20 +83,13 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="No certificates relation has been created yet.")
             return None
 
-        try:
-            result = json.dumps(
-                self.tls_certificates.get_outstanding_certificate_requests(
-                    relation_id=event.params.get("relation-id")
-                )
-            )
-        except (TypeError, OverflowError) as e:
-            logger.error("Failed to get outstanding requests: %s", e)
-            event.fail(message="Failed to parse outstanding requests")
-            return None
+        outstanding_csrs = self.tls_certificates.get_outstanding_certificate_requests(
+            relation_id=event.params.get("relation-id")
+        )
 
         event.set_results(
             {
-                "result": result,
+                "result": json.dumps([vars(csr) for csr in outstanding_csrs]),
             }
         )
 
@@ -160,11 +152,9 @@ class ManualTLSCertificatesCharm(CharmBase):
         Returns:
             bool: Whether the csr exists on the requirer.
         """
-        all_unit_csr_mappings = self.tls_certificates.get_requirer_csrs(relation_id)
-        for csr_mappings in all_unit_csr_mappings:
-            for csrs in csr_mappings["unit_csrs"]:
-                if csr == csrs["certificate_signing_request"]:
-                    return True
+        for requirer_csr in self.tls_certificates.get_requirer_csrs(relation_id):
+            if requirer_csr.csr == csr:
+                return True
         return False
 
     def _action_certificates_are_valid(
@@ -212,17 +202,6 @@ class ManualTLSCertificatesCharm(CharmBase):
 
         return True
 
-    def _get_outstanding_requests(self) -> List[Dict[str, str]]:
-        """Returns number of outstanding certificate requests.
-
-        Returns:
-            List: List of outstanding certificate requests.
-        """
-        certificate_request_list: List[Dict[str, str]] = []
-        for element in self.tls_certificates.get_outstanding_certificate_requests():
-            certificate_request_list += element["unit_csrs"]
-        return certificate_request_list
-
     def _set_active_status(self, event: EventBase) -> None:
         """Sets active status with number of outstanding requests.
 
@@ -232,7 +211,9 @@ class ManualTLSCertificatesCharm(CharmBase):
         Returns:
             None
         """
-        outstanding_requests_num = len(self._get_outstanding_requests())
+        outstanding_requests_num = len(
+            self.tls_certificates.get_outstanding_certificate_requests()
+        )
         if outstanding_requests_num == 0:
             self.unit.status = ActiveStatus("No outstanding requests.")
             return None

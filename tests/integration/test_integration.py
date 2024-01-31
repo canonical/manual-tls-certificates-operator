@@ -175,7 +175,7 @@ class TestManualTLSCertificatesOperator:
         get_outstanding_csrs_action_output = json.loads(
             get_outstanding_csrs_action_output["result"]
         )
-        csr = get_outstanding_csrs_action_output[0]["unit_csrs"][0]["certificate_signing_request"]
+        csr = get_outstanding_csrs_action_output[0]["csr"]
         unit_name = get_outstanding_csrs_action_output[0]["unit_name"]
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
