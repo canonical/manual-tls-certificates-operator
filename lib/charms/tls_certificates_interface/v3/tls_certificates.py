@@ -286,10 +286,6 @@ from cryptography import x509
 from cryptography.hazmat._oid import ExtensionOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-<<<<<<< HEAD:lib/charms/tls_certificates_interface/v3/tls_certificates.py
-=======
-from cryptography.hazmat.primitives.serialization import pkcs12
->>>>>>> e81fe1c (chore: Update charm libraries (#137)):lib/charms/tls_certificates_interface/v2/tls_certificates.py
 from jsonschema import exceptions, validate  # type: ignore[import-untyped]
 from ops.charm import (
     CharmBase,
@@ -316,11 +312,7 @@ LIBAPI = 3
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-<<<<<<< HEAD:lib/charms/tls_certificates_interface/v3/tls_certificates.py
 LIBPATCH = 0
-=======
-LIBPATCH = 23
->>>>>>> e81fe1c (chore: Update charm libraries (#137)):lib/charms/tls_certificates_interface/v2/tls_certificates.py
 
 PYDEPS = ["cryptography", "jsonschema"]
 
@@ -1684,20 +1676,11 @@ class TLSCertificatesRequiresV3(Object):
         Returns:
             List: List[ProviderCertificate]
         """
-<<<<<<< HEAD:lib/charms/tls_certificates_interface/v3/tls_certificates.py
         assigned_certificates = []
         for requirer_csr in self.get_certificate_signing_requests(fulfilled_only=True):
             if cert := self._find_certificate_in_relation_data(requirer_csr.csr):
                 assigned_certificates.append(cert)
         return assigned_certificates
-=======
-        final_list = []
-        for csr in self.get_certificate_signing_requests(fulfilled_only=True):
-            assert isinstance(csr["certificate_signing_request"], str)
-            if cert := self._find_certificate_in_relation_data(csr["certificate_signing_request"]):
-                final_list.append(cert)
-        return final_list
->>>>>>> e81fe1c (chore: Update charm libraries (#137)):lib/charms/tls_certificates_interface/v2/tls_certificates.py
 
     def get_expiring_certificates(self) -> List[ProviderCertificate]:
         """Get a list of certificates that were assigned to this unit that are expiring or expired.
@@ -1705,18 +1688,10 @@ class TLSCertificatesRequiresV3(Object):
         Returns:
             List: List[ProviderCertificate]
         """
-<<<<<<< HEAD:lib/charms/tls_certificates_interface/v3/tls_certificates.py
         expiring_certificates: List[ProviderCertificate] = []
         for requirer_csr in self.get_certificate_signing_requests(fulfilled_only=True):
             if cert := self._find_certificate_in_relation_data(requirer_csr.csr):
                 expiry_time = _get_certificate_expiry_time(cert.certificate)
-=======
-        final_list = []
-        for csr in self.get_certificate_signing_requests(fulfilled_only=True):
-            assert isinstance(csr["certificate_signing_request"], str)
-            if cert := self._find_certificate_in_relation_data(csr["certificate_signing_request"]):
-                expiry_time = _get_certificate_expiry_time(cert["certificate"])
->>>>>>> e81fe1c (chore: Update charm libraries (#137)):lib/charms/tls_certificates_interface/v2/tls_certificates.py
                 if not expiry_time:
                     continue
                 expiry_notification_time = expiry_time - timedelta(
@@ -1734,33 +1709,18 @@ class TLSCertificatesRequiresV3(Object):
         """Gets the list of CSR's that were sent to the provider.
 
         You can choose to get only the CSR's that have a certificate assigned or only the CSR's
-          that don't.
+        that don't.
 
         Args:
             fulfilled_only (bool): This option will discard CSRs that don't have certificates yet.
             unfulfilled_only (bool): This option will discard CSRs that have certificates signed.
 
         Returns:
-<<<<<<< HEAD:lib/charms/tls_certificates_interface/v3/tls_certificates.py
             List of RequirerCSR objects.
         """
         csrs = []
         for requirer_csr in self.get_requirer_csrs():
             cert = self._find_certificate_in_relation_data(requirer_csr.csr)
-=======
-            List of CSR dictionaries. For example:
-            [
-                {
-                    "certificate_signing_request": "-----BEGIN CERTIFICATE REQUEST-----...",
-                    "ca": false
-                }
-            ]
-        """
-        final_list = []
-        for csr in self._requirer_csrs:
-            assert isinstance(csr["certificate_signing_request"], str)
-            cert = self._find_certificate_in_relation_data(csr["certificate_signing_request"])
->>>>>>> e81fe1c (chore: Update charm libraries (#137)):lib/charms/tls_certificates_interface/v2/tls_certificates.py
             if (unfulfilled_only and cert) or (fulfilled_only and not cert):
                 continue
             csrs.append(requirer_csr)
