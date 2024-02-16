@@ -10,7 +10,7 @@ attrs==23.2.0
     #   referencing
 cffi==1.16.0
     # via cryptography
-cryptography==42.0.2
+cryptography==42.0.3
     # via -r requirements.in
 jsonschema==4.21.1
     # via -r requirements.in
