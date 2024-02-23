@@ -49,7 +49,7 @@ jobs:
         with:
           juju-channel: 3.4/stable
           provider: microk8s
-          channel: 1.27-strict/stable
+          channel: 1.29-strict/stable
       - name: Run integration tests
         run: tox -e integration
       - name: Archive Tested Charm
