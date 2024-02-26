@@ -39,5 +39,4 @@ provide-certificate:
     - relation-id
     - certificate-signing-request
     - certificate
-    - ca-chain
     - ca-certificate

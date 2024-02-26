@@ -105,17 +105,19 @@ class ManualTLSCertificatesCharm(CharmBase):
         if not self._relation_created("certificates"):
             event.fail(message="No certificates relation has been created yet.")
             return
-
+        ca_chain = event.params.get("ca-chain", None)
+        if not ca_chain:
+            ca_chain = event.params["ca-certificate"]
         if not self._action_certificates_are_valid(
             certificate=event.params["certificate"],
             ca_certificate=event.params["ca-certificate"],
             certificate_signing_request=event.params["certificate-signing-request"],
-            ca_chain=event.params["ca-chain"],
+            ca_chain=ca_chain,
         ):
             event.fail(message="Action input is not valid.")
             return
 
-        ca_chain_list = parse_ca_chain(base64.b64decode(event.params["ca-chain"]).decode())
+        ca_chain_list = parse_ca_chain(base64.b64decode(ca_chain).decode())
         csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
         ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
