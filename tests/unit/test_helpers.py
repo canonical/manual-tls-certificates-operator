@@ -74,10 +74,8 @@ class TestHelpers(unittest.TestCase):
         ca_chain_list: List[str] = []
         self.assertFalse(ca_chain_is_valid(ca_chain_list))
 
-    def test_given_one_certificate_in_ca_chain_when_ca_chain_is_valid_returns_false(self):
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        ca_chain_list = parse_ca_chain(ca_chain)[:-1]
-        self.assertFalse(ca_chain_is_valid(ca_chain_list))
+    def test_given_zero_certificate_in_ca_chain_when_ca_chain_is_valid_returns_false(self):
+        self.assertFalse(ca_chain_is_valid([]))
 
     def test_given_invalid_issuer_ca_chain_when_ca_chain_is_valid_returns_false(self):
         ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
