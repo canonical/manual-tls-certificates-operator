@@ -85,7 +85,7 @@ def ca_chain_is_valid(ca_chain: List[str]) -> bool:
         whether the ca chain is valid.
     """
     if len(ca_chain) < 1:
-        logger.warning("Invalid CA chain: It must contain at least 2 certificates.")
+        logger.warning("Invalid CA chain: It must contain at least 1 certificates.")
         return False
     for ca_cert, cert in zip(ca_chain, ca_chain[1:]):
         try:
