@@ -11,6 +11,7 @@ import base64
 import binascii
 import json
 import logging
+from typing import List
 
 from charms.tls_certificates_interface.v3.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
     TLSCertificatesProvidesV3,
@@ -129,17 +130,10 @@ class ManualTLSCertificatesCharm(CharmBase):
             if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
                 found_relation_ids.append(relation.id)
 
-        if not found_relation_ids:
-            event.fail(message="CSR was not found in any requirer databags.")
-            return
-
         requested_relation_id = event.params.get("relation-id", None)
-        if not requested_relation_id and len(found_relation_ids) > 1:
-            event.fail(message="Multiple requirers with the same CSR found.")
-            return
-
-        if requested_relation_id not in found_relation_ids:
-            event.fail(message="Requested relation id is not the correct id of any found CSR's.")
+        err = self._relation_id_parameter_valid(found_relation_ids, requested_relation_id)
+        if err:
+            event.fail(message=err)
             return
 
         try:
@@ -172,6 +166,28 @@ class ManualTLSCertificatesCharm(CharmBase):
             if requirer_csr.csr == csr:
                 return True
         return False
+
+    def _relation_id_parameter_valid(
+        self, found_relation_ids: List[int], requested_relation_id: str
+    ) -> str:
+        """Validates the given CSR with the requirers.
+
+        Args:
+            found_relation_ids (List[str]): The relation ids with the given CSR in their databag
+            requested_relation_id (str): The relation id of the charm that will be given the cert
+
+        Returns:
+            str: Error message if any
+        """
+        if not found_relation_ids:
+            return "CSR was not found in any requirer databags."
+
+        if not requested_relation_id and len(found_relation_ids) > 1:
+            return "Multiple requirers with the same CSR found."
+
+        if requested_relation_id not in found_relation_ids:
+            return "Requested relation id is not the correct id of any found CSR's."
+        return ""
 
     def _action_certificates_are_valid(
         self,
