@@ -15,6 +15,10 @@ provide-certificate:
   description: >-
     Provide a certificate to a specific requirer unit.
   params:
+    relation-id:
+      type: integer
+      description: >-
+        ID of the relation between the manual-tls-certificates and the requirer.
     certificate-signing-request:
       type: string
       description: >-

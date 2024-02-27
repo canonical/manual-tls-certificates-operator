@@ -29,6 +29,7 @@ The second action allows the user to provide the certificates and specify the cs
 
 ```bash
 juju run manual-tls-certificates/leader provide-certificate \
+  relation-id=<id> \
   certificate="$(base64 -w0 certificate.pem)" \
   ca-chain="$(base64 -w0 ca-chain.pem)" \
   ca-certificate="$(base64 -w0 ca-certificate.pem)" \

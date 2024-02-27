@@ -120,18 +120,26 @@ class ManualTLSCertificatesCharm(CharmBase):
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
         ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
-        for relation in self.model.relations.get("certificates", []):
-            if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
-                relevant_relation_id = relation.id
-                break
-        else:
-            event.fail(
-                message="Certificate signing request was not found in any requirer databags."
-            )
-            return
-
         if not csr_matches_certificate(csr=csr, cert=certificate):
             event.fail(message="Certificate and CSR do not match.")
+            return
+
+        found_relation_ids = []
+        for relation in self.model.relations.get("certificates", []):
+            if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
+                found_relation_ids.append(relation.id)
+
+        if not found_relation_ids:
+            event.fail(message="CSR was not found in any requirer databags.")
+            return
+
+        requested_relation_id = event.params.get("relation-id", None)
+        if not requested_relation_id and len(found_relation_ids) > 1:
+            event.fail(message="Multiple requirers with the same CSR found.")
+            return
+
+        if requested_relation_id not in found_relation_ids:
+            event.fail(message="Requested relation id is not the correct id of any found CSR's.")
             return
 
         try:
@@ -140,7 +148,9 @@ class ManualTLSCertificatesCharm(CharmBase):
                 certificate=certificate,
                 ca=ca_cert,
                 chain=ca_chain_list,
-                relation_id=relevant_relation_id,
+                relation_id=(
+                    requested_relation_id if requested_relation_id else found_relation_ids[0]
+                ),
             )
         except RuntimeError:
             event.fail(message="Relation does not exist with the provided id.")

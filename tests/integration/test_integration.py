@@ -189,6 +189,7 @@ class TestManualTLSCertificatesOperator:
 
         await run_provide_certificate_action(
             ops_test,
+            relation_id=relation.id,
             certificate=certificate_bytes.decode("utf-8"),
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
@@ -250,6 +251,7 @@ async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
 
 async def run_provide_certificate_action(
     ops_test,
+    relation_id: int,
     certificate: str,
     ca_certificate: str,
     ca_chain: str,
@@ -272,6 +274,7 @@ async def run_provide_certificate_action(
     action = await manual_tls_unit.run_action(
         action_name="provide-certificate",
         **{
+            "relation-id": relation_id,
             "certificate": certificate,
             "ca-certificate": ca_certificate,
             "ca-chain": ca_chain,
