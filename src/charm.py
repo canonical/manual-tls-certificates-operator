@@ -120,8 +120,14 @@ class ManualTLSCertificatesCharm(CharmBase):
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
         ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
-        if not self._csr_exists_in_requirer(csr=csr, relation_id=event.params["relation-id"]):
-            event.fail(message="Certificate signing request was not found in requirer data.")
+        for relation in self.model.relations.get("certificates", []):
+            if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
+                relevant_relation_id = relation.id
+                break
+        else:
+            event.fail(
+                message="Certificate signing request was not found in any requirer databags."
+            )
             return
 
         if not csr_matches_certificate(csr=csr, cert=certificate):
@@ -134,7 +140,7 @@ class ManualTLSCertificatesCharm(CharmBase):
                 certificate=certificate,
                 ca=ca_cert,
                 chain=ca_chain_list,
-                relation_id=event.params["relation-id"],
+                relation_id=relevant_relation_id,
             )
         except RuntimeError:
             event.fail(message="Relation does not exist with the provided id.")

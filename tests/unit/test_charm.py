@@ -193,7 +193,7 @@ class TestCharm(unittest.TestCase):
         }
         self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(
-            message="Certificate signing request was not found in requirer data."
+            message="Certificate signing request was not found in any requirer databags."
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
