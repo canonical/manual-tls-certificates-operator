@@ -11,7 +11,7 @@ import base64
 import binascii
 import json
 import logging
-from typing import List
+from typing import List, Optional
 
 from charms.tls_certificates_interface.v3.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
     TLSCertificatesProvidesV3,
@@ -125,13 +125,13 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="Certificate and CSR do not match.")
             return
 
-        found_relation_ids = []
+        relation_ids_with_given_csr = []
         for relation in self.model.relations.get("certificates", []):
             if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
-                found_relation_ids.append(relation.id)
+                relation_ids_with_given_csr.append(relation.id)
 
-        requested_relation_id = event.params.get("relation-id", None)
-        err = self._relation_id_parameter_valid(found_relation_ids, requested_relation_id)
+        given_relation_id = event.params.get("relation-id", None)
+        err = self._relation_id_parameter_valid(relation_ids_with_given_csr, given_relation_id)
         if err:
             event.fail(message=err)
             return
@@ -143,7 +143,7 @@ class ManualTLSCertificatesCharm(CharmBase):
                 ca=ca_cert,
                 chain=ca_chain_list,
                 relation_id=(
-                    requested_relation_id if requested_relation_id else found_relation_ids[0]
+                    given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
                 ),
             )
         except RuntimeError:
@@ -168,9 +168,13 @@ class ManualTLSCertificatesCharm(CharmBase):
         return False
 
     def _relation_id_parameter_valid(
-        self, found_relation_ids: List[int], requested_relation_id: str
+        self, requirer_relation_ids: List[int], relation_id: Optional[str]
     ) -> str:
-        """Validates the given CSR with the requirers.
+        """Validates that a relation id is provided appropriately.
+
+        A relation id must be provided in cases where there are multiple relations where the same
+        CSR was found, and the relation id must be one of the id's that has the CSR. If only 1
+        CSR was found in the requirers, it is permissible to provide no relation id to the function.
 
         Args:
             found_relation_ids (List[str]): The relation ids with the given CSR in their databag
@@ -179,13 +183,13 @@ class ManualTLSCertificatesCharm(CharmBase):
         Returns:
             str: Error message if any
         """
-        if not found_relation_ids:
+        if not requirer_relation_ids:
             return "CSR was not found in any requirer databags."
 
-        if not requested_relation_id and len(found_relation_ids) > 1:
+        if not relation_id and len(requirer_relation_ids) > 1:
             return "Multiple requirers with the same CSR found."
 
-        if requested_relation_id not in found_relation_ids:
+        if relation_id not in requirer_relation_ids:
             return "Requested relation id is not the correct id of any found CSR's."
         return ""
 
