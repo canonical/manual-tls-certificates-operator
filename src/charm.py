@@ -174,7 +174,7 @@ class ManualTLSCertificatesCharm(CharmBase):
 
         A relation id must be provided in cases where there are multiple relations where the same
         CSR was found, and the relation id must be one of the id's that has the CSR. If only 1
-        CSR was found in the requirers, it is permissible to provide no relation id to the function.
+        CSR was found in the requirers, there is no need to provide a relation id to the function.
 
         Args:
             found_relation_ids (List[str]): The relation ids with the given CSR in their databag
