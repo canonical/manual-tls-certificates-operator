@@ -36,7 +36,6 @@ provide-certificate:
       description: >-
         Base64 encoded CA Certificate..
   required:
-    - relation-id
     - certificate-signing-request
     - certificate
     - ca-certificate

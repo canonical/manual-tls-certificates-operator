@@ -11,6 +11,7 @@ import base64
 import binascii
 import json
 import logging
+from typing import List, Optional
 
 from charms.tls_certificates_interface.v3.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
     TLSCertificatesProvidesV3,
@@ -122,12 +123,19 @@ class ManualTLSCertificatesCharm(CharmBase):
         certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
         ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
-        if not self._csr_exists_in_requirer(csr=csr, relation_id=event.params["relation-id"]):
-            event.fail(message="Certificate signing request was not found in requirer data.")
-            return
-
         if not csr_matches_certificate(csr=csr, cert=certificate):
             event.fail(message="Certificate and CSR do not match.")
+            return
+
+        relation_ids_with_given_csr = []
+        for relation in self.model.relations.get("certificates", []):
+            if self._csr_exists_in_requirer(csr=csr, relation_id=relation.id):
+                relation_ids_with_given_csr.append(relation.id)
+
+        given_relation_id = event.params.get("relation-id", None)
+        err = self._relation_id_parameter_valid(relation_ids_with_given_csr, given_relation_id)
+        if err:
+            event.fail(message=err)
             return
 
         try:
@@ -136,7 +144,9 @@ class ManualTLSCertificatesCharm(CharmBase):
                 certificate=certificate,
                 ca=ca_cert,
                 chain=ca_chain_list,
-                relation_id=event.params["relation-id"],
+                relation_id=(
+                    given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
+                ),
             )
         except RuntimeError:
             event.fail(message="Relation does not exist with the provided id.")
@@ -158,6 +168,32 @@ class ManualTLSCertificatesCharm(CharmBase):
             if requirer_csr.csr == csr:
                 return True
         return False
+
+    def _relation_id_parameter_valid(
+        self, requirer_relation_ids: List[int], relation_id: Optional[str]
+    ) -> str:
+        """Validates that a relation id is provided appropriately.
+
+        A relation id must be provided in cases where there are multiple relations where the same
+        CSR was found, and the relation id must be one of the id's that has the CSR. If only 1
+        CSR was found in the requirers, there is no need to provide a relation id to the function.
+
+        Args:
+            found_relation_ids (List[str]): The relation ids with the given CSR in their databag
+            requested_relation_id (str): The relation id of the charm that will be given the cert
+
+        Returns:
+            str: Error message if any
+        """
+        if not requirer_relation_ids:
+            return "CSR was not found in any requirer databags."
+
+        if not relation_id and len(requirer_relation_ids) > 1:
+            return "Multiple requirers with the same CSR found."
+
+        if relation_id not in requirer_relation_ids:
+            return "Requested relation id is not the correct id of any found CSR's."
+        return ""
 
     def _action_certificates_are_valid(
         self,

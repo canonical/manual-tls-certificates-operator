@@ -192,8 +192,119 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
         self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
+
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
+        self, patch_get_requirer_csrs
+    ):
+        requirer_app_name = "requirer"
+        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+
+        example_unit_csrs = [
+            RequirerCSR(
+                relation_id=relation_id,
+                application_name=requirer_app_name,
+                unit_name=f"{requirer_app_name}/0",
+                csr="Some different CSR",
+                is_ca=False,
+            )
+        ]
+        patch_get_requirer_csrs.return_value = example_unit_csrs
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": self.decoded_csr,
+            "certificate": self.decoded_certificate,
+            "ca-certificate": self.decoded_ca_certificate,
+            "ca-chain": self.decoded_ca_chain,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
+
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
+        self, patch_get_requirer_csrs
+    ):
+        requirer_app_name = "requirer"
+        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
+        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
+
+        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
+        example_unit_csrs = [
+            [
+                RequirerCSR(
+                    relation_id=relation_id_1,
+                    application_name=f"{requirer_app_name}-1",
+                    unit_name=f"{requirer_app_name}/0",
+                    csr=csr_from_file,
+                    is_ca=False,
+                )
+            ],
+            [
+                RequirerCSR(
+                    relation_id=relation_id_2,
+                    application_name=f"{requirer_app_name}-2",
+                    unit_name=f"{requirer_app_name}/0",
+                    csr=csr_from_file,
+                    is_ca=False,
+                )
+            ],
+        ]
+        patch_get_requirer_csrs.side_effect = example_unit_csrs
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": self.decoded_csr,
+            "certificate": self.decoded_certificate,
+            "ca-certificate": self.decoded_ca_certificate,
+            "ca-chain": self.decoded_ca_chain,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
+        event.fail.assert_called_once_with(message="Multiple requirers with the same CSR found.")
+
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
+        self, patch_get_requirer_csrs
+    ):
+        requirer_app_name = "requirer"
+        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
+        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
+
+        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
+        example_unit_csrs = [
+            [
+                RequirerCSR(
+                    relation_id=relation_id_1,
+                    application_name=f"{requirer_app_name}-1",
+                    unit_name=f"{requirer_app_name}/0",
+                    csr="Some different CSR",
+                    is_ca=False,
+                )
+            ],
+            [
+                RequirerCSR(
+                    relation_id=relation_id_2,
+                    application_name=f"{requirer_app_name}-2",
+                    unit_name=f"{requirer_app_name}/0",
+                    csr=csr_from_file,
+                    is_ca=False,
+                )
+            ],
+        ]
+        patch_get_requirer_csrs.side_effect = example_unit_csrs
+
+        event = Mock()
+        event.params = {
+            "certificate-signing-request": self.decoded_csr,
+            "certificate": self.decoded_certificate,
+            "ca-certificate": self.decoded_ca_certificate,
+            "ca-chain": self.decoded_ca_chain,
+            "relation-id": relation_id_1,
+        }
+        self.harness.charm._on_provide_certificate_action(event=event)
         event.fail.assert_called_once_with(
-            message="Certificate signing request was not found in requirer data."
+            message="Requested relation id is not the correct id of any found CSR's."
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
