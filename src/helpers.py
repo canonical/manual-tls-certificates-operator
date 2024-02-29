@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def certificate_is_valid(certificate: bytes) -> bool:
-    """Returns whether a certificate is valid.
+    """Return whether a certificate is valid.
 
     Args:
         certificate: Certificate in bytes
@@ -31,7 +31,7 @@ def certificate_is_valid(certificate: bytes) -> bool:
 
 
 def certificate_signing_request_is_valid(certificate_signing_request: bytes) -> bool:
-    """Returns whether a certificate request is valid.
+    """Return whether a certificate request is valid.
 
     Args:
         certificate_signing_request: Certificate signing request in bytes
@@ -47,7 +47,7 @@ def certificate_signing_request_is_valid(certificate_signing_request: bytes) -> 
 
 
 def parse_ca_chain(ca_chain_pem: str) -> List[str]:
-    """Returns list of certificates based on a PEM CA Chain file.
+    """Return list of certificates based on a PEM CA Chain file.
 
     Args:
         ca_chain_pem (str): String containing list of certificates. This string should look like:
@@ -72,7 +72,7 @@ def parse_ca_chain(ca_chain_pem: str) -> List[str]:
 
 
 def ca_chain_is_valid(ca_chain: List[str]) -> bool:
-    """Returns whether a ca chain is valid.
+    """Return whether a ca chain is valid.
 
     It uses the x509 certificate method verify_directly_issued_by, which checks
     the certificate issuer name matches the issuer subject name and that

@@ -24,7 +24,7 @@ TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 
 
 async def get_leader_unit(model, application_name: str) -> Unit:
-    """Returns the leader unit for the given application."""
+    """Return the leader unit for the given application."""
     for unit in model.units.values():
         if unit.application == application_name and await unit.is_leader_from_status():
             return unit
@@ -41,7 +41,7 @@ class TestManualTLSCertificatesOperator:
 
     @staticmethod
     def get_certificate_and_ca_certificate_from_csr(csr: str) -> dict:
-        """Creates a Certificate and a CA certificate from a CSR.
+        """Create a Certificate and a CA certificate from a CSR.
 
         Args:
             csr (str): certificate signing request in their original str representation.
@@ -215,11 +215,11 @@ class TestManualTLSCertificatesOperator:
 
 
 async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
-    """Runs `get-certificate` on the unit provided.
+    """Run `get-certificate` on the unit provided.
 
     Args:
         ops_test (OpsTest): OpsTest
-
+        unit_name (str): Unit name
 
     Returns:
         dict: Action output
@@ -232,7 +232,7 @@ async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
 
 
 async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
-    """Runs `get-outstanding-certificate-requests` on the `manual-tls-certificates/leader` unit.
+    """Run `get-outstanding-certificate-requests` on the `manual-tls-certificates/leader` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
@@ -257,7 +257,7 @@ async def run_provide_certificate_action(
     ca_chain: str,
     csr: str,
 ) -> dict:
-    """Runs `provide-certificate` on the `manual-tls-certificates/leader` unit.
+    """Run `provide-certificate` on the `manual-tls-certificates/leader` unit.
 
     Args:
         ops_test (OpsTest): OpsTest
