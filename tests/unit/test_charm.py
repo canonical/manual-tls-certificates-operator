@@ -5,10 +5,10 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
+from charm import ManualTLSCertificatesCharm
 from ops import testing
 from ops.model import ActiveStatus
 
-from charm import ManualTLSCertificatesCharm
 from lib.charms.tls_certificates_interface.v3.tls_certificates import RequirerCSR
 
 TLS_CERTIFICATES_PROVIDES_PATH = (
@@ -23,7 +23,7 @@ class TestCharm(unittest.TestCase):
 
     @staticmethod
     def _encode_in_base64(string_content: str) -> bytes:
-        """Decodes given string to Base64.
+        """Decode given string to Base64.
 
         Args:
             string_content (str): String content

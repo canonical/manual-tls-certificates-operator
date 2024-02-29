@@ -4,7 +4,7 @@
 
 """Charm responsible for distributing certificates through relationship.
 
-Certificates are provided by the operator trough Juju configs.
+Certificates are provided by the operator through Juju configs.
 """
 
 import base64
@@ -13,20 +13,20 @@ import json
 import logging
 from typing import List, Optional
 
-from charms.tls_certificates_interface.v3.tls_certificates import (  # type: ignore[import-not-found]  # noqa: E501
+from charms.tls_certificates_interface.v3.tls_certificates import (
     TLSCertificatesProvidesV3,
     csr_matches_certificate,
 )
-from ops.charm import ActionEvent, CharmBase, EventBase, InstallEvent
-from ops.main import main
-from ops.model import ActiveStatus
-
 from helpers import (
     ca_chain_is_valid,
     certificate_is_valid,
     certificate_signing_request_is_valid,
     parse_ca_chain,
 )
+from ops.charm import ActionEvent, CharmBase, InstallEvent
+from ops.framework import EventBase
+from ops.main import main
+from ops.model import ActiveStatus
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
 
     def __init__(self, *args):
-        """Observes config change and certificate request events."""
+        """Observe config change and certificate request events."""
         super().__init__(*args)
         self.tls_certificates = TLSCertificatesProvidesV3(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.install, self._on_install)
@@ -59,7 +59,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         )
 
     def _on_install(self, event: InstallEvent) -> None:
-        """Handles the install event.
+        """Handle the install event.
 
         The charm will be in Active Status and ready to handle actions.
 
@@ -72,7 +72,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         self.unit.status = ActiveStatus("Ready to provide certificates.")
 
     def _on_get_outstanding_certificate_requests_action(self, event: ActionEvent) -> None:
-        """Returns outstanding certificate requests.
+        """Return outstanding certificate requests.
 
         Args:
             event: Juju event.
@@ -95,7 +95,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         )
 
     def _on_provide_certificate_action(self, event: ActionEvent) -> None:
-        """Provides certificate to a specific requirer unit.
+        """Provide certificate to a specific requirer unit.
 
         Args:
             event: Juju event.
@@ -155,7 +155,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         self._set_active_status(event=event)
 
     def _csr_exists_in_requirer(self, csr: str, relation_id: int) -> bool:
-        """Validates certificates provided in action.
+        """Validate certificates provided in action.
 
         Args:
             csr (str): certificate signing request in their original str representation.
@@ -172,15 +172,15 @@ class ManualTLSCertificatesCharm(CharmBase):
     def _relation_id_parameter_valid(
         self, requirer_relation_ids: List[int], relation_id: Optional[str]
     ) -> str:
-        """Validates that a relation id is provided appropriately.
+        """Validate that a relation id is provided appropriately.
 
         A relation id must be provided in cases where there are multiple relations where the same
         CSR was found, and the relation id must be one of the id's that has the CSR. If only 1
         CSR was found in the requirers, there is no need to provide a relation id to the function.
 
         Args:
-            found_relation_ids (List[str]): The relation ids with the given CSR in their databag
-            requested_relation_id (str): The relation id of the charm that will be given the cert
+            requirer_relation_ids (List[str]): The relation ids with the given CSR in their databag
+            relation_id (str): The relation id of the charm that will be given the cert
 
         Returns:
             str: Error message if any
@@ -202,7 +202,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         certificate_signing_request: str,
         ca_chain: str,
     ) -> bool:
-        """Validates certificates provided in action.
+        """Validate certificates provided in action.
 
         Args:
             certificate (str): Certificate in base64 string format
@@ -241,7 +241,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         return True
 
     def _set_active_status(self, event: EventBase) -> None:
-        """Sets active status with number of outstanding requests.
+        """Set active status with number of outstanding requests.
 
         Args:
             event (EventBase): Juju event.
@@ -261,7 +261,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         )
 
     def _relation_created(self, relation_name: str) -> bool:
-        """Returns whether given relation was created.
+        """Return whether given relation was created.
 
         Args:
             relation_name (str): Relation name
