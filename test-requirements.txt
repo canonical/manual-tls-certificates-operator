@@ -8,8 +8,6 @@ asttokens==2.4.1
     # via stack-data
 bcrypt==4.1.2
     # via paramiko
-black==24.2.0
-    # via -r test-requirements.in
 cachetools==5.3.3
     # via google-auth
 certifi==2024.2.2
@@ -18,18 +16,19 @@ certifi==2024.2.2
     #   requests
 cffi==1.16.0
     # via
+    #   -c requirements.txt
     #   cryptography
     #   pynacl
 charset-normalizer==3.3.2
     # via requests
-click==8.1.7
-    # via black
 codespell==2.2.6
     # via -r test-requirements.in
 coverage[toml]==7.4.3
     # via -r test-requirements.in
 cryptography==42.0.5
-    # via paramiko
+    # via
+    #   -c requirements.txt
+    #   paramiko
 decorator==5.1.1
     # via
     #   ipdb
@@ -46,7 +45,7 @@ iniconfig==2.0.0
     # via pytest
 ipdb==0.13.13
     # via pytest-operator
-ipython==8.22.1
+ipython==8.22.2
     # via ipdb
 jedi==0.19.1
     # via ipython
@@ -65,9 +64,7 @@ markupsafe==2.1.5
 matplotlib-inline==0.1.6
     # via ipython
 mypy-extensions==1.0.0
-    # via
-    #   black
-    #   typing-inspect
+    # via typing-inspect
 nodeenv==1.8.0
     # via pyright
 oauthlib==3.2.2
@@ -76,19 +73,14 @@ oauthlib==3.2.2
     #   requests-oauthlib
 packaging==23.2
     # via
-    #   black
     #   juju
     #   pytest
 paramiko==3.4.0
     # via juju
 parso==0.8.3
     # via jedi
-pathspec==0.12.1
-    # via black
 pexpect==4.9.0
     # via ipython
-platformdirs==4.2.0
-    # via black
 pluggy==1.4.0
     # via pytest
 prompt-toolkit==3.0.43
@@ -107,7 +99,9 @@ pyasn1==0.5.1
 pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.21
-    # via cffi
+    # via
+    #   -c requirements.txt
+    #   cffi
 pygments==2.17.2
     # via ipython
 pymacaroons==0.13.0
@@ -123,7 +117,7 @@ pyrfc3339==1.1
     #   macaroonbakery
 pyright==1.1.352
     # via -r test-requirements.in
-pytest==8.1.0
+pytest==8.0.2
     # via
     #   -r test-requirements.in
     #   pytest-asyncio
@@ -132,12 +126,13 @@ pytest-asyncio==0.21.1
     # via pytest-operator
 pytest-operator==0.34.0
     # via -r test-requirements.in
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via kubernetes
 pytz==2024.1
     # via pyrfc3339
 pyyaml==6.0.1
     # via
+    #   -c requirements.txt
     #   juju
     #   kubernetes
     #   pytest-operator
@@ -179,7 +174,9 @@ urllib3==2.2.1
 wcwidth==0.2.13
     # via prompt-toolkit
 websocket-client==1.7.0
-    # via kubernetes
+    # via
+    #   -c requirements.txt
+    #   kubernetes
 websockets==12.0
     # via juju
 
