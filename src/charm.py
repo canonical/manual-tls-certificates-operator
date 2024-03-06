@@ -71,7 +71,10 @@ class ManualTLSCertificatesCharm(CharmBase):
         """
         self.unit.status = ActiveStatus("Ready to provide certificates.")
 
-    def _on_get_outstanding_certificate_requests_action(self, event: ActionEvent) -> None:
+    def _on_get_outstanding_certificate_requests_action(
+        self,
+        event: ActionEvent,
+    ) -> None:
         """Return outstanding certificate requests.
 
         Args:
@@ -119,9 +122,17 @@ class ManualTLSCertificatesCharm(CharmBase):
             return
 
         ca_chain_list = parse_ca_chain(base64.b64decode(ca_chain).decode())
-        csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
-        certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
-        ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
+        csr = (
+            base64.b64decode(event.params["certificate-signing-request"])
+            .decode("utf-8")
+            .strip()
+        )
+        certificate = (
+            base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
+        )
+        ca_cert = (
+            base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
+        )
 
         if not csr_matches_certificate(csr=csr, cert=certificate):
             event.fail(message="Certificate and CSR do not match.")
@@ -133,7 +144,9 @@ class ManualTLSCertificatesCharm(CharmBase):
                 relation_ids_with_given_csr.append(relation.id)
 
         given_relation_id = event.params.get("relation-id", None)
-        err = self._relation_id_parameter_valid(relation_ids_with_given_csr, given_relation_id)
+        err = self._relation_id_parameter_valid(
+            relation_ids_with_given_csr, given_relation_id
+        )
         if err:
             event.fail(message=err)
             return
@@ -145,7 +158,9 @@ class ManualTLSCertificatesCharm(CharmBase):
                 ca=ca_cert,
                 chain=ca_chain_list,
                 relation_id=(
-                    given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
+                    given_relation_id
+                    if given_relation_id
+                    else relation_ids_with_given_csr[0]
                 ),
             )
         except RuntimeError:
@@ -191,7 +206,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         if not relation_id and len(requirer_relation_ids) > 1:
             return "Multiple requirers with the same CSR found."
 
-        if relation_id not in requirer_relation_ids:
+        if relation_id is not None and relation_id not in requirer_relation_ids:
             return "Requested relation id is not the correct id of any found CSR's."
         return ""
 
