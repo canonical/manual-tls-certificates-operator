@@ -5,6 +5,7 @@ import base64
 import datetime
 import json
 import logging
+import time
 
 import pytest
 from cryptography import x509
@@ -150,7 +151,7 @@ class TestManualTLSCertificatesOperator:
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="edge",
+            channel="stable",
         )
 
         await ops_test.model.deploy(
@@ -171,6 +172,8 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
             wait_for_at_least_units=3,
         )
+
+        _wait_for_certificate_request(ops_test)
 
         get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(
             ops_test
@@ -193,7 +196,6 @@ class TestManualTLSCertificatesOperator:
 
         await run_provide_certificate_action(
             ops_test,
-            relation_id=relation.id,
             certificate=certificate_bytes.decode("utf-8"),
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
@@ -255,6 +257,19 @@ async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
         action_uuid=action.entity_id, wait=240
     )
     return action_output
+
+
+async def _wait_for_certificate_request(ops_test: OpsTest):
+    """Wait for the certificate request to be created."""
+    assert ops_test.model
+    start_time = time.time()
+    timeout = 60 * 5
+    while time.time() < start_time + timeout:
+        action_output = await run_get_outstanding_csrs_action(ops_test)
+        if json.loads(action_output["result"]):
+            return
+        time.sleep(5)
+    raise TimeoutError("Timeout waiting for certificate request.")
 
 
 async def run_provide_certificate_action(
