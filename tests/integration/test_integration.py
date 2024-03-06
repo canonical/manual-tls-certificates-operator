@@ -266,7 +266,9 @@ async def _wait_for_certificate_request(ops_test: OpsTest):
     timeout = 60 * 5
     while time.time() < start_time + timeout:
         action_output = await run_get_outstanding_csrs_action(ops_test)
-        if json.loads(action_output["result"]):
+        action_output_result = json.loads(action_output["result"])
+        csr = action_output_result[0].get("csr", None)
+        if csr:
             return
         time.sleep(5)
     raise TimeoutError("Timeout waiting for certificate request.")
