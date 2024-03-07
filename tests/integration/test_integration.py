@@ -5,6 +5,7 @@ import base64
 import datetime
 import json
 import logging
+import time
 
 import pytest
 from cryptography import x509
@@ -114,7 +115,9 @@ class TestManualTLSCertificatesOperator:
             series="jammy",
         )
 
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
+        await ops_test.model.wait_for_idle(
+            apps=[APPLICATION_NAME], status="active", timeout=1000
+        )
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test: OpsTest, charm, cleanup
@@ -148,7 +151,7 @@ class TestManualTLSCertificatesOperator:
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="edge",
+            channel="stable",
         )
 
         await ops_test.model.deploy(
@@ -170,7 +173,11 @@ class TestManualTLSCertificatesOperator:
             wait_for_at_least_units=3,
         )
 
-        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
+        _wait_for_certificate_request(ops_test)
+
+        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(
+            ops_test
+        )
 
         get_outstanding_csrs_action_output = json.loads(
             get_outstanding_csrs_action_output["result"]
@@ -189,7 +196,6 @@ class TestManualTLSCertificatesOperator:
 
         await run_provide_certificate_action(
             ops_test,
-            relation_id=relation.id,
             certificate=certificate_bytes.decode("utf-8"),
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
@@ -209,9 +215,9 @@ class TestManualTLSCertificatesOperator:
         assert get_certificate_action_output["certificate"] == certificate_pem.decode(
             "utf-8"
         ).strip("\n")
-        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
-            "utf-8"
-        ).strip("\n")
+        assert get_certificate_action_output[
+            "ca-certificate"
+        ] == ca_certificate_pem.decode("utf-8").strip("\n")
 
 
 async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
@@ -227,7 +233,9 @@ async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
     """
     tls_requirer_unit = ops_test.model.units[unit_name]
     action = await tls_requirer_unit.run_action(action_name="get-certificate")
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
+    action_output = await ops_test.model.get_action_output(
+        action_uuid=action.entity_id, wait=240
+    )
     return action_output
 
 
@@ -245,13 +253,29 @@ async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
     action = await manual_tls_unit.run_action(
         action_name="get-outstanding-certificate-requests",
     )
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
+    action_output = await ops_test.model.get_action_output(
+        action_uuid=action.entity_id, wait=240
+    )
     return action_output
+
+
+async def _wait_for_certificate_request(ops_test: OpsTest):
+    """Wait for the certificate request to be created."""
+    assert ops_test.model
+    start_time = time.time()
+    timeout = 60 * 5
+    while time.time() < start_time + timeout:
+        action_output = await run_get_outstanding_csrs_action(ops_test)
+        action_output_result = json.loads(action_output["result"])
+        csr = action_output_result[0].get("csr", None)
+        if csr:
+            return
+        time.sleep(5)
+    raise TimeoutError("Timeout waiting for certificate request.")
 
 
 async def run_provide_certificate_action(
     ops_test,
-    relation_id: int,
     certificate: str,
     ca_certificate: str,
     ca_chain: str,
@@ -274,12 +298,13 @@ async def run_provide_certificate_action(
     action = await manual_tls_unit.run_action(
         action_name="provide-certificate",
         **{
-            "relation-id": relation_id,
             "certificate": certificate,
             "ca-certificate": ca_certificate,
             "ca-chain": ca_chain,
             "certificate-signing-request": csr,
         },
     )
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
+    action_output = await ops_test.model.get_action_output(
+        action_uuid=action.entity_id, wait=240
+    )
     return action_output
