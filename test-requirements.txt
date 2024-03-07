@@ -16,7 +16,6 @@ certifi==2024.2.2
     #   requests
 cffi==1.16.0
     # via
-    #   -c requirements.txt
     #   cryptography
     #   pynacl
 charset-normalizer==3.3.2
@@ -26,9 +25,7 @@ codespell==2.2.6
 coverage[toml]==7.4.3
     # via -r test-requirements.in
 cryptography==42.0.5
-    # via
-    #   -c requirements.txt
-    #   paramiko
+    # via paramiko
 decorator==5.1.1
     # via
     #   ipdb
@@ -99,9 +96,7 @@ pyasn1==0.5.1
 pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.21
-    # via
-    #   -c requirements.txt
-    #   cffi
+    # via cffi
 pygments==2.17.2
     # via ipython
 pymacaroons==0.13.0
@@ -132,7 +127,6 @@ pytz==2024.1
     # via pyrfc3339
 pyyaml==6.0.1
     # via
-    #   -c requirements.txt
     #   juju
     #   kubernetes
     #   pytest-operator
@@ -146,7 +140,7 @@ requests-oauthlib==1.3.1
     # via kubernetes
 rsa==4.9
     # via google-auth
-ruff==0.3.0
+ruff==0.3.1
     # via -r test-requirements.in
 six==1.16.0
     # via
@@ -174,9 +168,7 @@ urllib3==2.2.1
 wcwidth==0.2.13
     # via prompt-toolkit
 websocket-client==1.7.0
-    # via
-    #   -c requirements.txt
-    #   kubernetes
+    # via kubernetes
 websockets==12.0
     # via juju
 
