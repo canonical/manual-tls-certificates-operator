@@ -173,7 +173,7 @@ class TestManualTLSCertificatesOperator:
             wait_for_at_least_units=3,
         )
 
-        _wait_for_certificate_request(ops_test)
+        await _wait_for_certificate_request(ops_test)
 
         get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(
             ops_test
