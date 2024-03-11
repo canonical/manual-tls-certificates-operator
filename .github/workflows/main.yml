@@ -7,6 +7,10 @@ on:
     # The branches below must be a subset of the branches above
     branches: ["main"]
 
+concurrency:
+    group: ${{ github.ref == 'refs/heads/main' && format('ignore-main-{0}', github.run_id) || format('{0}-{1}', github.workflow, github.ref_name) }}
+    cancel-in-progress: true
+
 jobs:
   lint-report:
     name: Lint report
