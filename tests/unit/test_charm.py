@@ -419,7 +419,7 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
-    def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(
+    def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
         self, patch_set_relation_cert, patch_get_requirer_csrs
     ):
         requirer_app_name = "requirer"
