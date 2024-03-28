@@ -316,7 +316,7 @@ LIBAPI = 3
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 7
+LIBPATCH = 8
 
 PYDEPS = ["cryptography", "jsonschema"]
 
@@ -1487,9 +1487,7 @@ class TLSCertificatesRequiresV3(Object):
         """
         super().__init__(charm, relationship_name)
         if not JujuVersion.from_environ().has_secrets:
-            raise RuntimeError(
-                "This version of the TLS library requires Juju secrets (Juju >= 3.0)"
-            )
+            logger.warning("This version of the TLS library requires Juju secrets (Juju >= 3.0)")
         self.relationship_name = relationship_name
         self.charm = charm
         self.expiry_notification_time = expiry_notification_time
