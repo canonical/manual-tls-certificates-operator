@@ -76,7 +76,9 @@ class TestCharm(unittest.TestCase):
                 is_ca=False,
             )
         ]
-        self.harness.charm._set_active_status(Mock())
+
+        self.harness.evaluate_status()
+
         self.assertEqual(
             ActiveStatus(
                 "1 outstanding requests, use juju actions to provide certificates"
@@ -89,7 +91,9 @@ class TestCharm(unittest.TestCase):
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
         patch_get_requirer_units_csrs_with_no_certs.return_value = []
-        self.harness.charm._set_active_status(Mock())
+
+        self.harness.evaluate_status()
+
         self.assertEqual(
             ActiveStatus("No outstanding requests."), self.harness.charm.unit.status
         )
