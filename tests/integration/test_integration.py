@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import time
+from pathlib import Path
 
 import pytest
 from cryptography import x509
@@ -33,12 +34,6 @@ async def get_leader_unit(model, application_name: str) -> Unit:
 
 
 class TestManualTLSCertificatesOperator:
-    @pytest.fixture(scope="module")
-    @pytest.mark.abort_on_fail
-    async def charm(self, ops_test):
-        ops_test.destructive_mode = False
-        charm = await ops_test.build_charm(".")
-        return charm
 
     @staticmethod
     def get_certificate_and_ca_certificate_from_csr(csr: str) -> dict:
@@ -105,6 +100,16 @@ class TestManualTLSCertificatesOperator:
         except JujuError:
             pass
 
+    @pytest.fixture(scope="module")
+    async def deploy_charm(self, ops_test: OpsTest, request):
+        """Deploy Vault."""
+        assert ops_test.model
+        charm_path = Path(request.config.getoption("--charm_path")).resolve()
+        await ops_test.model.deploy(
+            charm_path,
+            application_name=APPLICATION_NAME,
+        )
+
     async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
         self, ops_test: OpsTest, charm, cleanup
     ):
@@ -120,18 +125,13 @@ class TestManualTLSCertificatesOperator:
         )
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
-        self, ops_test: OpsTest, charm, cleanup
+        self, ops_test: OpsTest, deploy_charm, cleanup
     ):
         assert ops_test.model
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
             channel="edge",
-        )
-        await ops_test.model.deploy(
-            entity_url=charm,
-            application_name=APPLICATION_NAME,
-            series="jammy",
         )
 
         await ops_test.model.integrate(
