@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import time
+from pathlib import Path
 
 import pytest
 from cryptography import x509
@@ -35,10 +36,8 @@ async def get_leader_unit(model, application_name: str) -> Unit:
 class TestManualTLSCertificatesOperator:
     @pytest.fixture(scope="module")
     @pytest.mark.abort_on_fail
-    async def charm(self, ops_test):
-        ops_test.destructive_mode = False
-        charm = await ops_test.build_charm(".")
-        return charm
+    async def charm(self, request):
+        return Path(request.config.getoption("--charm_path")).resolve()
 
     @staticmethod
     def get_certificate_and_ca_certificate_from_csr(csr: str) -> dict:
