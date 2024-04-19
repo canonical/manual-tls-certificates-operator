@@ -3,11 +3,12 @@
 import base64
 import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from charm import ManualTLSCertificatesCharm
 from ops import testing
 from ops.model import ActiveStatus
+from ops.testing import ActionFailed
 
 from lib.charms.tls_certificates_interface.v3.tls_certificates import RequirerCSR
 
@@ -93,11 +94,10 @@ class TestCharm(unittest.TestCase):
     def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
         self,
     ):
-        event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(
-            message="No certificates relation has been created yet."
-        )
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("get-outstanding-certificate-requests")
+
+        self.assertEqual("No certificates relation has been created yet.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
@@ -113,9 +113,10 @@ class TestCharm(unittest.TestCase):
         )
         example_unit_csrs = [requirer_csr]
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
-        event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.set_results.assert_called_once_with({"result": json.dumps([vars(requirer_csr)])})
+
+        action_output = self.harness.run_action("get-outstanding-certificate-requests")
+
+        self.assertEqual(json.dumps([vars(requirer_csr)]), action_output.results["result"])
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
@@ -123,18 +124,20 @@ class TestCharm(unittest.TestCase):
     ):
         self.harness.add_relation("certificates", "requirer")
         patch_get_requirer_units_csrs_with_no_certs.return_value = []
-        event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.set_results.assert_called_once_with({"result": "[]"})
+
+        action_output = self.harness.run_action("get-outstanding-certificate-requests")
+
+        self.assertEqual("[]", action_output.results["result"])
 
     def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
         self,
     ):
-        event = Mock()
         self.harness.add_relation("certificates", "requirer")
-        event.params = {"relation_id": 1235}
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.set_results.assert_called_once_with({"result": "[]"})
+        params = {"relation_id": 1235}
+
+        action_output = self.harness.run_action("get-outstanding-certificate-requests", params)
+
+        self.assertEqual("[]", action_output.results["result"])
 
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(
         self,
@@ -142,8 +145,7 @@ class TestCharm(unittest.TestCase):
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
         csr = TestCharm._encode_in_base64(csr)
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
@@ -151,25 +153,27 @@ class TestCharm(unittest.TestCase):
             "relation-id": 1234,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(
-            message="No certificates relation has been created yet."
-        )
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("No certificates relation has been created yet.", e.exception.message)
 
     def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
         self,
     ):
         self.harness.add_relation("certificates", "requirer")
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": "wrong encoding",
             "certificate": "wrong encoding",
             "ca-certificate": "wrong encoding",
             "ca-chain": "wrong encoding",
             "relation-id": 1234,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="Action input is not valid.")
+
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Action input is not valid.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(
@@ -189,16 +193,18 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
             "relation-id": relation_id,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
+
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -218,15 +224,17 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
+
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -259,15 +267,17 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.side_effect = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="Multiple requirers with the same CSR found.")
+
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Multiple requirers with the same CSR found.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -300,17 +310,19 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.side_effect = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
             "relation-id": relation_id_1,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(
-            message="Requested relation id is not the correct id of any found CSR's."
+
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual(
+            "Requested relation id is not the correct id of any found CSR's.", e.exception.message
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
@@ -332,8 +344,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_csrs.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": incorrect_cert,
             "ca-certificate": self.decoded_ca_certificate,
@@ -341,8 +352,10 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="Certificate and CSR do not match.")
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Certificate and CSR do not match.", e.exception.message)
 
     @patch("charm.ca_chain_is_valid")
     def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
@@ -351,8 +364,7 @@ class TestCharm(unittest.TestCase):
         relation_id = self.harness.add_relation("certificates", "requirer")
         patch_ca_chain_valid.return_value = False
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
@@ -360,8 +372,10 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="Action input is not valid.")
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Action input is not valid.", e.exception.message)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
@@ -382,8 +396,7 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
@@ -391,10 +404,9 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.set_results.assert_called_once_with(
-            {"result": "Certificates successfully provided."}
-        )
+        action_output = self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Certificates successfully provided.", action_output.results["result"])
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
@@ -416,18 +428,16 @@ class TestCharm(unittest.TestCase):
         ]
         patch_get_requirer_csrs.return_value = example_unit_csrs
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.set_results.assert_called_once_with(
-            {"result": "Certificates successfully provided."}
-        )
+        action_output = self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Certificates successfully provided.", action_output.results["result"])
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
@@ -450,8 +460,7 @@ class TestCharm(unittest.TestCase):
         patch_get_requirer_csrs.return_value = example_unit_csrs
         patch_set_relation_cert.side_effect = RuntimeError()
 
-        event = Mock()
-        event.params = {
+        params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
@@ -459,5 +468,7 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
-        event.fail.assert_called_once_with(message="Relation does not exist with the provided id.")
+        with self.assertRaises(ActionFailed) as e:
+            self.harness.run_action("provide-certificate", params)
+
+        self.assertEqual("Relation does not exist with the provided id.", e.exception.message)
