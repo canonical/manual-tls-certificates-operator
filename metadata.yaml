@@ -17,3 +17,8 @@ issues: https://github.com/canonical/manual-tls-certificates-operator/issues
 provides:
   certificates:
     interface: tls-certificates
+
+requires:
+  tracing:
+    interface: tracing
+    limit: 1

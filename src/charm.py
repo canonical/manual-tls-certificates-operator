@@ -13,6 +13,8 @@ import json
 import logging
 from typing import List, Optional
 
+from charms.tempo_k8s.v1.charm_tracing import trace_charm
+from charms.tempo_k8s.v2.tracing import TracingEndpointRequirer
 from charms.tls_certificates_interface.v3.tls_certificates import (
     TLSCertificatesProvidesV3,
     csr_matches_certificate,
@@ -31,7 +33,12 @@ logger = logging.getLogger(__name__)
 
 CERTIFICATES_RELATION = "certificates"
 
-
+@trace_charm(
+    tracing_endpoint="tempo_otlp_http_endpoint",
+    extra_types=(
+        TLSCertificatesProvidesV3,
+    ),
+)
 class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
 
@@ -39,6 +46,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         """Observe config change and certificate request events."""
         super().__init__(*args)
         self.tls_certificates = TLSCertificatesProvidesV3(self, CERTIFICATES_RELATION)
+        self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         self.framework.observe(
             self.on.get_outstanding_certificate_requests_action,
@@ -259,6 +267,14 @@ class ManualTLSCertificatesCharm(CharmBase):
         except (binascii.Error, TypeError) as e:
             logger.error("Invalid input for '%s': %s", label, e)
             raise ValueError()
+
+    @property
+    def tempo_otlp_http_endpoint(self) -> Optional[str]:
+        """Tempo endpoint for charm tracing."""
+        if self.tracing.is_ready():
+            return self.tracing.get_endpoint('otlp_http')
+        else:
+            return None
 
 
 if __name__ == "__main__":

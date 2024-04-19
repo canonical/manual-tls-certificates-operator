@@ -4,31 +4,84 @@
 #
 #    pip-compile requirements.in
 #
+annotated-types==0.6.0
+    # via pydantic
 attrs==23.2.0
     # via
     #   jsonschema
     #   referencing
+certifi==2024.2.2
+    # via requests
 cffi==1.16.0
     # via cryptography
+charset-normalizer==3.3.2
+    # via requests
 cryptography==42.0.5
     # via -r requirements.in
+deprecated==1.2.14
+    # via
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-http
+googleapis-common-protos==1.63.0
+    # via opentelemetry-exporter-otlp-proto-http
+idna==3.7
+    # via requests
+importlib-metadata==7.0.0
+    # via opentelemetry-api
 jsonschema==4.21.1
     # via -r requirements.in
 jsonschema-specifications==2023.12.1
     # via jsonschema
+opentelemetry-api==1.24.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-common==1.24.0
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-http==1.24.0
+    # via -r requirements.in
+opentelemetry-proto==1.24.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.24.0
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-semantic-conventions==0.45b0
+    # via opentelemetry-sdk
 ops==2.12.0
     # via -r requirements.in
-pycparser==2.21
+protobuf==4.25.3
+    # via
+    #   googleapis-common-protos
+    #   opentelemetry-proto
+pycparser==2.22
     # via cffi
+pydantic==2.6.4
+    # via -r requirements.in
+pydantic-core==2.16.3
+    # via pydantic
 pyyaml==6.0.1
     # via ops
-referencing==0.32.1
+referencing==0.34.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-rpds-py==0.17.1
+requests==2.31.0
+    # via opentelemetry-exporter-otlp-proto-http
+rpds-py==0.18.0
     # via
     #   jsonschema
     #   referencing
+typing-extensions==4.11.0
+    # via
+    #   opentelemetry-sdk
+    #   pydantic
+    #   pydantic-core
+urllib3==2.2.1
+    # via requests
 websocket-client==1.7.0
     # via ops
+wrapt==1.16.0
+    # via deprecated
+zipp==3.18.1
+    # via importlib-metadata
