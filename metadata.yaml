@@ -14,6 +14,11 @@ website: https://charmhub.io/manual-tls-certificates
 source: https://github.com/canonical/manual-tls-certificates-operator
 issues: https://github.com/canonical/manual-tls-certificates-operator/issues
 
+requires:
+  tracing:
+    interface: tracing
+    limit: 1
+
 provides:
   certificates:
     interface: tls-certificates

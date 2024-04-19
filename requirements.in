@@ -1,3 +1,5 @@
 ops
 jsonschema
 cryptography
+opentelemetry-exporter-otlp-proto-http
+pydantic==2.6.4

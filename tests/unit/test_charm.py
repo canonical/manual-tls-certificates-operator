@@ -49,18 +49,14 @@ class TestCharm(unittest.TestCase):
         csr_bytes = TestCharm._encode_in_base64(csr)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
         certificate_bytes = TestCharm._encode_in_base64(certificate)
-        ca_certificate = self.get_certificate_from_file(
-            filename="tests/ca_certificate.pem"
-        )
+        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
         ca_certificate_bytes = TestCharm._encode_in_base64(ca_certificate)
         ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
         ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
 
         self.decoded_csr = TestCharm._decode_from_base64(csr_bytes)
         self.decoded_certificate = TestCharm._decode_from_base64(certificate_bytes)
-        self.decoded_ca_certificate = TestCharm._decode_from_base64(
-            ca_certificate_bytes
-        )
+        self.decoded_ca_certificate = TestCharm._decode_from_base64(ca_certificate_bytes)
         self.decoded_ca_chain = TestCharm._decode_from_base64(ca_chain_bytes)
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
@@ -80,9 +76,7 @@ class TestCharm(unittest.TestCase):
         self.harness.evaluate_status()
 
         self.assertEqual(
-            ActiveStatus(
-                "1 outstanding requests, use juju actions to provide certificates"
-            ),
+            ActiveStatus("1 outstanding requests, use juju actions to provide certificates"),
             self.harness.charm.unit.status,
         )
 
@@ -94,15 +88,13 @@ class TestCharm(unittest.TestCase):
 
         self.harness.evaluate_status()
 
-        self.assertEqual(
-            ActiveStatus("No outstanding requests."), self.harness.charm.unit.status
-        )
+        self.assertEqual(ActiveStatus("No outstanding requests."), self.harness.charm.unit.status)
 
     def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
         self,
     ):
         event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(
             message="No certificates relation has been created yet."
         )
@@ -122,10 +114,8 @@ class TestCharm(unittest.TestCase):
         example_unit_csrs = [requirer_csr]
         patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
         event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
-        event.set_results.assert_called_once_with(
-            {"result": json.dumps([vars(requirer_csr)])}
-        )
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
+        event.set_results.assert_called_once_with({"result": json.dumps([vars(requirer_csr)])})
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
@@ -134,7 +124,7 @@ class TestCharm(unittest.TestCase):
         self.harness.add_relation("certificates", "requirer")
         patch_get_requirer_units_csrs_with_no_certs.return_value = []
         event = Mock()
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.set_results.assert_called_once_with({"result": "[]"})
 
     def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
@@ -143,7 +133,7 @@ class TestCharm(unittest.TestCase):
         event = Mock()
         self.harness.add_relation("certificates", "requirer")
         event.params = {"relation_id": 1235}
-        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)
+        self.harness.charm._on_get_outstanding_certificate_requests_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.set_results.assert_called_once_with({"result": "[]"})
 
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(
@@ -161,7 +151,7 @@ class TestCharm(unittest.TestCase):
             "relation-id": 1234,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(
             message="No certificates relation has been created yet."
         )
@@ -178,7 +168,7 @@ class TestCharm(unittest.TestCase):
             "ca-chain": "wrong encoding",
             "relation-id": 1234,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(message="Action input is not valid.")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
@@ -207,10 +197,8 @@ class TestCharm(unittest.TestCase):
             "ca-chain": self.decoded_ca_chain,
             "relation-id": relation_id,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)
-        event.fail.assert_called_once_with(
-            message="CSR was not found in any requirer databags."
-        )
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
+        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -237,22 +225,16 @@ class TestCharm(unittest.TestCase):
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)
-        event.fail.assert_called_once_with(
-            message="CSR was not found in any requirer databags."
-        )
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
+        event.fail.assert_called_once_with(message="CSR was not found in any requirer databags.")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_requirer_csrs
     ):
         requirer_app_name = "requirer"
-        relation_id_1 = self.harness.add_relation(
-            "certificates", f"{requirer_app_name}-1"
-        )
-        relation_id_2 = self.harness.add_relation(
-            "certificates", f"{requirer_app_name}-2"
-        )
+        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
+        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
 
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
@@ -284,22 +266,16 @@ class TestCharm(unittest.TestCase):
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)
-        event.fail.assert_called_once_with(
-            message="Multiple requirers with the same CSR found."
-        )
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
+        event.fail.assert_called_once_with(message="Multiple requirers with the same CSR found.")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_requirer_csrs
     ):
         requirer_app_name = "requirer"
-        relation_id_1 = self.harness.add_relation(
-            "certificates", f"{requirer_app_name}-1"
-        )
-        relation_id_2 = self.harness.add_relation(
-            "certificates", f"{requirer_app_name}-2"
-        )
+        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
+        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
 
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
@@ -332,7 +308,7 @@ class TestCharm(unittest.TestCase):
             "ca-chain": self.decoded_ca_chain,
             "relation-id": relation_id_1,
         }
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(
             message="Requested relation id is not the correct id of any found CSR's."
         )
@@ -365,7 +341,7 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(message="Certificate and CSR do not match.")
 
     @patch("charm.ca_chain_is_valid")
@@ -384,7 +360,7 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.fail.assert_called_once_with(message="Action input is not valid.")
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
@@ -415,7 +391,7 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.set_results.assert_called_once_with(
             {"result": "Certificates successfully provided."}
         )
@@ -448,7 +424,7 @@ class TestCharm(unittest.TestCase):
             "ca-chain": self.decoded_ca_chain,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
         event.set_results.assert_called_once_with(
             {"result": "Certificates successfully provided."}
         )
@@ -483,7 +459,5 @@ class TestCharm(unittest.TestCase):
             "relation-id": relation_id,
         }
 
-        self.harness.charm._on_provide_certificate_action(event=event)
-        event.fail.assert_called_once_with(
-            message="Relation does not exist with the provided id."
-        )
+        self.harness.charm._on_provide_certificate_action(event=event)  # type: ignore[reportAttributeAccessIssue]
+        event.fail.assert_called_once_with(message="Relation does not exist with the provided id.")

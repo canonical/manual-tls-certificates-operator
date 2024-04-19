@@ -13,6 +13,8 @@ import json
 import logging
 from typing import List, Optional
 
+from charms.tempo_k8s.v1.charm_tracing import trace_charm
+from charms.tempo_k8s.v2.tracing import TracingEndpointRequirer
 from charms.tls_certificates_interface.v3.tls_certificates import (
     TLSCertificatesProvidesV3,
     csr_matches_certificate,
@@ -32,12 +34,17 @@ logger = logging.getLogger(__name__)
 CERTIFICATES_RELATION = "certificates"
 
 
+@trace_charm(
+    tracing_endpoint="tempo_otlp_http_endpoint",
+    extra_types=(TLSCertificatesProvidesV3,),
+)
 class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
 
     def __init__(self, *args):
         """Observe config change and certificate request events."""
         super().__init__(*args)
+        self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
         self.tls_certificates = TLSCertificatesProvidesV3(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         self.framework.observe(
@@ -49,18 +56,28 @@ class ManualTLSCertificatesCharm(CharmBase):
             self._on_provide_certificate_action,
         )
 
+    @property
+    def tempo_otlp_http_endpoint(self) -> Optional[str]:
+        """Tempo endpoint for charm tracing."""
+        if self.tracing.is_ready():
+            return self.tracing.get_endpoint("otlp_http")
+        else:
+            return None
+
     def _on_collect_unit_status(self, event: CollectStatusEvent):
-         """Centralized status management for the charm."""
-         outstanding_requests_num = len(
+        """Centralized status management for the charm."""
+        outstanding_requests_num = len(
             self.tls_certificates.get_outstanding_certificate_requests()
         )
-         if outstanding_requests_num == 0:
+        if outstanding_requests_num == 0:
             event.add_status(ActiveStatus("No outstanding requests."))
             return
-         event.add_status(ActiveStatus(
-             f"{outstanding_requests_num} outstanding requests, "
-            f"use juju actions to provide certificates"
-         ))
+        event.add_status(
+            ActiveStatus(
+                f"{outstanding_requests_num} outstanding requests, "
+                f"use juju actions to provide certificates"
+            )
+        )
 
     def _on_get_outstanding_certificate_requests_action(
         self,
@@ -113,17 +130,9 @@ class ManualTLSCertificatesCharm(CharmBase):
             return
 
         ca_chain_list = parse_ca_chain(base64.b64decode(ca_chain).decode())
-        csr = (
-            base64.b64decode(event.params["certificate-signing-request"])
-            .decode("utf-8")
-            .strip()
-        )
-        certificate = (
-            base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
-        )
-        ca_cert = (
-            base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
-        )
+        csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
+        certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
+        ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
         if not csr_matches_certificate(csr=csr, cert=certificate):
             event.fail(message="Certificate and CSR do not match.")
@@ -135,9 +144,7 @@ class ManualTLSCertificatesCharm(CharmBase):
                 relation_ids_with_given_csr.append(relation.id)
 
         given_relation_id = event.params.get("relation-id", None)
-        err = self._relation_id_parameter_valid(
-            relation_ids_with_given_csr, given_relation_id
-        )
+        err = self._relation_id_parameter_valid(relation_ids_with_given_csr, given_relation_id)
         if err:
             event.fail(message=err)
             return
@@ -149,9 +156,7 @@ class ManualTLSCertificatesCharm(CharmBase):
                 ca=ca_cert,
                 chain=ca_chain_list,
                 relation_id=(
-                    given_relation_id
-                    if given_relation_id
-                    else relation_ids_with_given_csr[0]
+                    given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
                 ),
             )
         except RuntimeError:
