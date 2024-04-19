@@ -125,7 +125,7 @@ class TestManualTLSCertificatesOperator:
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="edge",
+            channel="stable",
         )
         await ops_test.model.deploy(
             entity_url=charm,
