@@ -82,7 +82,7 @@ parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
 prompt-toolkit==3.0.43
     # via ipython
@@ -116,7 +116,7 @@ pyrfc3339==1.1
     #   macaroonbakery
 pyright==1.1.360
     # via -r test-requirements.in
-pytest==8.1.1
+pytest==8.2.0
     # via
     #   -r test-requirements.in
     #   pytest-asyncio
