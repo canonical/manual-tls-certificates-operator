@@ -3,14 +3,13 @@
 
 name: manual-tls-certificates
 
-display-name: Manual TLS Certificates
-docs: https://discourse.charmhub.io/t/tls-certificates-operator-docs-index/11461
 description: |
   Charm responsible for distributing certificates through relationship. Certificates are provided
   by the operator through Juju actions.
 summary: |
   Charm for providing certificates from a manual process.
 links:
+  documentation: https://discourse.charmhub.io/t/tls-certificates-operator-docs-index/11461
   website:
     - https://charmhub.io/manual-tls-certificates
   source:
