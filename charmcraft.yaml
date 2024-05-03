@@ -1,6 +1,31 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+name: manual-tls-certificates
+
+description: |
+  Charm responsible for distributing certificates through relationship. Certificates are provided
+  by the operator through Juju actions.
+summary: |
+  Charm for providing certificates from a manual process.
+links:
+  documentation: https://discourse.charmhub.io/t/tls-certificates-operator-docs-index/11461
+  website:
+    - https://charmhub.io/manual-tls-certificates
+  source:
+    - https://github.com/canonical/manual-tls-certificates-operator
+  issues:
+    - https://github.com/canonical/manual-tls-certificates-operator/issues
+
+requires:
+  tracing:
+    interface: tracing
+    limit: 1
+
+provides:
+  certificates:
+    interface: tls-certificates
+
 type: "charm"
 bases:
   - build-on:
@@ -32,3 +57,43 @@ parts:
       - rustc
       - cargo
       - pkg-config
+
+actions:
+  get-outstanding-certificate-requests:
+    description: >-
+      Get list of all outstanding certificate signing requests.
+      If a relation-id is provided, only requests for that relation are returned.
+    params:
+      relation-id:
+        type: integer
+        description: >-
+          ID of the relation between the manual-tls-certificates and the requirer.
+
+  provide-certificate:
+    description: >-
+      Provide a certificate to a specific requirer unit.
+    params:
+      relation-id:
+        type: integer
+        description: >-
+          ID of the relation between the manual-tls-certificates and the requirer.
+      certificate-signing-request:
+        type: string
+        description: >-
+          The request to which the certificate is being provided.
+      certificate:
+        type: string
+        description: >-
+          Base64 encoded TLS certificate.
+      ca-chain:
+        type: string
+        description: >-
+          Base64 encoded CA chain.
+      ca-certificate:
+        type: string
+        description: >-
+          Base64 encoded CA Certificate..
+    required:
+      - certificate-signing-request
+      - certificate
+      - ca-certificate
