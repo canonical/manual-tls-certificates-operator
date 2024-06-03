@@ -26,11 +26,11 @@ jobs:
         run: echo "charm_path=$(find . -name '*.charm' -type f -print)" >> $GITHUB_OUTPUT
 
       - name: Select Charmhub channel
-        uses: canonical/charming-actions/channel@2.4.0
+        uses: canonical/charming-actions/channel@2.6.0
         id: channel
 
       - name: Upload charm to Charmhub
-        uses: canonical/charming-actions/upload-charm@2.5.0-rc
+        uses: canonical/charming-actions/upload-charm@2.6.0
         with:
           built-charm-path: ${{ steps.charm-path.outputs.charm_path }}
           credentials: "${{ secrets.CHARMCRAFT_AUTH }}"
