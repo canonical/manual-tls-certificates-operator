@@ -78,7 +78,7 @@ typing-extensions==4.11.0
     #   opentelemetry-sdk
     #   pydantic
     #   pydantic-core
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 websocket-client==1.7.0
     # via ops
