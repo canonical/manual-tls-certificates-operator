@@ -49,7 +49,7 @@ opentelemetry-sdk==1.25.0
     # via opentelemetry-exporter-otlp-proto-http
 opentelemetry-semantic-conventions==0.46b0
     # via opentelemetry-sdk
-ops==2.14.0
+ops==2.14.1
     # via -r requirements.in
 protobuf==4.25.3
     # via
