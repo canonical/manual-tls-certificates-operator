@@ -84,5 +84,5 @@ websocket-client==1.7.0
     # via ops
 wrapt==1.16.0
     # via deprecated
-zipp==3.18.1
+zipp==3.19.1
     # via importlib-metadata
