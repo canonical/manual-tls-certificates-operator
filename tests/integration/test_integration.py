@@ -114,9 +114,7 @@ class TestManualTLSCertificatesOperator:
             series="jammy",
         )
 
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME], status="active", timeout=1000
-        )
+        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test: OpsTest, charm, cleanup
@@ -174,9 +172,7 @@ class TestManualTLSCertificatesOperator:
 
         await _wait_for_certificate_request(ops_test)
 
-        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(
-            ops_test
-        )
+        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
 
         get_outstanding_csrs_action_output = json.loads(
             get_outstanding_csrs_action_output["result"]
@@ -214,9 +210,9 @@ class TestManualTLSCertificatesOperator:
         assert get_certificate_action_output["certificate"] == certificate_pem.decode(
             "utf-8"
         ).strip("\n")
-        assert get_certificate_action_output[
-            "ca-certificate"
-        ] == ca_certificate_pem.decode("utf-8").strip("\n")
+        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
+            "utf-8"
+        ).strip("\n")
 
 
 async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
@@ -232,9 +228,7 @@ async def run_get_certificate_action(ops_test, unit_name: str) -> dict:
     """
     tls_requirer_unit = ops_test.model.units[unit_name]
     action = await tls_requirer_unit.run_action(action_name="get-certificate")
-    action_output = await ops_test.model.get_action_output(
-        action_uuid=action.entity_id, wait=240
-    )
+    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
     return action_output
 
 
@@ -252,9 +246,7 @@ async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
     action = await manual_tls_unit.run_action(
         action_name="get-outstanding-certificate-requests",
     )
-    action_output = await ops_test.model.get_action_output(
-        action_uuid=action.entity_id, wait=240
-    )
+    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
     return action_output
 
 
@@ -303,7 +295,5 @@ async def run_provide_certificate_action(
             "certificate-signing-request": csr,
         },
     )
-    action_output = await ops_test.model.get_action_output(
-        action_uuid=action.entity_id, wait=240
-    )
+    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
     return action_output
