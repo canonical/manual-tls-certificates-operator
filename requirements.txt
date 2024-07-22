@@ -16,7 +16,7 @@ cffi==1.16.0
     # via cryptography
 charset-normalizer==3.3.2
     # via requests
-cryptography==42.0.8
+cryptography==43.0.0
     # via -r requirements.in
 deprecated==1.2.14
     # via
@@ -49,7 +49,7 @@ opentelemetry-sdk==1.25.0
     # via opentelemetry-exporter-otlp-proto-http
 opentelemetry-semantic-conventions==0.46b0
     # via opentelemetry-sdk
-ops==2.14.1
+ops==2.15.0
     # via -r requirements.in
 protobuf==4.25.3
     # via
