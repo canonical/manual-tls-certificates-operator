@@ -24,7 +24,7 @@ codespell==2.3.0
     # via -r test-requirements.in
 coverage[toml]==7.6.0
     # via -r test-requirements.in
-cryptography==42.0.8
+cryptography==43.0.0
     # via paramiko
 decorator==5.1.1
     # via
@@ -82,7 +82,7 @@ parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
 prompt-toolkit==3.0.43
     # via ipython
@@ -114,9 +114,9 @@ pyrfc3339==1.1
     # via
     #   juju
     #   macaroonbakery
-pyright==1.1.371
+pyright==1.1.372
     # via -r test-requirements.in
-pytest==8.1.2
+pytest==8.3.1
     # via
     #   -r test-requirements.in
     #   pytest-asyncio
@@ -144,7 +144,7 @@ requests-oauthlib==2.0.0
     # via kubernetes
 rsa==4.9
     # via google-auth
-ruff==0.5.2
+ruff==0.5.4
     # via -r test-requirements.in
 six==1.16.0
     # via
