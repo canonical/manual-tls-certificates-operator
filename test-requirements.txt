@@ -12,30 +12,28 @@ cachetools==5.3.3
     # via google-auth
 certifi==2024.7.4
     # via
-    #   -c requirements.txt
     #   kubernetes
     #   requests
 cffi==1.16.0
     # via
-    #   -c requirements.txt
     #   cryptography
     #   pynacl
 charset-normalizer==3.3.2
-    # via
-    #   -c requirements.txt
-    #   requests
+    # via requests
 codespell==2.3.0
     # via -r test-requirements.in
 coverage[toml]==7.6.0
     # via -r test-requirements.in
 cryptography==43.0.0
-    # via
-    #   -c requirements.txt
-    #   paramiko
+    # via paramiko
 decorator==5.1.1
     # via
     #   ipdb
     #   ipython
+exceptiongroup==1.2.2
+    # via
+    #   ipython
+    #   pytest
 executing==2.0.1
     # via stack-data
 google-auth==2.29.0
@@ -43,9 +41,7 @@ google-auth==2.29.0
 hvac==2.1.0
     # via juju
 idna==3.7
-    # via
-    #   -c requirements.txt
-    #   requests
+    # via requests
 iniconfig==2.0.0
     # via pytest
 ipdb==0.13.13
@@ -91,9 +87,7 @@ pluggy==1.5.0
 prompt-toolkit==3.0.43
     # via ipython
 protobuf==4.25.3
-    # via
-    #   -c requirements.txt
-    #   macaroonbakery
+    # via macaroonbakery
 ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
@@ -106,9 +100,7 @@ pyasn1==0.6.0
 pyasn1-modules==0.4.0
     # via google-auth
 pycparser==2.22
-    # via
-    #   -c requirements.txt
-    #   cffi
+    # via cffi
 pygments==2.17.2
     # via ipython
 pymacaroons==0.13.0
@@ -122,9 +114,9 @@ pyrfc3339==1.1
     # via
     #   juju
     #   macaroonbakery
-pyright==1.1.372
+pyright==1.1.373
     # via -r test-requirements.in
-pytest==8.3.1
+pytest==8.3.2
     # via
     #   -r test-requirements.in
     #   pytest-asyncio
@@ -141,13 +133,11 @@ pytz==2024.1
     # via pyrfc3339
 pyyaml==6.0.1
     # via
-    #   -c requirements.txt
     #   juju
     #   kubernetes
     #   pytest-operator
 requests==2.32.0
     # via
-    #   -c requirements.txt
     #   hvac
     #   kubernetes
     #   macaroonbakery
@@ -156,7 +146,7 @@ requests-oauthlib==2.0.0
     # via kubernetes
 rsa==4.9
     # via google-auth
-ruff==0.5.4
+ruff==0.5.5
     # via -r test-requirements.in
 six==1.16.0
     # via
@@ -167,6 +157,11 @@ six==1.16.0
     #   python-dateutil
 stack-data==0.6.3
     # via ipython
+tomli==2.0.1
+    # via
+    #   coverage
+    #   ipdb
+    #   pytest
 toposort==1.10
     # via juju
 traitlets==5.14.2
@@ -175,22 +170,18 @@ traitlets==5.14.2
     #   matplotlib-inline
 typing-extensions==4.11.0
     # via
-    #   -c requirements.txt
     #   ipython
     #   typing-inspect
 typing-inspect==0.9.0
     # via juju
 urllib3==2.2.2
     # via
-    #   -c requirements.txt
     #   kubernetes
     #   requests
 wcwidth==0.2.13
     # via prompt-toolkit
 websocket-client==1.7.0
-    # via
-    #   -c requirements.txt
-    #   kubernetes
+    # via kubernetes
 websockets==12.0
     # via juju
 
