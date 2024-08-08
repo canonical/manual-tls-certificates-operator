@@ -5,15 +5,19 @@ import json
 import unittest
 from unittest.mock import patch
 
+from certificates import generate_csr, generate_private_key
 from charm import ManualTLSCertificatesCharm
+from charms.tls_certificates_interface.v4.tls_certificates import (
+    CertificateSigningRequest,
+    RequirerCSR,
+    TLSCertificatesError,
+)
 from ops import testing
 from ops.model import ActiveStatus
 from ops.testing import ActionFailed
 
-from lib.charms.tls_certificates_interface.v3.tls_certificates import RequirerCSR
-
 TLS_CERTIFICATES_PROVIDES_PATH = (
-    "charms.tls_certificates_interface.v3.tls_certificates.TLSCertificatesProvidesV3"
+    "charms.tls_certificates_interface.v4.tls_certificates.TLSCertificatesProvidesV4"
 )
 
 
@@ -64,13 +68,12 @@ class TestCharm(unittest.TestCase):
     def test_given_outstanding_requests_when_certificate_creation_request_then_status_is_active(
         self, patch_get_requirer_units_csrs_with_no_certs
     ):
+        private_key = generate_private_key()
+        csr = generate_csr(private_key=private_key, common_name="example.com")
         patch_get_requirer_units_csrs_with_no_certs.return_value = [
             RequirerCSR(
                 relation_id=1234,
-                application_name="application",
-                unit_name="unit/0",
-                csr="some csr",
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr),
             )
         ]
 
@@ -83,9 +86,9 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_no_units_with_no_certs_when_charm_is_deployed_then_status_is_active_and_no_outstanding_requests(  # noqa: E501
-        self, patch_get_requirer_units_csrs_with_no_certs
+        self, patch_get_outstanding_certificate_requests
     ):
-        patch_get_requirer_units_csrs_with_no_certs.return_value = []
+        patch_get_outstanding_certificate_requests.return_value = []
 
         self.harness.evaluate_status()
 
@@ -101,29 +104,29 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
-        self, patch_get_requirer_units_csrs_with_no_certs
+        self, patch_get_outstanding_certificate_requests
     ):
         self.harness.add_relation("certificates", "requirer")
+        private_key = generate_private_key()
+        csr = generate_csr(private_key=private_key, common_name="example.com")
         requirer_csr = RequirerCSR(
             relation_id=1234,
-            application_name="application",
-            unit_name="unit/0",
-            csr="some csr",
-            is_ca=False,
+            certificate_signing_request=CertificateSigningRequest.from_string(csr),
         )
-        example_unit_csrs = [requirer_csr]
-        patch_get_requirer_units_csrs_with_no_certs.return_value = example_unit_csrs
+        patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
         action_output = self.harness.run_action("get-outstanding-certificate-requests")
 
-        self.assertEqual(json.dumps([vars(requirer_csr)]), action_output.results["result"])
+        self.assertEqual(
+            json.dumps([{"csr": csr, "relation_id": 1234}]), action_output.results["result"]
+        )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
-        self, patch_get_requirer_units_csrs_with_no_certs
+        self, patch_get_outstanding_certificate_requests
     ):
         self.harness.add_relation("certificates", "requirer")
-        patch_get_requirer_units_csrs_with_no_certs.return_value = []
+        patch_get_outstanding_certificate_requests.return_value = []
 
         action_output = self.harness.run_action("get-outstanding-certificate-requests")
 
@@ -175,23 +178,22 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual("Action input is not valid.", e.exception.message)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(
-        self, patch_get_requirer_csrs
+        self, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
 
+        private_key = generate_private_key()
+        different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr="Some different CSR",
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
+        patch_get_certificate_requests.return_value = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -206,23 +208,22 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_requirer_csrs
+        self, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
 
+        private_key = generate_private_key()
+        different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr="Some different CSR",
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
+        patch_get_certificate_requests.return_value = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -236,9 +237,9 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_requirer_csrs
+        self, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
@@ -249,23 +250,21 @@ class TestCharm(unittest.TestCase):
             [
                 RequirerCSR(
                     relation_id=relation_id_1,
-                    application_name=f"{requirer_app_name}-1",
-                    unit_name=f"{requirer_app_name}/0",
-                    csr=csr_from_file,
-                    is_ca=False,
+                    certificate_signing_request=CertificateSigningRequest.from_string(
+                        csr_from_file
+                    ),
                 )
             ],
             [
                 RequirerCSR(
                     relation_id=relation_id_2,
-                    application_name=f"{requirer_app_name}-2",
-                    unit_name=f"{requirer_app_name}/0",
-                    csr=csr_from_file,
-                    is_ca=False,
+                    certificate_signing_request=CertificateSigningRequest.from_string(
+                        csr_from_file
+                    ),
                 )
             ],
         ]
-        patch_get_requirer_csrs.side_effect = example_unit_csrs
+        patch_get_certificate_requests.side_effect = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -279,36 +278,36 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual("Multiple requirers with the same CSR found.", e.exception.message)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_requirer_csrs
+        self, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
         relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
 
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
+        private_key = generate_private_key()
+        different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             [
                 RequirerCSR(
                     relation_id=relation_id_1,
-                    application_name=f"{requirer_app_name}-1",
-                    unit_name=f"{requirer_app_name}/0",
-                    csr="Some different CSR",
-                    is_ca=False,
+                    certificate_signing_request=CertificateSigningRequest.from_string(
+                        different_csr
+                    ),
                 )
             ],
             [
                 RequirerCSR(
                     relation_id=relation_id_2,
-                    application_name=f"{requirer_app_name}-2",
-                    unit_name=f"{requirer_app_name}/0",
-                    csr=csr_from_file,
-                    is_ca=False,
+                    certificate_signing_request=CertificateSigningRequest.from_string(
+                        csr_from_file
+                    ),
                 )
             ],
         ]
-        patch_get_requirer_csrs.side_effect = example_unit_csrs
+        patch_get_certificate_requests.side_effect = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -325,9 +324,9 @@ class TestCharm(unittest.TestCase):
             "Requested relation id is not the correct id of any found CSR's.", e.exception.message
         )
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_not_matching_csr_and_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_requirer_csrs
+        self, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
@@ -335,13 +334,10 @@ class TestCharm(unittest.TestCase):
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr=csr_from_file,
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
+        patch_get_certificate_requests.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
 
         params = {
@@ -377,10 +373,10 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual("Action input is not valid.", e.exception.message)
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
-        self, patch_set_relation_cert, patch_get_requirer_csrs
+        self, patch_set_relation_cert, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
@@ -388,13 +384,10 @@ class TestCharm(unittest.TestCase):
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr=csr_from_file,
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
+        patch_get_certificate_requests.return_value = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -409,10 +402,10 @@ class TestCharm(unittest.TestCase):
         self.assertEqual("Certificates successfully provided.", action_output.results["result"])
         patch_set_relation_cert.assert_called_once()
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
-        self, patch_set_relation_cert, patch_get_requirer_csrs
+        self, patch_set_relation_cert, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
@@ -420,13 +413,10 @@ class TestCharm(unittest.TestCase):
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr=csr_from_file,
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
+        patch_get_certificate_requests.return_value = example_unit_csrs
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -440,10 +430,10 @@ class TestCharm(unittest.TestCase):
         self.assertEqual("Certificates successfully provided.", action_output.results["result"])
         patch_set_relation_cert.assert_called_once()
 
-    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_requirer_csrs")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
-    def test_given_runtime_error_during_set_relation_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_set_relation_cert, patch_get_requirer_csrs
+    def test_given_tls_certificates_error_during_set_relation_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
+        self, patch_set_relation_cert, patch_get_certificate_requests
     ):
         requirer_app_name = "requirer"
         relation_id = self.harness.add_relation("certificates", requirer_app_name)
@@ -451,14 +441,11 @@ class TestCharm(unittest.TestCase):
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=relation_id,
-                application_name=requirer_app_name,
-                unit_name=f"{requirer_app_name}/0",
-                csr=csr_from_file,
-                is_ca=False,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
-        patch_get_requirer_csrs.return_value = example_unit_csrs
-        patch_set_relation_cert.side_effect = RuntimeError()
+        patch_get_certificate_requests.return_value = example_unit_csrs
+        patch_set_relation_cert.side_effect = TLSCertificatesError()
 
         params = {
             "certificate-signing-request": self.decoded_csr,

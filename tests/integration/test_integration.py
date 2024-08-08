@@ -276,7 +276,6 @@ async def run_provide_certificate_action(
 
     Args:
         ops_test (OpsTest): OpsTest
-        relation_id (int): Relation ID
         certificate (str): Certificate
         ca_certificate (str): CA Certificate
         ca_chain (str): CA Chain
