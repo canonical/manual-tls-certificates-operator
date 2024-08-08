@@ -11,10 +11,6 @@ PUBLIC_EXPONENT = 65537
 def generate_private_key() -> str:
     """Generate a private key with the RSA algorithm.
 
-    Args:
-        key_size (int): Key size in bytes
-        public_exponent: Public exponent.
-
     Returns:
         str: Private Key
     """
