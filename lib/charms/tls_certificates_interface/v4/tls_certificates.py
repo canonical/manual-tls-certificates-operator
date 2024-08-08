@@ -158,7 +158,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, MutableMapping, Optional, Tuple, Union
+from typing import FrozenSet, List, MutableMapping, Optional, Tuple, Union
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -184,7 +184,7 @@ LIBAPI = 4
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 3
 
 PYDEPS = ["cryptography", "pydantic"]
 
@@ -352,9 +352,9 @@ class Certificate:
 
     raw: str
     common_name: str
-    sans_dns: Optional[Tuple[str, ...]] = None
-    sans_ip: Optional[Tuple[str, ...]] = None
-    sans_oid: Optional[Tuple[str, ...]] = None
+    sans_dns: Optional[FrozenSet[str]] = None
+    sans_ip: Optional[FrozenSet[str]] = None
+    sans_oid: Optional[FrozenSet[str]] = None
     email_address: Optional[str] = None
     organization: Optional[str] = None
     organizational_unit: Optional[str] = None
@@ -376,6 +376,7 @@ class Certificate:
         except ValueError as e:
             logger.error("Could not load certificate: %s", e)
             raise TLSCertificatesError("Could not load certificate")
+
         common_name = certificate_object.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
         country_name = certificate_object.subject.get_attributes_for_oid(NameOID.COUNTRY_NAME)
         state_or_province_name = certificate_object.subject.get_attributes_for_oid(
@@ -386,21 +387,22 @@ class Certificate:
             NameOID.ORGANIZATION_NAME
         )
         email_address = certificate_object.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)
+
         try:
             sans = certificate_object.extensions.get_extension_for_class(
                 x509.SubjectAlternativeName
             ).value
-            sans_dns = tuple(
+            sans_dns = frozenset(
                 str(san)
                 for san in sans.get_values_for_type(x509.DNSName)
                 if isinstance(san, x509.DNSName)
             )
-            sans_ip = tuple(
+            sans_ip = frozenset(
                 str(san)
                 for san in sans.get_values_for_type(x509.IPAddress)
                 if isinstance(san, x509.IPAddress)
             )
-            sans_oid = tuple(
+            sans_oid = frozenset(
                 str(san)
                 for san in sans.get_values_for_type(x509.RegisteredID)
                 if isinstance(san, x509.RegisteredID)
@@ -437,9 +439,9 @@ class CertificateSigningRequest:
 
     raw: str
     common_name: str
-    sans_dns: Optional[Tuple[str, ...]] = None
-    sans_ip: Optional[Tuple[str, ...]] = None
-    sans_oid: Optional[Tuple[str, ...]] = None
+    sans_dns: Optional[FrozenSet[str]] = None
+    sans_ip: Optional[FrozenSet[str]] = None
+    sans_oid: Optional[FrozenSet[str]] = None
     email_address: Optional[str] = None
     organization: Optional[str] = None
     organizational_unit: Optional[str] = None
@@ -450,6 +452,8 @@ class CertificateSigningRequest:
 
     def __eq__(self, other: object) -> bool:
         """Check if two CertificateSigningRequest objects are equal."""
+        if not isinstance(other, CertificateSigningRequest):
+            return NotImplemented
         return self.raw.strip() == other.raw.strip()
 
     def __str__(self) -> str:
@@ -490,14 +494,14 @@ class CertificateSigningRequest:
         email_address = csr_object.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)
         try:
             sans = csr_object.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
-            sans_dns = tuple(sans.get_values_for_type(x509.DNSName))
-            sans_ip = tuple([str(san) for san in sans.get_values_for_type(x509.IPAddress)])
-            sans_oid = tuple([str(san) for san in sans.get_values_for_type(x509.RegisteredID)])
+            sans_dns = frozenset(sans.get_values_for_type(x509.DNSName))
+            sans_ip = frozenset([str(san) for san in sans.get_values_for_type(x509.IPAddress)])
+            sans_oid = frozenset([str(san) for san in sans.get_values_for_type(x509.RegisteredID)])
         except x509.ExtensionNotFound:
-            sans = ()
-            sans_dns = ()
-            sans_ip = ()
-            sans_oid = ()
+            sans = frozenset()
+            sans_dns = frozenset()
+            sans_ip = frozenset()
+            sans_oid = frozenset()
         return cls(
             raw=csr.strip(),
             common_name=str(common_name[0].value),
@@ -575,9 +579,9 @@ class CertificateRequest:
     """
 
     common_name: str
-    sans_dns: Optional[Tuple[str, ...]] = None
-    sans_ip: Optional[Tuple[str, ...]] = None
-    sans_oid: Optional[Tuple[str, ...]] = None
+    sans_dns: Optional[FrozenSet[str]] = None
+    sans_ip: Optional[FrozenSet[str]] = None
+    sans_oid: Optional[FrozenSet[str]] = None
     email_address: Optional[str] = None
     organization: Optional[str] = None
     organizational_unit: Optional[str] = None
@@ -682,6 +686,7 @@ class RequirerCSR:
 
     relation_id: int
     certificate_signing_request: CertificateSigningRequest
+
 
 class CertificateAvailableEvent(EventBase):
     """Charm Event triggered when a TLS certificate is available."""
@@ -990,6 +995,9 @@ class TLSCertificatesRequiresV4(Object):
 
     def get_csrs_from_requirer_relation_data(self) -> List[CertificateSigningRequest]:
         """Return list of requirer's CSRs from relation data."""
+        if self.mode == Mode.APP and not self.model.unit.is_leader():
+            logger.debug("Not a leader unit - Skipping")
+            return []
         relation = self.model.get_relation(self.relationship_name)
         if not relation:
             logger.debug("No relation: %s", self.relationship_name)
@@ -1029,6 +1037,9 @@ class TLSCertificatesRequiresV4(Object):
 
     def _request_certificate(self, csr: CertificateSigningRequest, is_ca: bool) -> None:
         """Add CSR to relation data."""
+        if self.mode == Mode.APP and not self.model.unit.is_leader():
+            logger.debug("Not a leader unit - Skipping")
+            return
         relation = self.model.get_relation(self.relationship_name)
         if not relation:
             logger.debug("No relation: %s", self.relationship_name)
