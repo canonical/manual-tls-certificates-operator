@@ -178,7 +178,7 @@ class TestManualTLSCertificatesOperator:
             get_outstanding_csrs_action_output["result"]
         )
         csr = get_outstanding_csrs_action_output[0]["csr"]
-        unit_name = get_outstanding_csrs_action_output[0]["unit_name"]
+
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
         certs = self.get_certificate_and_ca_certificate_from_csr(csr)
@@ -204,7 +204,7 @@ class TestManualTLSCertificatesOperator:
         )
 
         get_certificate_action_output = await run_get_certificate_action(
-            ops_test, unit_name=unit_name
+            ops_test, unit_name=f"{TLS_REQUIRER_CHARM_NAME}/0"
         )
 
         assert get_certificate_action_output["certificate"] == certificate_pem.decode(
@@ -276,7 +276,6 @@ async def run_provide_certificate_action(
 
     Args:
         ops_test (OpsTest): OpsTest
-        relation_id (int): Relation ID
         certificate (str): Certificate
         ca_certificate (str): CA Certificate
         ca_chain (str): CA Chain
