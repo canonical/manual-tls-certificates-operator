@@ -15,9 +15,12 @@ from typing import List, Optional
 
 from charms.tempo_k8s.v1.charm_tracing import trace_charm
 from charms.tempo_k8s.v2.tracing import TracingEndpointRequirer
-from charms.tls_certificates_interface.v3.tls_certificates import (
-    TLSCertificatesProvidesV3,
-    csr_matches_certificate,
+from charms.tls_certificates_interface.v4.tls_certificates import (
+    Certificate,
+    CertificateSigningRequest,
+    ProviderCertificate,
+    TLSCertificatesError,
+    TLSCertificatesProvidesV4,
 )
 from helpers import (
     ca_chain_is_valid,
@@ -36,7 +39,7 @@ CERTIFICATES_RELATION = "certificates"
 
 @trace_charm(
     tracing_endpoint="tempo_otlp_http_endpoint",
-    extra_types=(TLSCertificatesProvidesV3,),
+    extra_types=(TLSCertificatesProvidesV4,),
 )
 class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
@@ -45,7 +48,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         """Observe config change and certificate request events."""
         super().__init__(*args)
         self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
-        self.tls_certificates = TLSCertificatesProvidesV3(self, CERTIFICATES_RELATION)
+        self.tls_certificates = TLSCertificatesProvidesV4(self, CERTIFICATES_RELATION)
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         self.framework.observe(
             self.on.get_outstanding_certificate_requests_action,
@@ -101,7 +104,15 @@ class ManualTLSCertificatesCharm(CharmBase):
 
         event.set_results(
             {
-                "result": json.dumps([vars(csr) for csr in outstanding_csrs]),
+                "result": json.dumps(
+                    [
+                        {
+                            "csr": str(csr.certificate_signing_request),
+                            "relation_id": csr.relation_id,
+                        }
+                        for csr in outstanding_csrs
+                    ]
+                ),
             }
         )
 
@@ -129,12 +140,19 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="Action input is not valid.")
             return
 
-        ca_chain_list = parse_ca_chain(base64.b64decode(ca_chain).decode())
-        csr = base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
-        certificate = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
-        ca_cert = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
+        ca_chain_list_str = parse_ca_chain(base64.b64decode(ca_chain).decode())
+        csr_str = (
+            base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
+        )
+        certificate_str = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
+        ca_cert_str = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
 
-        if not csr_matches_certificate(csr=csr, cert=certificate):
+        certificate = Certificate.from_string(certificate_str)
+        ca_cert = Certificate.from_string(ca_cert_str)
+        csr = CertificateSigningRequest.from_string(csr_str)
+        ca_chain_list = [Certificate.from_string(cert) for cert in ca_chain_list_str]
+
+        if not csr.matches_certificate(certificate):
             event.fail(message="Certificate and CSR do not match.")
             return
 
@@ -151,31 +169,33 @@ class ManualTLSCertificatesCharm(CharmBase):
 
         try:
             self.tls_certificates.set_relation_certificate(
-                certificate_signing_request=csr,
-                certificate=certificate,
-                ca=ca_cert,
-                chain=ca_chain_list,
-                relation_id=(
-                    given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
+                provider_certificate=ProviderCertificate(
+                    relation_id=(
+                        given_relation_id if given_relation_id else relation_ids_with_given_csr[0]
+                    ),
+                    certificate=certificate,
+                    certificate_signing_request=csr,
+                    ca=ca_cert,
+                    chain=ca_chain_list,
                 ),
             )
-        except RuntimeError:
+        except TLSCertificatesError:
             event.fail(message="Relation does not exist with the provided id.")
             return
         event.set_results({"result": "Certificates successfully provided."})
 
-    def _csr_exists_in_requirer(self, csr: str, relation_id: int) -> bool:
+    def _csr_exists_in_requirer(self, csr: CertificateSigningRequest, relation_id: int) -> bool:
         """Validate certificates provided in action.
 
         Args:
-            csr (str): certificate signing request in their original str representation.
+            csr (CertificateSigningRequest): certificate signing request.
             relation_id (int): Relation id with the requirer.
 
         Returns:
             bool: Whether the csr exists on the requirer.
         """
-        for requirer_csr in self.tls_certificates.get_requirer_csrs(relation_id):
-            if requirer_csr.csr == csr:
+        for requirer_csr in self.tls_certificates.get_certificate_requests(relation_id):
+            if requirer_csr.certificate_signing_request == csr:
                 return True
         return False
 
