@@ -22,15 +22,16 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     TLSCertificatesError,
     TLSCertificatesProvidesV4,
 )
+from ops.charm import ActionEvent, CharmBase, CollectStatusEvent
+from ops.main import main
+from ops.model import ActiveStatus
+
 from helpers import (
     ca_chain_is_valid,
     certificate_is_valid,
     certificate_signing_request_is_valid,
     parse_ca_chain,
 )
-from ops.charm import ActionEvent, CharmBase, CollectStatusEvent
-from ops.main import main
-from ops.model import ActiveStatus
 
 logger = logging.getLogger(__name__)
 

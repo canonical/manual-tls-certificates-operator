@@ -2,26 +2,32 @@
 # See LICENSE file for licensing details.
 import base64
 import json
-import unittest
 from unittest.mock import patch
 
+import pytest
+import scenario
 from certificates import generate_csr, generate_private_key
-from charm import ManualTLSCertificatesCharm
 from charms.tls_certificates_interface.v4.tls_certificates import (
     CertificateSigningRequest,
     RequirerCSR,
     TLSCertificatesError,
 )
-from ops import testing
 from ops.model import ActiveStatus
-from ops.testing import ActionFailed
+
+from charm import ManualTLSCertificatesCharm
 
 TLS_CERTIFICATES_PROVIDES_PATH = (
     "charms.tls_certificates_interface.v4.tls_certificates.TLSCertificatesProvidesV4"
 )
 
 
-class TestCharm(unittest.TestCase):
+class TestCharm:
+    @pytest.fixture(autouse=True)
+    def context(self):
+        self.ctx = scenario.Context(
+            charm_type=ManualTLSCertificatesCharm,
+        )
+
     @staticmethod
     def _decode_from_base64(bytes_content: bytes) -> str:
         return bytes_content.decode("utf-8")
@@ -44,12 +50,8 @@ class TestCharm(unittest.TestCase):
             certificate = file.read()
         return certificate
 
-    def setUp(self):
-        self.harness = testing.Harness(ManualTLSCertificatesCharm)
-        self.addCleanup(self.harness.cleanup)
-        self.harness.set_leader(True)
-        self.harness.begin()
-
+    @pytest.fixture(autouse=True)
+    def setup(self):
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
         csr_bytes = TestCharm._encode_in_base64(csr)
         certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
@@ -77,11 +79,12 @@ class TestCharm(unittest.TestCase):
             )
         ]
 
-        self.harness.evaluate_status()
+        state_in = scenario.State()
 
-        self.assertEqual(
-            ActiveStatus("1 outstanding requests, use juju actions to provide certificates"),
-            self.harness.charm.unit.status,
+        state_out = self.ctx.run("collect_unit_status", state_in)
+
+        assert state_out.unit_status == ActiveStatus(
+            "1 outstanding requests, use juju actions to provide certificates"
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
@@ -90,23 +93,30 @@ class TestCharm(unittest.TestCase):
     ):
         patch_get_outstanding_certificate_requests.return_value = []
 
-        self.harness.evaluate_status()
+        state_in = scenario.State()
 
-        self.assertEqual(ActiveStatus("No outstanding requests."), self.harness.charm.unit.status)
+        state_out = self.ctx.run("collect_unit_status", state_in)
+
+        assert state_out.unit_status == ActiveStatus("No outstanding requests.")
 
     def test_given_no_requirer_application_when_get_outstanding_certificate_requests_action_then_event_fails(  # noqa: E501
         self,
     ):
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("get-outstanding-certificate-requests")
+        state_in = scenario.State()
 
-        self.assertEqual("No certificates relation has been created yet.", e.exception.message)
+        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
+
+        assert action_output.success is False
+        assert action_output.failure == "No certificates relation has been created yet."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
         self, patch_get_outstanding_certificate_requests
     ):
-        self.harness.add_relation("certificates", "requirer")
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         private_key = generate_private_key()
         csr = generate_csr(private_key=private_key, common_name="example.com")
         requirer_csr = RequirerCSR(
@@ -115,38 +125,65 @@ class TestCharm(unittest.TestCase):
         )
         patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
-        action_output = self.harness.run_action("get-outstanding-certificate-requests")
-
-        self.assertEqual(
-            json.dumps([{"csr": csr, "relation_id": 1234}]), action_output.results["result"]
+        state_in = scenario.State(
+            relations=[certificates_relation],
         )
+
+        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
+
+        assert action_output.success is True
+        assert action_output.results
+        assert action_output.results["result"] == json.dumps(
+            [{"csr": csr, "relation_id": 1234}]
+        ), action_output.results["result"]
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
         self, patch_get_outstanding_certificate_requests
     ):
-        self.harness.add_relation("certificates", "requirer")
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         patch_get_outstanding_certificate_requests.return_value = []
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
 
-        action_output = self.harness.run_action("get-outstanding-certificate-requests")
+        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
 
-        self.assertEqual("[]", action_output.results["result"])
+        assert action_output.success is True
+        assert action_output.results
+        assert action_output.results["result"] == "[]"
 
     def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
         self,
     ):
-        self.harness.add_relation("certificates", "requirer")
-        params = {"relation_id": 1235}
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
 
-        action_output = self.harness.run_action("get-outstanding-certificate-requests", params)
+        action = scenario.Action(
+            name="get-outstanding-certificate-requests",
+            params={"relation-id": 1235},
+        )
 
-        self.assertEqual("[]", action_output.results["result"])
+        action_output = self.ctx.run_action(action, state_in)
+
+        assert action_output.success is True
+        assert action_output.results
+        assert action_output.results["result"] == "[]"
 
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(
         self,
     ):
         csr = self.get_certificate_from_file(filename="tests/csr.pem")
         csr = TestCharm._encode_in_base64(csr)
+        state_in = scenario.State()
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -155,16 +192,26 @@ class TestCharm(unittest.TestCase):
             "ca-chain": self.decoded_ca_chain,
             "relation-id": 1234,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("No certificates relation has been created yet.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "No certificates relation has been created yet."
 
     def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
         self,
     ):
-        self.harness.add_relation("certificates", "requirer")
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": "wrong encoding",
             "certificate": "wrong encoding",
@@ -173,57 +220,74 @@ class TestCharm(unittest.TestCase):
             "relation-id": 1234,
         }
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        self.assertEqual("Action input is not valid.", e.exception.message)
+        action_output = self.ctx.run_action(action, state_in)
+
+        assert action_output.success is False
+        assert action_output.failure == "Action input is not valid."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(
         self, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
-
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         private_key = generate_private_key()
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id,
+            "relation-id": certificates_relation.relation_id,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "CSR was not found in any requirer databags."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
 
         private_key = generate_private_key()
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
 
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -231,175 +295,200 @@ class TestCharm(unittest.TestCase):
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,  # type: ignore[reportArgumentType]
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("CSR was not found in any requirer databags.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "CSR was not found in any requirer databags."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
-        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
-
+        certificates_relation_1 = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
+        certificates_relation_2 = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
-        example_unit_csrs = [
-            [
-                RequirerCSR(
-                    relation_id=relation_id_1,
-                    certificate_signing_request=CertificateSigningRequest.from_string(
-                        csr_from_file
-                    ),
-                )
-            ],
-            [
-                RequirerCSR(
-                    relation_id=relation_id_2,
-                    certificate_signing_request=CertificateSigningRequest.from_string(
-                        csr_from_file
-                    ),
-                )
-            ],
+        patch_get_certificate_requests.return_value = [
+            RequirerCSR(
+                relation_id=certificates_relation_2.relation_id,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+            )
         ]
-        patch_get_certificate_requests.side_effect = example_unit_csrs
-
+        state_in = scenario.State(
+            relations=[certificates_relation_1, certificates_relation_2],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,  # type: ignore[reportArgumentType]
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Multiple requirers with the same CSR found.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "Multiple requirers with the same CSR found."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id_1 = self.harness.add_relation("certificates", f"{requirer_app_name}-1")
-        relation_id_2 = self.harness.add_relation("certificates", f"{requirer_app_name}-2")
-
+        certificates_relation_1 = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
+        certificates_relation_2 = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
-        private_key = generate_private_key()
-        different_csr = generate_csr(private_key=private_key, common_name="different")
-        example_unit_csrs = [
-            [
-                RequirerCSR(
-                    relation_id=relation_id_1,
-                    certificate_signing_request=CertificateSigningRequest.from_string(
-                        different_csr
-                    ),
-                )
-            ],
-            [
-                RequirerCSR(
-                    relation_id=relation_id_2,
-                    certificate_signing_request=CertificateSigningRequest.from_string(
-                        csr_from_file
-                    ),
-                )
-            ],
+        patch_get_certificate_requests.return_value = [
+            RequirerCSR(
+                relation_id=certificates_relation_1.relation_id,
+                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+            )
         ]
-        patch_get_certificate_requests.side_effect = example_unit_csrs
-
+        state_in = scenario.State(
+            relations=[certificates_relation_1, certificates_relation_2],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id_1,
+            "relation-id": 12345,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual(
-            "Requested relation id is not the correct id of any found CSR's.", e.exception.message
+        assert action_output.success is False
+        print(action_output.failure)
+        assert (
+            action_output.failure
+            == "Requested relation id is not the correct id of any found CSR's."
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_not_matching_csr_and_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": incorrect_cert,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id,
+            "relation-id": certificates_relation.relation_id,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Certificate and CSR do not match.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "Certificate and CSR do not match."
 
     @patch("charm.ca_chain_is_valid")
     def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
         self, patch_ca_chain_valid
     ):
-        relation_id = self.harness.add_relation("certificates", "requirer")
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         patch_ca_chain_valid.return_value = False
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id,
+            "relation-id": certificates_relation.relation_id,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Action input is not valid.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "Action input is not valid."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
         self, patch_set_relation_cert, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id,
+            "relation-id": certificates_relation.relation_id,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        action_output = self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Certificates successfully provided.", action_output.results["result"])
+        assert action_output.success is True
+        assert action_output.results
+        assert action_output.results["result"] == "Certificates successfully provided."
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
@@ -407,27 +496,37 @@ class TestCharm(unittest.TestCase):
     def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
         self, patch_set_relation_cert, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,  # type: ignore[reportArgumentType]
+        )
 
-        action_output = self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Certificates successfully provided.", action_output.results["result"])
+        assert action_output.success is True
+        assert action_output.results
+        assert action_output.results["result"] == "Certificates successfully provided."
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
@@ -435,27 +534,35 @@ class TestCharm(unittest.TestCase):
     def test_given_tls_certificates_error_during_set_relation_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
         self, patch_set_relation_cert, patch_get_certificate_requests
     ):
-        requirer_app_name = "requirer"
-        relation_id = self.harness.add_relation("certificates", requirer_app_name)
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
         csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=relation_id,
+                relation_id=certificates_relation.relation_id,
                 certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         patch_set_relation_cert.side_effect = TLSCertificatesError()
-
+        state_in = scenario.State(
+            relations=[certificates_relation],
+        )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": relation_id,
+            "relation-id": certificates_relation.relation_id,
         }
+        action = scenario.Action(
+            name="provide-certificate",
+            params=params,
+        )
 
-        with self.assertRaises(ActionFailed) as e:
-            self.harness.run_action("provide-certificate", params)
+        action_output = self.ctx.run_action(action, state_in)
 
-        self.assertEqual("Relation does not exist with the provided id.", e.exception.message)
+        assert action_output.success is False
+        assert action_output.failure == "Relation does not exist with the provided id."
