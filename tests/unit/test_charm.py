@@ -6,11 +6,13 @@ from unittest.mock import patch
 
 import pytest
 import scenario
-from certificates import generate_csr, generate_private_key
 from charms.tls_certificates_interface.v4.tls_certificates import (
-    CertificateSigningRequest,
     RequirerCSR,
     TLSCertificatesError,
+    generate_ca,
+    generate_certificate,
+    generate_csr,
+    generate_private_key,
 )
 from ops.model import ActiveStatus
 
@@ -44,23 +46,30 @@ class TestCharm:
         """
         return base64.b64encode(string_content.encode("utf-8"))
 
-    @staticmethod
-    def get_certificate_from_file(filename: str) -> str:
-        with open(filename, "r") as file:
-            certificate = file.read()
-        return certificate
-
     @pytest.fixture(autouse=True)
     def setup(self):
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr_bytes = TestCharm._encode_in_base64(csr)
-        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
-        certificate_bytes = TestCharm._encode_in_base64(certificate)
-        ca_certificate = self.get_certificate_from_file(filename="tests/ca_certificate.pem")
-        ca_certificate_bytes = TestCharm._encode_in_base64(ca_certificate)
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
-        ca_chain_bytes = TestCharm._encode_in_base64(ca_chain)
-
+        self.ca_private_key = generate_private_key()
+        self.ca_certificate = generate_ca(
+            private_key=self.ca_private_key,
+            validity=365,
+            common_name="example.com",
+        )
+        self.private_key = generate_private_key()
+        self.csr = generate_csr(
+            private_key=self.private_key,
+            common_name="example.com",
+        )
+        self.certificate = generate_certificate(
+            csr=self.csr,
+            validity=365,
+            ca=self.ca_certificate,
+            ca_private_key=self.ca_private_key,
+        )
+        self.ca_chain = self.ca_certificate
+        csr_bytes = TestCharm._encode_in_base64(str(self.csr))
+        certificate_bytes = TestCharm._encode_in_base64(str(self.certificate))
+        ca_certificate_bytes = TestCharm._encode_in_base64(str(self.ca_certificate))
+        ca_chain_bytes = TestCharm._encode_in_base64(str(self.ca_chain))
         self.decoded_csr = TestCharm._decode_from_base64(csr_bytes)
         self.decoded_certificate = TestCharm._decode_from_base64(certificate_bytes)
         self.decoded_ca_certificate = TestCharm._decode_from_base64(ca_certificate_bytes)
@@ -75,7 +84,7 @@ class TestCharm:
         patch_get_requirer_units_csrs_with_no_certs.return_value = [
             RequirerCSR(
                 relation_id=1234,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr),
+                certificate_signing_request=csr,
             )
         ]
 
@@ -121,7 +130,7 @@ class TestCharm:
         csr = generate_csr(private_key=private_key, common_name="example.com")
         requirer_csr = RequirerCSR(
             relation_id=1234,
-            certificate_signing_request=CertificateSigningRequest.from_string(csr),
+            certificate_signing_request=csr,
         )
         patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
@@ -134,7 +143,7 @@ class TestCharm:
         assert action_output.success is True
         assert action_output.results
         assert action_output.results["result"] == json.dumps(
-            [{"csr": csr, "relation_id": 1234}]
+            [{"csr": str(csr), "relation_id": 1234}]
         ), action_output.results["result"]
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
@@ -181,8 +190,6 @@ class TestCharm:
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(
         self,
     ):
-        csr = self.get_certificate_from_file(filename="tests/csr.pem")
-        csr = TestCharm._encode_in_base64(csr)
         state_in = scenario.State()
 
         params = {
@@ -243,7 +250,7 @@ class TestCharm:
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
+                certificate_signing_request=different_csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -281,7 +288,7 @@ class TestCharm:
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(different_csr),
+                certificate_signing_request=different_csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -317,11 +324,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         patch_get_certificate_requests.return_value = [
             RequirerCSR(
                 relation_id=certificates_relation_2.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         state_in = scenario.State(
@@ -355,11 +361,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         patch_get_certificate_requests.return_value = [
             RequirerCSR(
                 relation_id=certificates_relation_1.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         state_in = scenario.State(
@@ -380,7 +385,6 @@ class TestCharm:
         action_output = self.ctx.run_action(action, state_in)
 
         assert action_output.success is False
-        print(action_output.failure)
         assert (
             action_output.failure
             == "Requested relation id is not the correct id of any found CSR's."
@@ -394,11 +398,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -461,11 +464,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -500,11 +502,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -538,11 +539,10 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        csr_from_file = self.get_certificate_from_file(filename="tests/csr.pem")
         example_unit_csrs = [
             RequirerCSR(
                 relation_id=certificates_relation.relation_id,
-                certificate_signing_request=CertificateSigningRequest.from_string(csr_from_file),
+                certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
