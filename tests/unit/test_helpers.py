@@ -4,6 +4,13 @@
 import unittest
 from typing import List
 
+from charms.tls_certificates_interface.v4.tls_certificates import (
+    generate_ca,
+    generate_certificate,
+    generate_csr,
+    generate_private_key,
+)
+
 from helpers import (
     ca_chain_is_valid,
     certificate_is_valid,
@@ -13,17 +20,27 @@ from helpers import (
 
 
 class TestHelpers(unittest.TestCase):
-    @staticmethod
-    def get_certificate_from_file(filename: str) -> str:
-        with open(filename, "r") as file:
-            certificate = file.read()
-        return certificate
-
     def test_given_valid_certificate_when_certificate_is_valid_then_returns_true(
         self,
     ):
-        certificate = self.get_certificate_from_file(filename="tests/certificate.pem")
-        certificate_bytes = certificate.encode("utf-8")
+        ca_private_key = generate_private_key()
+        ca_certificate = generate_ca(
+            private_key=ca_private_key,
+            validity=365,
+            common_name="Test CA",
+        )
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            common_name="Test Certificate",
+        )
+        certificate = generate_certificate(
+            ca=ca_certificate,
+            ca_private_key=ca_private_key,
+            validity=365,
+            csr=csr,
+        )
+        certificate_bytes = str(certificate).encode("utf-8")
         self.assertTrue(certificate_is_valid(certificate_bytes))
 
     def test_given_invalid_certificate_when_certificate_is_valid_then_returns_false(
@@ -36,8 +53,12 @@ class TestHelpers(unittest.TestCase):
     def test_given_valid_certificate_signing_request_when_certificate_signing_request_is_valid_then_returns_true(  # noqa: E501
         self,
     ):
-        certificate_signing_request = self.get_certificate_from_file(filename="tests/csr.pem")
-        certificate_signing_request_bytes = certificate_signing_request.encode("utf-8")
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            common_name="Test Certificate",
+        )
+        certificate_signing_request_bytes = str(csr).encode("utf-8")
         self.assertTrue(certificate_signing_request_is_valid(certificate_signing_request_bytes))
 
     def test_given_invalid_certificate_signing_request_when_certificate_signing_request_is_valid_then_returns_false(  # noqa: E501
@@ -50,7 +71,25 @@ class TestHelpers(unittest.TestCase):
     def test_give_ca_chain_when_parse_ca_chain_then_list_of_certificates_is_returned(
         self,
     ):
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_private_key = generate_private_key()
+        ca_certificate = generate_ca(
+            private_key=ca_private_key,
+            validity=365,
+            common_name="Test CA",
+        )
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            common_name="Test Certificate",
+        )
+        certificate = generate_certificate(
+            ca=ca_certificate,
+            ca_private_key=ca_private_key,
+            validity=365,
+            csr=csr,
+        )
+        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
+
         ca_chain_list = parse_ca_chain(ca_chain)
         self.assertEqual(len(ca_chain_list), 2)
         certificate_1_bytes = ca_chain_list[0].encode("utf-8")
@@ -66,7 +105,24 @@ class TestHelpers(unittest.TestCase):
             parse_ca_chain(ca_chain)
 
     def test_given_valid_ca_chain_when_ca_chain_is_valid_then_returns_true(self):
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_private_key = generate_private_key()
+        ca_certificate = generate_ca(
+            private_key=ca_private_key,
+            validity=365,
+            common_name="Test CA",
+        )
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            common_name="Test Certificate",
+        )
+        certificate = generate_certificate(
+            ca=ca_certificate,
+            ca_private_key=ca_private_key,
+            validity=365,
+            csr=csr,
+        )
+        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
         ca_chain_list = parse_ca_chain(ca_chain)
         self.assertTrue(ca_chain_is_valid(ca_chain_list))
 
@@ -78,7 +134,24 @@ class TestHelpers(unittest.TestCase):
         self.assertFalse(ca_chain_is_valid([]))
 
     def test_given_invalid_issuer_ca_chain_when_ca_chain_is_valid_returns_false(self):
-        ca_chain = self.get_certificate_from_file(filename="tests/ca_chain.pem")
+        ca_private_key = generate_private_key()
+        ca_certificate = generate_ca(
+            private_key=ca_private_key,
+            validity=365,
+            common_name="Test CA",
+        )
+        private_key = generate_private_key()
+        csr = generate_csr(
+            private_key=private_key,
+            common_name="Test Certificate",
+        )
+        certificate = generate_certificate(
+            ca=ca_certificate,
+            ca_private_key=ca_private_key,
+            validity=365,
+            csr=csr,
+        )
+        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
         ca_chain_list = parse_ca_chain(ca_chain)
         ca_chain_list.reverse()
         self.assertFalse(ca_chain_is_valid(ca_chain_list))
