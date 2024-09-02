@@ -33,24 +33,24 @@ jsonschema==4.23.0
     # via -r requirements.in
 jsonschema-specifications==2023.12.1
     # via jsonschema
-opentelemetry-api==1.26.0
+opentelemetry-api==1.27.0
     # via
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-opentelemetry-exporter-otlp-proto-common==1.26.0
+opentelemetry-exporter-otlp-proto-common==1.27.0
     # via opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-http==1.26.0
+opentelemetry-exporter-otlp-proto-http==1.27.0
     # via -r requirements.in
-opentelemetry-proto==1.26.0
+opentelemetry-proto==1.27.0
     # via
     #   opentelemetry-exporter-otlp-proto-common
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.26.0
+opentelemetry-sdk==1.27.0
     # via opentelemetry-exporter-otlp-proto-http
-opentelemetry-semantic-conventions==0.47b0
+opentelemetry-semantic-conventions==0.48b0
     # via opentelemetry-sdk
-ops==2.15.0
+ops==2.16.0
     # via -r requirements.in
 protobuf==4.25.3
     # via
