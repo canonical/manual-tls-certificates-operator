@@ -14,7 +14,7 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     generate_csr,
     generate_private_key,
 )
-from ops.model import ActiveStatus
+from ops import ActiveStatus
 
 from charm import ManualTLSCertificatesCharm
 
@@ -90,7 +90,7 @@ class TestCharm:
 
         state_in = scenario.State()
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == ActiveStatus(
             "1 outstanding requests, use juju actions to provide certificates"
@@ -104,7 +104,7 @@ class TestCharm:
 
         state_in = scenario.State()
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == ActiveStatus("No outstanding requests.")
 
@@ -113,10 +113,10 @@ class TestCharm:
     ):
         state_in = scenario.State()
 
-        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("get-outstanding-certificate-requests"), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "No certificates relation has been created yet."
+        assert exc.value.message == "No certificates relation has been created yet."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
@@ -135,16 +135,15 @@ class TestCharm:
         patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
 
-        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
+        self.ctx.run(self.ctx.on.action("get-outstanding-certificate-requests"), state_in)
 
-        assert action_output.success is True
-        assert action_output.results
-        assert action_output.results["result"] == json.dumps(
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == json.dumps(
             [{"csr": str(csr), "relation_id": 1234}]
-        ), action_output.results["result"]
+        ), self.ctx.action_results["result"]
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
@@ -156,14 +155,13 @@ class TestCharm:
         )
         patch_get_outstanding_certificate_requests.return_value = []
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
 
-        action_output = self.ctx.run_action("get-outstanding-certificate-requests", state_in)
+        self.ctx.run(self.ctx.on.action("get-outstanding-certificate-requests"), state_in)
 
-        assert action_output.success is True
-        assert action_output.results
-        assert action_output.results["result"] == "[]"
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == "[]"
 
     def test_given_relation_id_not_exist_when_get_outstanding_certificate_requests_action_then_action_returns_empty_list(  # noqa: E501
         self,
@@ -173,19 +171,18 @@ class TestCharm:
             interface="tls-certificates",
         )
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
 
-        action = scenario.Action(
-            name="get-outstanding-certificate-requests",
-            params={"relation-id": 1235},
+        self.ctx.run(
+            self.ctx.on.action(
+                "get-outstanding-certificate-requests", params={"relation-id": 1235}
+            ),
+            state_in,
         )
 
-        action_output = self.ctx.run_action(action, state_in)
-
-        assert action_output.success is True
-        assert action_output.results
-        assert action_output.results["result"] == "[]"
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == "[]"
 
     def test_given_relation_not_created_when_provide_certificate_action_then_event_fails(
         self,
@@ -199,15 +196,11 @@ class TestCharm:
             "ca-chain": self.decoded_ca_chain,
             "relation-id": 1234,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "No certificates relation has been created yet."
+        assert exc.value.message == "No certificates relation has been created yet."
 
     def test_given_certificate_not_encoded_correctly_when_provide_certificate_action_then_action_fails(  # noqa: E501
         self,
@@ -217,7 +210,7 @@ class TestCharm:
             interface="tls-certificates",
         )
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": "wrong encoding",
@@ -227,15 +220,10 @@ class TestCharm:
             "relation-id": 1234,
         }
 
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        action_output = self.ctx.run_action(action, state_in)
-
-        assert action_output.success is False
-        assert action_output.failure == "Action input is not valid."
+        assert exc.value.message == "Action input is not valid."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(
@@ -249,30 +237,26 @@ class TestCharm:
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=different_csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": certificates_relation.relation_id,
+            "relation-id": certificates_relation.id,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "CSR was not found in any requirer databags."
+        assert exc.value.message == "CSR was not found in any requirer databags."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -287,13 +271,13 @@ class TestCharm:
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=different_csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
 
         params = {
@@ -302,15 +286,11 @@ class TestCharm:
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,  # type: ignore[reportArgumentType]
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "CSR was not found in any requirer databags."
+        assert exc.value.message == "CSR was not found in any requirer databags."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -326,12 +306,12 @@ class TestCharm:
         )
         patch_get_certificate_requests.return_value = [
             RequirerCSR(
-                relation_id=certificates_relation_2.relation_id,
+                relation_id=certificates_relation_2.id,
                 certificate_signing_request=self.csr,
             )
         ]
         state_in = scenario.State(
-            relations=[certificates_relation_1, certificates_relation_2],
+            relations={certificates_relation_1, certificates_relation_2},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -339,15 +319,11 @@ class TestCharm:
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,  # type: ignore[reportArgumentType]
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "Multiple requirers with the same CSR found."
+        assert exc.value.message == "Multiple requirers with the same CSR found."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
@@ -363,12 +339,12 @@ class TestCharm:
         )
         patch_get_certificate_requests.return_value = [
             RequirerCSR(
-                relation_id=certificates_relation_1.relation_id,
+                relation_id=certificates_relation_1.id,
                 certificate_signing_request=self.csr,
             )
         ]
         state_in = scenario.State(
-            relations=[certificates_relation_1, certificates_relation_2],
+            relations={certificates_relation_1, certificates_relation_2},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -377,17 +353,12 @@ class TestCharm:
             "ca-chain": self.decoded_ca_chain,
             "relation-id": 12345,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
         assert (
-            action_output.failure
-            == "Requested relation id is not the correct id of any found CSR's."
+            exc.value.message == "Requested relation id is not the correct id of any found CSR's."
         )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
@@ -400,31 +371,27 @@ class TestCharm:
         )
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": incorrect_cert,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": certificates_relation.relation_id,
+            "relation-id": certificates_relation.id,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "Certificate and CSR do not match."
+        assert exc.value.message == "Certificate and CSR do not match."
 
     @patch("charm.ca_chain_is_valid")
     def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
@@ -436,24 +403,20 @@ class TestCharm:
         )
         patch_ca_chain_valid.return_value = False
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": certificates_relation.relation_id,
+            "relation-id": certificates_relation.id,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "Action input is not valid."
+        assert exc.value.message == "Action input is not valid."
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
@@ -466,31 +429,26 @@ class TestCharm:
         )
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": certificates_relation.relation_id,
+            "relation-id": certificates_relation.id,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is True
-        assert action_output.results
-        assert action_output.results["result"] == "Certificates successfully provided."
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == "Certificates successfully provided."
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
@@ -504,13 +462,13 @@ class TestCharm:
         )
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
@@ -518,16 +476,11 @@ class TestCharm:
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,  # type: ignore[reportArgumentType]
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is True
-        assert action_output.results
-        assert action_output.results["result"] == "Certificates successfully provided."
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == "Certificates successfully provided."
         patch_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
@@ -541,28 +494,24 @@ class TestCharm:
         )
         example_unit_csrs = [
             RequirerCSR(
-                relation_id=certificates_relation.relation_id,
+                relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
         patch_set_relation_cert.side_effect = TLSCertificatesError()
         state_in = scenario.State(
-            relations=[certificates_relation],
+            relations={certificates_relation},
         )
         params = {
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
             "ca-chain": self.decoded_ca_chain,
-            "relation-id": certificates_relation.relation_id,
+            "relation-id": certificates_relation.id,
         }
-        action = scenario.Action(
-            name="provide-certificate",
-            params=params,
-        )
 
-        action_output = self.ctx.run_action(action, state_in)
+        with pytest.raises(scenario.ActionFailed) as exc:
+            self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert action_output.success is False
-        assert action_output.failure == "Relation does not exist with the provided id."
+        assert exc.value.message == "Relation does not exist with the provided id."
