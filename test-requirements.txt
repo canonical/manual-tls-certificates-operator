@@ -74,8 +74,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 ops==2.16.0
     # via ops-scenario
-#ops-scenario==7.0.0
-git+https://github.com/canonical/ops-scenario.git@7.0
+ops-scenario==7.0.0
     # via -r test-requirements.in
 packaging==24.1
     # via
