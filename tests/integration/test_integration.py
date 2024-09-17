@@ -5,6 +5,7 @@ import base64
 import datetime
 import json
 import logging
+import platform
 import time
 from pathlib import Path
 
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 APPLICATION_NAME = "manual-tls-certificates"
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
+ARCH = "arm64" if platform.machine() == "aarch64" else "amd64"
 
 
 async def get_leader_unit(model, application_name: str) -> Unit:
@@ -108,10 +110,13 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+            constraints={"arch": ARCH},
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
@@ -120,15 +125,19 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
             channel="stable",
+            constraints={"arch": ARCH},
         )
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+            constraints={"arch": ARCH},
         )
 
         await ops_test.model.integrate(
@@ -145,10 +154,13 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
         await ops_test.model.deploy(
             TLS_REQUIRER_CHARM_NAME,
             application_name=TLS_REQUIRER_CHARM_NAME,
             channel="stable",
+            constraints={"arch": ARCH},
         )
 
         await ops_test.model.deploy(
@@ -156,6 +168,7 @@ class TestManualTLSCertificatesOperator:
             application_name=APPLICATION_NAME,
             series="jammy",
             num_units=3,
+            constraints={"arch": ARCH},
         )
 
         relation = await ops_test.model.integrate(

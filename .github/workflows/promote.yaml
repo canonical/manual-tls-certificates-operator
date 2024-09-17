@@ -10,6 +10,12 @@ on:
           - edge -> beta
           - beta -> candidate
           - candidate -> stable
+      arch:
+        type: choice
+        description: Architecture
+        options:
+          - amd64
+          - arm64
 
 jobs:
   promote:
@@ -41,3 +47,4 @@ jobs:
           origin-channel: latest/${{ env.promote-from }}
           charmcraft-channel: latest/stable
           base-channel: "22.04"
+          base-architecture: ${{ github.event.inputs.arch }}
