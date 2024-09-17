@@ -8,6 +8,7 @@ import logging
 import platform
 import time
 from pathlib import Path
+from typing import Dict
 
 import pytest
 from cryptography import x509
@@ -216,14 +217,14 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
 
-        get_certificate_action_output = await run_get_certificate_action(
+        requirer_certificates = await wait_for_requirer_certificates(
             ops_test, unit_name=f"{TLS_REQUIRER_CHARM_NAME}/0"
         )
 
-        assert get_certificate_action_output["certificate"] == certificate_pem.decode(
+        assert requirer_certificates.get("certificate", "") == certificate_pem.decode(
             "utf-8"
         ).strip("\n")
-        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
+        assert requirer_certificates.get("ca-certificate", "") == ca_certificate_pem.decode(
             "utf-8"
         ).strip("\n")
 
@@ -276,6 +277,30 @@ async def _wait_for_certificate_request(ops_test: OpsTest):
             return
         time.sleep(5)
     raise TimeoutError("Timeout waiting for certificate request.")
+
+
+async def wait_for_requirer_certificates(ops_test, unit_name: str) -> Dict[str, str]:
+    """Wait for the certificate to be provided to the `tls-requirer-requirer/0` unit.
+
+    Returns the certificate output from the get-certificate action if successful.
+    Otherwise, times out and raises a TimeoutError.
+    """
+    t0 = time.time()
+    timeout = 300
+    while time.time() - t0 < timeout:
+        logger.info("Waiting for requirer certificates")
+        time.sleep(5)
+        action_output = await run_get_certificate_action(ops_test, unit_name=unit_name)
+        try:
+            certificates = json.loads(action_output.get("certificates", ""))[0]
+        except json.JSONDecodeError:
+            continue
+        ca_certificate = certificates.get("ca-certificate", "")
+        certificate = certificates.get("certificate", "")
+        if not ca_certificate or not certificate:
+            continue
+        return certificates
+    raise TimeoutError("Timed out waiting for certificate")
 
 
 async def run_provide_certificate_action(
