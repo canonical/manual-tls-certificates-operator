@@ -26,6 +26,18 @@ logger = logging.getLogger(__name__)
 APPLICATION_NAME = "manual-tls-certificates"
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 ARCH = "arm64" if platform.machine() == "aarch64" else "amd64"
+REQUIRER_CHARM_REVISION_ARM = 103
+REQUIRER_CHARM_REVISION_AMD = 104
+
+
+async def deploy_tls_requirer_charm(ops_test: OpsTest):
+    assert ops_test.model
+    await ops_test.model.deploy(
+        TLS_REQUIRER_CHARM_NAME,
+        application_name=TLS_REQUIRER_CHARM_NAME,
+        revision=REQUIRER_CHARM_REVISION_ARM if ARCH == "arm64" else REQUIRER_CHARM_REVISION_AMD,
+        constraints={"arch": ARCH},
+    )
 
 
 async def get_leader_unit(model, application_name: str) -> Unit:
@@ -128,12 +140,7 @@ class TestManualTLSCertificatesOperator:
         assert ops_test.model
         logger.info("Deploying charms for architecture: %s", ARCH)
         await ops_test.model.set_constraints({"arch": ARCH})
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="stable",
-            constraints={"arch": ARCH},
-        )
+        await deploy_tls_requirer_charm(ops_test)
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
@@ -157,12 +164,7 @@ class TestManualTLSCertificatesOperator:
         assert ops_test.model
         logger.info("Deploying charms for architecture: %s", ARCH)
         await ops_test.model.set_constraints({"arch": ARCH})
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="stable",
-            constraints={"arch": ARCH},
-        )
+        await deploy_tls_requirer_charm(ops_test)
 
         await ops_test.model.deploy(
             entity_url=charm,
