@@ -5,8 +5,10 @@ import base64
 import datetime
 import json
 import logging
+import platform
 import time
 from pathlib import Path
+from typing import Dict
 
 import pytest
 from cryptography import x509
@@ -23,6 +25,20 @@ logger = logging.getLogger(__name__)
 
 APPLICATION_NAME = "manual-tls-certificates"
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
+ARCH = "arm64" if platform.machine() == "aarch64" else "amd64"
+REQUIRER_CHARM_REVISION_ARM = 103
+REQUIRER_CHARM_REVISION_AMD = 104
+
+
+async def deploy_tls_requirer_charm(ops_test: OpsTest):
+    assert ops_test.model
+    await ops_test.model.deploy(
+        TLS_REQUIRER_CHARM_NAME,
+        application_name=TLS_REQUIRER_CHARM_NAME,
+        revision=REQUIRER_CHARM_REVISION_ARM if ARCH == "arm64" else REQUIRER_CHARM_REVISION_AMD,
+        channel="stable",
+        constraints={"arch": ARCH},
+    )
 
 
 async def get_leader_unit(model, application_name: str) -> Unit:
@@ -108,10 +124,13 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+            constraints={"arch": ARCH},
         )
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
@@ -120,15 +139,14 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="stable",
-        )
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
+        await deploy_tls_requirer_charm(ops_test)
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
+            constraints={"arch": ARCH},
         )
 
         await ops_test.model.integrate(
@@ -145,17 +163,16 @@ class TestManualTLSCertificatesOperator:
         self, ops_test: OpsTest, charm, cleanup
     ):
         assert ops_test.model
-        await ops_test.model.deploy(
-            TLS_REQUIRER_CHARM_NAME,
-            application_name=TLS_REQUIRER_CHARM_NAME,
-            channel="stable",
-        )
+        logger.info("Deploying charms for architecture: %s", ARCH)
+        await ops_test.model.set_constraints({"arch": ARCH})
+        await deploy_tls_requirer_charm(ops_test)
 
         await ops_test.model.deploy(
             entity_url=charm,
             application_name=APPLICATION_NAME,
             series="jammy",
             num_units=3,
+            constraints={"arch": ARCH},
         )
 
         relation = await ops_test.model.integrate(
@@ -203,14 +220,14 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
 
-        get_certificate_action_output = await run_get_certificate_action(
+        requirer_certificates = await wait_for_requirer_certificates(
             ops_test, unit_name=f"{TLS_REQUIRER_CHARM_NAME}/0"
         )
 
-        assert get_certificate_action_output["certificate"] == certificate_pem.decode(
+        assert requirer_certificates.get("certificate", "") == certificate_pem.decode(
             "utf-8"
         ).strip("\n")
-        assert get_certificate_action_output["ca-certificate"] == ca_certificate_pem.decode(
+        assert requirer_certificates.get("ca-certificate", "") == ca_certificate_pem.decode(
             "utf-8"
         ).strip("\n")
 
@@ -263,6 +280,30 @@ async def _wait_for_certificate_request(ops_test: OpsTest):
             return
         time.sleep(5)
     raise TimeoutError("Timeout waiting for certificate request.")
+
+
+async def wait_for_requirer_certificates(ops_test, unit_name: str) -> Dict[str, str]:
+    """Wait for the certificate to be provided to the `tls-requirer-requirer/0` unit.
+
+    Returns the certificate output from the get-certificate action if successful.
+    Otherwise, times out and raises a TimeoutError.
+    """
+    t0 = time.time()
+    timeout = 300
+    while time.time() - t0 < timeout:
+        logger.info("Waiting for requirer certificates")
+        time.sleep(5)
+        action_output = await run_get_certificate_action(ops_test, unit_name=unit_name)
+        try:
+            certificates = json.loads(action_output.get("certificates", ""))[0]
+        except json.JSONDecodeError:
+            continue
+        ca_certificate = certificates.get("ca-certificate", "")
+        certificate = certificates.get("certificate", "")
+        if not ca_certificate or not certificate:
+            continue
+        return certificates
+    raise TimeoutError("Timed out waiting for certificate")
 
 
 async def run_provide_certificate_action(
