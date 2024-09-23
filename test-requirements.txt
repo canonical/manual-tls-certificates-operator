@@ -74,7 +74,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 ops==2.16.1
     # via ops-scenario
-ops-scenario==7.0.2
+ops-scenario==7.0.5
     # via -r test-requirements.in
 packaging==24.1
     # via
@@ -118,7 +118,7 @@ pyrfc3339==1.1
     # via
     #   juju
     #   macaroonbakery
-pyright==1.1.380
+pyright==1.1.381
     # via -r test-requirements.in
 pytest==8.3.3
     # via
