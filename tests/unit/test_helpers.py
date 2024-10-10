@@ -2,6 +2,7 @@
 # See LICENSE file for licensing details.
 
 import unittest
+from datetime import timedelta
 from typing import List
 
 from charms.tls_certificates_interface.v4.tls_certificates import (
@@ -26,7 +27,7 @@ class TestHelpers(unittest.TestCase):
         ca_private_key = generate_private_key()
         ca_certificate = generate_ca(
             private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             common_name="Test CA",
         )
         private_key = generate_private_key()
@@ -37,7 +38,7 @@ class TestHelpers(unittest.TestCase):
         certificate = generate_certificate(
             ca=ca_certificate,
             ca_private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             csr=csr,
         )
         certificate_bytes = str(certificate).encode("utf-8")
@@ -74,7 +75,7 @@ class TestHelpers(unittest.TestCase):
         ca_private_key = generate_private_key()
         ca_certificate = generate_ca(
             private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             common_name="Test CA",
         )
         private_key = generate_private_key()
@@ -85,7 +86,7 @@ class TestHelpers(unittest.TestCase):
         certificate = generate_certificate(
             ca=ca_certificate,
             ca_private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             csr=csr,
         )
         ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
@@ -108,7 +109,7 @@ class TestHelpers(unittest.TestCase):
         ca_private_key = generate_private_key()
         ca_certificate = generate_ca(
             private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             common_name="Test CA",
         )
         private_key = generate_private_key()
@@ -119,7 +120,7 @@ class TestHelpers(unittest.TestCase):
         certificate = generate_certificate(
             ca=ca_certificate,
             ca_private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             csr=csr,
         )
         ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
@@ -137,7 +138,7 @@ class TestHelpers(unittest.TestCase):
         ca_private_key = generate_private_key()
         ca_certificate = generate_ca(
             private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             common_name="Test CA",
         )
         private_key = generate_private_key()
@@ -148,7 +149,7 @@ class TestHelpers(unittest.TestCase):
         certificate = generate_certificate(
             ca=ca_certificate,
             ca_private_key=ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             csr=csr,
         )
         ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"

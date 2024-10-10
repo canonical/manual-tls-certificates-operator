@@ -2,12 +2,13 @@
 # See LICENSE file for licensing details.
 import base64
 import json
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 import scenario
 from charms.tls_certificates_interface.v4.tls_certificates import (
-    RequirerCSR,
+    RequirerCertificateRequest,
     TLSCertificatesError,
     generate_ca,
     generate_certificate,
@@ -51,7 +52,7 @@ class TestCharm:
         self.ca_private_key = generate_private_key()
         self.ca_certificate = generate_ca(
             private_key=self.ca_private_key,
-            validity=365,
+            validity=timedelta(days=365),
             common_name="example.com",
         )
         self.private_key = generate_private_key()
@@ -61,7 +62,7 @@ class TestCharm:
         )
         self.certificate = generate_certificate(
             csr=self.csr,
-            validity=365,
+            validity=timedelta(days=365),
             ca=self.ca_certificate,
             ca_private_key=self.ca_private_key,
         )
@@ -82,9 +83,10 @@ class TestCharm:
         private_key = generate_private_key()
         csr = generate_csr(private_key=private_key, common_name="example.com")
         patch_get_requirer_units_csrs_with_no_certs.return_value = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=1234,
                 certificate_signing_request=csr,
+                is_ca=False,
             )
         ]
 
@@ -128,9 +130,10 @@ class TestCharm:
         )
         private_key = generate_private_key()
         csr = generate_csr(private_key=private_key, common_name="example.com")
-        requirer_csr = RequirerCSR(
+        requirer_csr = RequirerCertificateRequest(
             relation_id=1234,
             certificate_signing_request=csr,
+            is_ca=False,
         )
         patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
@@ -236,9 +239,10 @@ class TestCharm:
         private_key = generate_private_key()
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=different_csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -270,9 +274,10 @@ class TestCharm:
         private_key = generate_private_key()
         different_csr = generate_csr(private_key=private_key, common_name="different")
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=different_csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -305,9 +310,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         patch_get_certificate_requests.return_value = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation_2.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         state_in = scenario.State(
@@ -338,9 +344,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         patch_get_certificate_requests.return_value = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation_1.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         state_in = scenario.State(
@@ -370,9 +377,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -428,9 +436,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -461,9 +470,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
@@ -493,9 +503,10 @@ class TestCharm:
             interface="tls-certificates",
         )
         example_unit_csrs = [
-            RequirerCSR(
+            RequirerCertificateRequest(
                 relation_id=certificates_relation.id,
                 certificate_signing_request=self.csr,
+                is_ca=False,
             )
         ]
         patch_get_certificate_requests.return_value = example_unit_csrs
