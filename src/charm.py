@@ -13,8 +13,8 @@ import json
 import logging
 from typing import List, Optional
 
-from charms.tempo_k8s.v1.charm_tracing import trace_charm
-from charms.tempo_k8s.v2.tracing import TracingEndpointRequirer
+from charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
+from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
 from charms.tls_certificates_interface.v4.tls_certificates import (
     Certificate,
     CertificateSigningRequest,

@@ -16,7 +16,7 @@ object only requires instantiating it, typically in the constructor of your char
  This relation must use the `tracing` interface.
  The `TracingEndpointRequirer` object may be instantiated as follows
 
-    from charms.tempo_k8s.v2.tracing import TracingEndpointRequirer
+    from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -34,7 +34,7 @@ any point in time by calling the
 `TracingEndpointRequirer.request_protocols(*protocol:str, relation:Optional[Relation])` method.
 Using this method also allows you to use per-relation protocols.
 
-Units of provider charms obtain the tempo endpoint to which they will push their traces by calling
+Units of requirer charms obtain the tempo endpoint to which they will push their traces by calling
 `TracingEndpointRequirer.get_endpoint(protocol: str)`, where `protocol` is, for example:
 - `otlp_grpc`
 - `otlp_http`
@@ -44,7 +44,10 @@ Units of provider charms obtain the tempo endpoint to which they will push their
 If the `protocol` is not in the list of protocols that the charm requested at endpoint set-up time,
 the library will raise an error.
 
-## Requirer Library Usage
+We recommend that you scale up your tracing provider and relate it to an ingress so that your tracing requests
+go through the ingress and get load balanced across all units. Otherwise, if the provider's leader goes down, your tracing goes down.
+
+## Provider Library Usage
 
 The `TracingEndpointProvider` object may be used by charms to manage relations with their
 trace sources. For this purposes a Tempo-like charm needs to do two things
@@ -58,7 +61,7 @@ default value.
 For example a Tempo charm may instantiate the `TracingEndpointProvider` in its constructor as
 follows
 
-    from charms.tempo_k8s.v2.tracing import TracingEndpointProvider
+    from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointProvider
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -100,14 +103,14 @@ from ops.model import ModelError, Relation
 from pydantic import BaseModel, Field
 
 # The unique Charmhub library identifier, never change it
-LIBID = "12977e9aa0b34367903d8afeb8c3d85d"
+LIBID = "d2f02b1f8d1244b5989fd55bc3a28943"
 
 # Increment this major API version when introducing breaking changes
-LIBAPI = 2
+LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 10
+LIBPATCH = 3
 
 PYDEPS = ["pydantic"]
 
@@ -947,8 +950,8 @@ def charm_tracing_config(
 
     Usage:
       If you are using charm_tracing >= v1.9:
-    >>> from lib.charms.tempo_k8s.v1.charm_tracing import trace_charm
-    >>> from lib.charms.tempo_k8s.v2.tracing import charm_tracing_config
+    >>> from lib.charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
+    >>> from lib.charms.tempo_coordinator_k8s.v0.tracing import charm_tracing_config
     >>> @trace_charm(tracing_endpoint="my_endpoint", cert_path="cert_path")
     >>> class MyCharm(...):
     >>>     _cert_path = "/path/to/cert/on/charm/container.crt"
@@ -958,8 +961,8 @@ def charm_tracing_config(
     ...             self.tracing, self._cert_path)
 
       If you are using charm_tracing < v1.9:
-    >>> from lib.charms.tempo_k8s.v1.charm_tracing import trace_charm
-    >>> from lib.charms.tempo_k8s.v2.tracing import charm_tracing_config
+    >>> from lib.charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
+    >>> from lib.charms.tempo_coordinator_k8s.v0.tracing import charm_tracing_config
     >>> @trace_charm(tracing_endpoint="my_endpoint", cert_path="cert_path")
     >>> class MyCharm(...):
     >>>     _cert_path = "/path/to/cert/on/charm/container.crt"
@@ -985,11 +988,16 @@ def charm_tracing_config(
     is_https = endpoint.startswith("https://")
 
     if is_https:
-        if cert_path is None:
-            raise TracingError("Cannot send traces to an https endpoint without a certificate.")
-        elif not Path(cert_path).exists():
-            # if endpoint is https BUT we don't have a server_cert yet:
-            # disable charm tracing until we do to prevent tls errors
+        if cert_path is None or not Path(cert_path).exists():
+            # disable charm tracing until we obtain a cert to prevent tls errors
+            logger.error(
+                "Tracing endpoint is https, but no server_cert has been passed."
+                "Please point @trace_charm to a `server_cert` attr. "
+                "This might also mean that the tracing provider is related to a "
+                "certificates provider, but this application is not (yet). "
+                "In that case, you might just have to wait a bit for the certificates "
+                "integration to settle. "
+            )
             return None, None
         return endpoint, str(cert_path)
     else:
