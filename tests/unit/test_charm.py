@@ -3,7 +3,7 @@
 import base64
 import json
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import scenario
@@ -78,11 +78,11 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_outstanding_requests_when_certificate_creation_request_then_status_is_active(
-        self, patch_get_requirer_units_csrs_with_no_certs
+        self, mock_get_requirer_units_csrs_with_no_certs: MagicMock
     ):
         private_key = generate_private_key()
         csr = generate_csr(private_key=private_key, common_name="example.com")
-        patch_get_requirer_units_csrs_with_no_certs.return_value = [
+        mock_get_requirer_units_csrs_with_no_certs.return_value = [
             RequirerCertificateRequest(
                 relation_id=1234,
                 certificate_signing_request=csr,
@@ -100,9 +100,9 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_no_units_with_no_certs_when_charm_is_deployed_then_status_is_active_and_no_outstanding_requests(  # noqa: E501
-        self, patch_get_outstanding_certificate_requests
+        self, mock_get_outstanding_certificate_requests: MagicMock
     ):
-        patch_get_outstanding_certificate_requests.return_value = []
+        mock_get_outstanding_certificate_requests.return_value = []
 
         state_in = scenario.State()
 
@@ -122,7 +122,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_application_when_get_outstanding_certificate_requests_action_then_csrs_information_is_returned(  # noqa: E501
-        self, patch_get_outstanding_certificate_requests
+        self, mock_get_outstanding_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -135,7 +135,7 @@ class TestCharm:
             certificate_signing_request=csr,
             is_ca=False,
         )
-        patch_get_outstanding_certificate_requests.return_value = [requirer_csr]
+        mock_get_outstanding_certificate_requests.return_value = [requirer_csr]
 
         state_in = scenario.State(
             relations={certificates_relation},
@@ -150,13 +150,13 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_outstanding_certificate_requests")
     def test_given_requirer_and_no_outstanding_certs_when_get_outstanding_certificate_requests_action_then_empty_list_is_returned(  # noqa: E501
-        self, patch_get_outstanding_certificate_requests
+        self, mock_get_outstanding_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
             interface="tls-certificates",
         )
-        patch_get_outstanding_certificate_requests.return_value = []
+        mock_get_outstanding_certificate_requests.return_value = []
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -230,7 +230,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(
-        self, patch_get_certificate_requests
+        self, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -245,7 +245,7 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
+        mock_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -264,7 +264,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_does_not_exist_in_requirer_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_certificate_requests
+        self, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -280,7 +280,7 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
+        mock_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -299,7 +299,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_no_relation_id_provided_csr_exists_in_2_requirers_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_certificate_requests
+        self, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation_1 = scenario.Relation(
             endpoint="certificates",
@@ -309,7 +309,7 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        patch_get_certificate_requests.return_value = [
+        mock_get_certificate_requests.return_value = [
             RequirerCertificateRequest(
                 relation_id=certificates_relation_2.id,
                 certificate_signing_request=self.csr,
@@ -333,7 +333,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_relation_id_doesnt_match_found_csr_relation_id_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_certificate_requests
+        self, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation_1 = scenario.Relation(
             endpoint="certificates",
@@ -343,7 +343,7 @@ class TestCharm:
             endpoint="certificates",
             interface="tls-certificates",
         )
-        patch_get_certificate_requests.return_value = [
+        mock_get_certificate_requests.return_value = [
             RequirerCertificateRequest(
                 relation_id=certificates_relation_1.id,
                 certificate_signing_request=self.csr,
@@ -370,7 +370,7 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     def test_given_not_matching_csr_and_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_get_certificate_requests
+        self, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -383,7 +383,7 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
+        mock_get_certificate_requests.return_value = example_unit_csrs
         incorrect_cert = self.decoded_ca_certificate
         state_in = scenario.State(
             relations={certificates_relation},
@@ -403,13 +403,13 @@ class TestCharm:
 
     @patch("charm.ca_chain_is_valid")
     def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
-        self, patch_ca_chain_valid
+        self, mock_ca_chain_valid: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
             interface="tls-certificates",
         )
-        patch_ca_chain_valid.return_value = False
+        mock_ca_chain_valid.return_value = False
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -429,7 +429,7 @@ class TestCharm:
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_when_provide_certificate_action_then_certificate_is_provided(
-        self, patch_set_relation_cert, patch_get_certificate_requests
+        self, mock_set_relation_cert: MagicMock, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -442,7 +442,7 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
+        mock_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -458,12 +458,12 @@ class TestCharm:
 
         assert self.ctx.action_results
         assert self.ctx.action_results["result"] == "Certificates successfully provided."
-        patch_set_relation_cert.assert_called_once()
+        mock_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
-        self, patch_set_relation_cert, patch_get_certificate_requests
+        self, mock_set_relation_cert: MagicMock, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -476,7 +476,7 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
+        mock_get_certificate_requests.return_value = example_unit_csrs
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -491,12 +491,12 @@ class TestCharm:
 
         assert self.ctx.action_results
         assert self.ctx.action_results["result"] == "Certificates successfully provided."
-        patch_set_relation_cert.assert_called_once()
+        mock_set_relation_cert.assert_called_once()
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_tls_certificates_error_during_set_relation_certificate_when_provide_certificate_action_then_event_fails(  # noqa: E501
-        self, patch_set_relation_cert, patch_get_certificate_requests
+        self, mock_set_relation_cert: MagicMock, mock_get_certificate_requests: MagicMock
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
@@ -509,8 +509,8 @@ class TestCharm:
                 is_ca=False,
             )
         ]
-        patch_get_certificate_requests.return_value = example_unit_csrs
-        patch_set_relation_cert.side_effect = TLSCertificatesError()
+        mock_get_certificate_requests.return_value = example_unit_csrs
+        mock_set_relation_cert.side_effect = TLSCertificatesError()
         state_in = scenario.State(
             relations={certificates_relation},
         )

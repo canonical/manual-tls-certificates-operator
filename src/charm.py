@@ -11,7 +11,7 @@ import base64
 import binascii
 import json
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
 from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
@@ -45,7 +45,7 @@ CERTIFICATES_RELATION = "certificates"
 class ManualTLSCertificatesCharm(CharmBase):
     """Main class to handle Juju events."""
 
-    def __init__(self, *args):
+    def __init__(self, *args: Any):
         """Observe config change and certificate request events."""
         super().__init__(*args)
         self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
@@ -279,7 +279,7 @@ class ManualTLSCertificatesCharm(CharmBase):
         """
         return bool(self.model.relations.get(relation_name, []))
 
-    def _decode_base64(self, data, label):
+    def _decode_base64(self, data: str, label: str) -> bytes:
         try:
             return base64.b64decode(data)
         except (binascii.Error, TypeError) as e:
