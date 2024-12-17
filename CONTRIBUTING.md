@@ -1,29 +1,44 @@
 # Contributing
 
-## Developing
+To make contributions to this charm, you'll need a working [development setup](https://juju.is/docs/sdk/dev-setup).
 
-Create and activate a virtualenv with the development requirements:
+This project uses `uv`. You can install it on Ubuntu with:
 
-    virtualenv -p python3 venv
-    source venv/bin/activate
+```shell
+sudo snap install --classic astral-uv
+```
 
+You can create an environment for development with `uv`:
+
+```shell
+uv sync
+```
 
 ## Testing
 
-### Unit tests
+This project uses `tox` for managing test environments. It can be installed
+with:
 
-```bash
-tox -e unit
+```shell
+uv tool install tox --with tox-uv
 ```
 
-### Static analysis
+There are some pre-configured environments that can be used for linting
+and formatting code when you're preparing contributions to the charm:
 
-```bash
-tox -e static
+```shell
+tox -e format        # update your code according to linting rules
+tox -e lint          # code style
+tox -e unit          # unit tests
+tox -e integration   # integration tests
+tox                      # runs 'format', 'lint', and 'unit' environments
 ```
 
-### Linting
+## Build the charm
 
-```bash
-tox -e lint
+Build the charm in this git repository using:
+
+```shell
+charmcraft pack
 ```
+

@@ -1,5 +1,0 @@
-ops
-jsonschema
-cryptography
-opentelemetry-exporter-otlp-proto-http
-pydantic==2.10.3
