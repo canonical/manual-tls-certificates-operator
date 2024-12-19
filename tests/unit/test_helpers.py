@@ -89,7 +89,7 @@ class TestHelpers(unittest.TestCase):
             validity=timedelta(days=365),
             csr=csr,
         )
-        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
+        ca_chain = f"{str(certificate)}\n{str(ca_certificate)}"
 
         ca_chain_list = parse_ca_chain(ca_chain)
         self.assertEqual(len(ca_chain_list), 2)
@@ -123,7 +123,7 @@ class TestHelpers(unittest.TestCase):
             validity=timedelta(days=365),
             csr=csr,
         )
-        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
+        ca_chain = f"{str(certificate)}\n{str(ca_certificate)}"
         ca_chain_list = parse_ca_chain(ca_chain)
         self.assertTrue(ca_chain_is_valid(ca_chain_list))
 
@@ -152,7 +152,7 @@ class TestHelpers(unittest.TestCase):
             validity=timedelta(days=365),
             csr=csr,
         )
-        ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
+        ca_chain = f"{str(certificate)}\n{str(ca_certificate)}"
         ca_chain_list = parse_ca_chain(ca_chain)
         ca_chain_list.reverse()
         self.assertFalse(ca_chain_is_valid(ca_chain_list))
