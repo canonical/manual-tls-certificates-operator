@@ -106,3 +106,4 @@ actions:
       - certificate-signing-request
       - certificate
       - ca-certificate
+      - ca-chain

@@ -129,16 +129,18 @@ class ManualTLSCertificatesCharm(CharmBase):
         if not self._relation_created("certificates"):
             event.fail(message="No certificates relation has been created yet.")
             return
-        ca_chain = event.params.get("ca-chain", None)
-        if not ca_chain:
-            ca_chain = event.params["ca-certificate"]
-        if not self._action_certificates_are_valid(
-            certificate=event.params["certificate"],
-            ca_certificate=event.params["ca-certificate"],
-            certificate_signing_request=event.params["certificate-signing-request"],
-            ca_chain=ca_chain,
-        ):
-            event.fail(message="Action input is not valid.")
+        try:
+            ca_chain = event.params["ca-chain"]
+            if not self._action_certificates_are_valid(
+                certificate=event.params["certificate"],
+                ca_certificate=event.params["ca-certificate"],
+                certificate_signing_request=event.params["certificate-signing-request"],
+                ca_chain=ca_chain,
+            ):
+                event.fail(message="Action input is not valid.")
+                return
+        except KeyError:
+            event.fail(message="One or more action parameters are missing.")
             return
 
         ca_chain_list_str = parse_ca_chain(base64.b64decode(ca_chain).decode())
@@ -252,19 +254,24 @@ class ManualTLSCertificatesCharm(CharmBase):
                 certificate_signing_request, "certificate_signing_request"
             )
             ca_chain_bytes = self._decode_base64(ca_chain, "ca_chain")
-        except ValueError:
+        except ValueError as e:
+            logger.error("Invalid input certificate input: %s", e)
             return False
 
         if not certificate_is_valid(certificate_bytes):
+            logger.error("Invalid input certificate in action")
             return False
         if not certificate_is_valid(ca_certificate_bytes):
+            logger.error("Invalid input ca_certificate in action")
             return False
         if not certificate_signing_request_is_valid(csr_bytes):
+            logger.error("Invalid input certificate_signing_request in action")
             return False
 
         ca_chain_list = parse_ca_chain(ca_chain_bytes.decode())
         for ca in ca_chain_list:
             if not certificate_is_valid(ca.encode()):
+                logger.error("Invalid certificate in input ca_chain")
                 return False
         if not ca_chain_is_valid(ca_chain_list):
             return False
