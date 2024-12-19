@@ -271,9 +271,10 @@ class ManualTLSCertificatesCharm(CharmBase):
         ca_chain_list = parse_ca_chain(ca_chain_bytes.decode())
         for ca in ca_chain_list:
             if not certificate_is_valid(ca.encode()):
-                logger.warning("Invalid certificate in input ca_chain")
+                logger.warning("Invalid certificate in input ca_chain in action")
                 return False
         if not ca_chain_is_valid(ca_chain_list):
+            logger.warning("Invalid input ca_chain in action")
             return False
 
         return True
