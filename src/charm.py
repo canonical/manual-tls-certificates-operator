@@ -255,23 +255,23 @@ class ManualTLSCertificatesCharm(CharmBase):
             )
             ca_chain_bytes = self._decode_base64(ca_chain, "ca_chain")
         except ValueError as e:
-            logger.error("Invalid input certificate input: %s", e)
+            logger.warning("Invalid input certificate input: %s", e)
             return False
 
         if not certificate_is_valid(certificate_bytes):
-            logger.error("Invalid input certificate in action")
+            logger.warning("Invalid input certificate in action")
             return False
         if not certificate_is_valid(ca_certificate_bytes):
-            logger.error("Invalid input ca_certificate in action")
+            logger.warning("Invalid input ca_certificate in action")
             return False
         if not certificate_signing_request_is_valid(csr_bytes):
-            logger.error("Invalid input certificate_signing_request in action")
+            logger.warning("Invalid input certificate_signing_request in action")
             return False
 
         ca_chain_list = parse_ca_chain(ca_chain_bytes.decode())
         for ca in ca_chain_list:
             if not certificate_is_valid(ca.encode()):
-                logger.error("Invalid certificate in input ca_chain")
+                logger.warning("Invalid certificate in input ca_chain")
                 return False
         if not ca_chain_is_valid(ca_chain_list):
             return False
