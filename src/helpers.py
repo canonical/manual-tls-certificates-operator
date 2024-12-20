@@ -87,7 +87,7 @@ def ca_chain_is_valid(ca_chain: List[str]) -> bool:
     if len(ca_chain) < 1:
         logger.warning("Invalid CA chain: It must contain at least 1 certificates.")
         return False
-    for ca_cert, cert in zip(ca_chain, ca_chain[1:]):
+    for cert, ca_cert in zip(ca_chain, ca_chain[1:]):
         try:
             ca_cert_object = x509.load_pem_x509_certificate(ca_cert.encode("utf-8"))
             cert_object = x509.load_pem_x509_certificate(cert.encode("utf-8"))
