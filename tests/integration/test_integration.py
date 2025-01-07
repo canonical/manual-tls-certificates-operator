@@ -205,7 +205,7 @@ class TestManualTLSCertificatesOperator:
         ca_certificate_pem = certs["ca_cert"].public_bytes(serialization.Encoding.PEM)
         certificate_bytes = base64.b64encode(certificate_pem)
         ca_certificate_bytes = base64.b64encode(ca_certificate_pem)
-        ca_chain_pem = ca_certificate_pem + certificate_pem
+        ca_chain_pem = certificate_pem + ca_certificate_pem
         ca_chain_bytes = base64.b64encode(ca_chain_pem)
 
         await run_provide_certificate_action(
