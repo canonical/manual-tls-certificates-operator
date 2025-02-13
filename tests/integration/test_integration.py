@@ -16,7 +16,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from juju.errors import JujuError
 from juju.model import Model
 from juju.relation import Relation
 from juju.unit import Unit
@@ -109,21 +108,8 @@ class TestManualTLSCertificatesOperator:
             "ca_cert": ca_cert,
         }
 
-    @pytest.fixture()
-    async def cleanup(self, ops_test: OpsTest):
-        assert ops_test.model
-        try:
-            await ops_test.model.remove_application(
-                app_name=APPLICATION_NAME, block_until_done=True
-            )
-            await ops_test.model.remove_application(
-                app_name=TLS_REQUIRER_CHARM_NAME, block_until_done=True
-            )
-        except JujuError:
-            pass
-
     async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
-        self, ops_test: OpsTest, charm_path: Path, cleanup: None
+        self, ops_test: OpsTest, charm_path: Path
     ):
         assert ops_test.model
         logger.info("Deploying charms for architecture: %s", ARCH)
@@ -138,18 +124,10 @@ class TestManualTLSCertificatesOperator:
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
 
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
-        self, ops_test: OpsTest, charm_path: Path, cleanup: None
+        self, ops_test: OpsTest
     ):
         assert ops_test.model
-        logger.info("Deploying charms for architecture: %s", ARCH)
-        await ops_test.model.set_constraints({"arch": ARCH})
         await deploy_tls_requirer_charm(ops_test)
-        await ops_test.model.deploy(
-            entity_url=charm_path,
-            application_name=APPLICATION_NAME,
-            series="jammy",
-            constraints={"arch": ARCH},
-        )
 
         await ops_test.model.integrate(
             relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
@@ -162,20 +140,16 @@ class TestManualTLSCertificatesOperator:
         )
 
     async def test_given_tls_requirer_is_deployed_with_3_units_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
-        self, ops_test: OpsTest, charm_path: Path, cleanup: None
+        self, ops_test: OpsTest
     ):
         assert ops_test.model
-        logger.info("Deploying charms for architecture: %s", ARCH)
-        await ops_test.model.set_constraints({"arch": ARCH})
-        await deploy_tls_requirer_charm(ops_test)
-
-        await ops_test.model.deploy(
-            entity_url=charm_path,
-            application_name=APPLICATION_NAME,
-            series="jammy",
-            num_units=3,
-            constraints={"arch": ARCH},
+        await ops_test.model.applications[TLS_REQUIRER_CHARM_NAME].destroy_relation(
+            local_relation="certificates",
+            remote_relation=f"{APPLICATION_NAME}:certificates",
+            block_until_done=True,
         )
+
+        await ops_test.model.applications[APPLICATION_NAME].scale(3)
 
         relation = await ops_test.model.integrate(
             relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
@@ -187,6 +161,11 @@ class TestManualTLSCertificatesOperator:
             status="active",
             timeout=1000,
             wait_for_at_least_units=3,
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_REQUIRER_CHARM_NAME],
+            status="active",
+            timeout=1000,
         )
 
         await _wait_for_certificate_request(ops_test)
