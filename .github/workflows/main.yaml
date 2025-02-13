@@ -44,5 +44,7 @@ jobs:
       - integration-test
     if: ${{ github.ref_name == 'main' }}
     uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@v0
+    with:
+      track-name: latest
     secrets:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
