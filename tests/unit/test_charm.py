@@ -401,15 +401,13 @@ class TestCharm:
 
         assert exc.value.message == "Certificate and CSR do not match."
 
-    @patch("charm.ca_chain_is_valid")
     def test_given_invalid_ca_chain_when_provide_certificate_action_then_event_fails(
-        self, mock_ca_chain_valid: MagicMock
+        self,
     ):
         certificates_relation = scenario.Relation(
             endpoint="certificates",
             interface="tls-certificates",
         )
-        mock_ca_chain_valid.return_value = False
         state_in = scenario.State(
             relations={certificates_relation},
         )
@@ -417,7 +415,7 @@ class TestCharm:
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
-            "ca-chain": self.decoded_ca_chain,
+            "ca-chain": "Invalid CA chain",
             "relation-id": certificates_relation.id,
         }
 
