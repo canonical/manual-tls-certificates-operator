@@ -14,14 +14,14 @@ concurrency:
 
 jobs:
   lint-report:
-    uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@main
+    uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@v0
 
   static-analysis:
     name: Static analysis
-    uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@main
+    uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@v0
 
   unit-tests-with-coverage:
-    uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@main
+    uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@v0
 
   build:
     needs:
@@ -43,6 +43,6 @@ jobs:
       - unit-tests-with-coverage
       - integration-test
     if: ${{ github.ref_name == 'main' }}
-    uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@main
+    uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@v0
     secrets:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
