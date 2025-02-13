@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
+import requests
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -23,11 +24,13 @@ from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
+ANY_CHARM_PATH = "./tests/integration/any_charm.py"
 APPLICATION_NAME = "manual-tls-certificates"
-TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 ARCH = "arm64" if platform.machine() == "aarch64" else "amd64"
 REQUIRER_CHARM_REVISION_ARM = 103
 REQUIRER_CHARM_REVISION_AMD = 104
+TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
+TRUSTED_PEM = "./tests/integration/trusted_certs.pem"
 
 
 async def deploy_tls_requirer_charm(ops_test: OpsTest):
@@ -211,6 +214,66 @@ class TestManualTLSCertificatesOperator:
         assert requirer_certificates.get("ca-certificate", "") == ca_certificate_pem.decode(
             "utf-8"
         ).strip("\n")
+
+        await ops_test.model.applications[TLS_REQUIRER_CHARM_NAME].destroy_relation(
+            local_relation="certificates",
+            remote_relation=f"{APPLICATION_NAME}:certificates",
+            block_until_done=True,
+        )
+        await ops_test.model.applications[APPLICATION_NAME].scale(1)
+
+    async def test_given_certificate_transfer_requirer_related_when_config_changed_then_certificate_is_passed(  # noqa: E501
+        self, ops_test: OpsTest
+    ):
+        assert ops_test.model
+
+        any_app_name = "any-cert-transfer-requirer"
+        cert_transfer_lib_url = "https://github.com/canonical/certificate-transfer-interface/raw/main/lib/charms/certificate_transfer_interface/v1/certificate_transfer.py"  # noqa: E501
+        cert_transfer_lib = requests.get(cert_transfer_lib_url, timeout=10).text
+        any_charm_src_overwrite = {
+            "certificate_transfer.py": cert_transfer_lib,
+            "any_charm.py": Path(ANY_CHARM_PATH).read_text(),
+        }
+        await ops_test.model.deploy(
+            "any-charm",
+            application_name=any_app_name,
+            channel="beta",
+            config={
+                "src-overwrite": json.dumps(any_charm_src_overwrite),
+                "python-packages": "ops==2.17.1\npytest-interface-tester",
+            },
+        )
+        relation = await ops_test.model.integrate(
+            relation1=f"{APPLICATION_NAME}:trust_certificate", relation2=any_app_name
+        )
+        assert isinstance(relation, Relation)
+
+        await ops_test.model.wait_for_idle(
+            apps=[APPLICATION_NAME],
+            status="blocked",
+            timeout=1000,
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[any_app_name],
+            status="waiting",
+            timeout=1000,
+        )
+
+        await ops_test.model.applications[APPLICATION_NAME].set_config(
+            {
+                "trusted-certificate-bundle": Path(TRUSTED_PEM).read_text(),
+            }
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[APPLICATION_NAME],
+            status="active",
+            timeout=1000,
+        )
+        await ops_test.model.wait_for_idle(
+            apps=[any_app_name],
+            status="active",
+            timeout=1000,
+        )
 
 
 async def run_get_certificate_action(ops_test: OpsTest, unit_name: str) -> dict:

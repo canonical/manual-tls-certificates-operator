@@ -12,7 +12,7 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
 )
 from cryptography import x509
 
-from helpers import parse_ca_chain
+from helpers import parse_ca_chain, parse_pem_bundle
 
 
 class TestHelpers(unittest.TestCase):
@@ -71,3 +71,30 @@ class TestHelpers(unittest.TestCase):
         ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
         with self.assertRaises(ValueError):
             parse_ca_chain(ca_chain)
+
+    def test_given_multiple_certificate_not_in_a_chain_when_parse_pem_bundle_then_certificate_are_returned(  # noqa: E501
+        self,
+    ):
+        private_key1 = generate_private_key()
+        certificate1 = generate_ca(
+            private_key=private_key1,
+            validity=timedelta(days=365),
+            common_name="Test CA 1",
+        )
+        private_key2 = generate_private_key()
+        certificate2 = generate_ca(
+            private_key=private_key2,
+            validity=timedelta(days=365),
+            common_name="Test CA 2",
+        )
+        private_key3 = generate_private_key()
+        certificate3 = generate_ca(
+            private_key=private_key3,
+            validity=timedelta(days=365),
+            common_name="Test CA 3",
+        )
+        pem_bundle = "\n".join(str(cert) for cert in (certificate1, certificate2, certificate3))
+        certificates = parse_pem_bundle(pem_bundle)
+        self.assertEqual(len(certificates), 3)
+        for cert in certificates:
+            self.assertIsInstance(cert, x509.Certificate)
