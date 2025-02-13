@@ -35,6 +35,12 @@ jobs:
           juju-channel: 3.6/stable
           lxd-channel: 5.21/stable
 
+      - name: Install UV and Tox
+        run: |
+          pipx uninstall tox
+          sudo snap install astral-uv --classic
+          uv tool install tox --with tox-uv --force
+
       - name: Run integration tests
         run: |
           tox -e integration -- \

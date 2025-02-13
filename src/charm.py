@@ -8,7 +8,6 @@ Certificates are provided by the operator through Juju configs.
 """
 
 import base64
-import binascii
 import json
 import logging
 from typing import Any, List, Optional
@@ -22,16 +21,12 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     TLSCertificatesError,
     TLSCertificatesProvidesV4,
 )
+from cryptography.hazmat.primitives import serialization
 from ops.charm import ActionEvent, CharmBase, CollectStatusEvent
 from ops.main import main
 from ops.model import ActiveStatus
 
-from helpers import (
-    ca_chain_is_valid,
-    certificate_is_valid,
-    certificate_signing_request_is_valid,
-    parse_ca_chain,
-)
+from helpers import parse_ca_chain
 
 logger = logging.getLogger(__name__)
 
@@ -130,30 +125,27 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="No certificates relation has been created yet.")
             return
         try:
-            ca_chain = event.params["ca-chain"]
-            if not self._action_certificates_are_valid(
-                certificate=event.params["certificate"],
-                ca_certificate=event.params["ca-certificate"],
-                certificate_signing_request=event.params["certificate-signing-request"],
-                ca_chain=ca_chain,
-            ):
-                event.fail(message="Action input is not valid.")
-                return
+            ca_chain = [
+                Certificate.from_string(
+                    cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
+                )
+                for cert in parse_ca_chain(decode_action_base64_input(event.params["ca-chain"]))
+            ]
+            certificate = Certificate.from_string(
+                decode_action_base64_input(event.params["certificate"])
+            )
+            ca_certificate = Certificate.from_string(
+                decode_action_base64_input(event.params["ca-certificate"])
+            )
+            csr = CertificateSigningRequest.from_string(
+                decode_action_base64_input(event.params["certificate-signing-request"])
+            )
         except KeyError:
             event.fail(message="One or more action parameters are missing.")
             return
-
-        ca_chain_list_str = parse_ca_chain(base64.b64decode(ca_chain).decode())
-        csr_str = (
-            base64.b64decode(event.params["certificate-signing-request"]).decode("utf-8").strip()
-        )
-        certificate_str = base64.b64decode(event.params["certificate"]).decode("utf-8").strip()
-        ca_cert_str = base64.b64decode(event.params["ca-certificate"]).decode("utf-8").strip()
-
-        certificate = Certificate.from_string(certificate_str)
-        ca_cert = Certificate.from_string(ca_cert_str)
-        csr = CertificateSigningRequest.from_string(csr_str)
-        ca_chain_list = [Certificate.from_string(cert) for cert in ca_chain_list_str]
+        except ValueError:
+            event.fail(message="Action input is not valid.")
+            return
 
         if not csr.matches_certificate(certificate):
             event.fail(message="Certificate and CSR do not match.")
@@ -178,8 +170,8 @@ class ManualTLSCertificatesCharm(CharmBase):
                     ),
                     certificate=certificate,
                     certificate_signing_request=csr,
-                    ca=ca_cert,
-                    chain=ca_chain_list,
+                    ca=ca_certificate,
+                    chain=ca_chain,
                 ),
             )
         except TLSCertificatesError:
@@ -228,57 +220,6 @@ class ManualTLSCertificatesCharm(CharmBase):
             return "Requested relation id is not the correct id of any found CSR's."
         return ""
 
-    def _action_certificates_are_valid(
-        self,
-        certificate: str,
-        ca_certificate: str,
-        certificate_signing_request: str,
-        ca_chain: str,
-    ) -> bool:
-        """Validate certificates provided in action.
-
-        Args:
-            certificate (str): Certificate in base64 string format
-            ca_certificate (str): CA Certificate in base64 string format
-            certificate_signing_request (str):
-                Certificate signing request in base64 string format
-            ca_chain (str): CA Chain in base64 string format
-
-        Returns:
-            bool: Whether certificates are valid.
-        """
-        try:
-            certificate_bytes = self._decode_base64(certificate, "certificate")
-            ca_certificate_bytes = self._decode_base64(ca_certificate, "ca_certificate")
-            csr_bytes = self._decode_base64(
-                certificate_signing_request, "certificate_signing_request"
-            )
-            ca_chain_bytes = self._decode_base64(ca_chain, "ca_chain")
-        except ValueError as e:
-            logger.warning("Invalid input certificate input: %s", e)
-            return False
-
-        if not certificate_is_valid(certificate_bytes):
-            logger.warning("Invalid input certificate in action")
-            return False
-        if not certificate_is_valid(ca_certificate_bytes):
-            logger.warning("Invalid input ca_certificate in action")
-            return False
-        if not certificate_signing_request_is_valid(csr_bytes):
-            logger.warning("Invalid input certificate_signing_request in action")
-            return False
-
-        ca_chain_list = parse_ca_chain(ca_chain_bytes.decode())
-        for ca in ca_chain_list:
-            if not certificate_is_valid(ca.encode()):
-                logger.warning("Invalid certificate in input ca_chain in action")
-                return False
-        if not ca_chain_is_valid(ca_chain_list):
-            logger.warning("Invalid input ca_chain in action")
-            return False
-
-        return True
-
     def _relation_created(self, relation_name: str) -> bool:
         """Return whether given relation was created.
 
@@ -287,12 +228,10 @@ class ManualTLSCertificatesCharm(CharmBase):
         """
         return bool(self.model.relations.get(relation_name, []))
 
-    def _decode_base64(self, data: str, label: str) -> bytes:
-        try:
-            return base64.b64decode(data)
-        except (binascii.Error, TypeError) as e:
-            logger.error("Invalid input for '%s': %s", label, e)
-            raise ValueError()
+
+def decode_action_base64_input(input: str) -> str:
+    """Decode base64 string to Python string."""
+    return base64.b64decode(input).decode("utf-8").strip()
 
 
 if __name__ == "__main__":
