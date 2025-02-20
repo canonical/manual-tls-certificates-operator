@@ -25,6 +25,12 @@ requires:
 provides:
   certificates:
     interface: tls-certificates
+    description: >-
+      Provides signed certificates for CSRs through a manual process
+  trust_certificate:
+    interface: certificate_transfer
+    description: >-
+      Provides certificates for other charms to add to their trust store
 
 type: "charm"
 bases:
@@ -63,6 +69,13 @@ parts:
     override-build: |
       rustup default stable
       craftctl default
+
+config:
+  options:
+    trusted-certificate-bundle:
+      type: string
+      description: >-
+        PEM certificate bundle to offer over the certificate_transfer relation.
 
 actions:
   get-outstanding-certificate-requests:
