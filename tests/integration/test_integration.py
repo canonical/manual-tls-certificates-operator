@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-import requests
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -25,8 +24,10 @@ from pytest_operator.plugin import OpsTest
 logger = logging.getLogger(__name__)
 
 ANY_CHARM_PATH = "./tests/integration/any_charm.py"
+ANY_APP_NAME = "any-cert-transfer-requirer"
 APPLICATION_NAME = "manual-tls-certificates"
 ARCH = "arm64" if platform.machine() == "aarch64" else "amd64"
+CERT_TRANSFER_LIB_PATH = "./lib/charms/certificate_transfer_interface/v1/certificate_transfer.py"
 REQUIRER_CHARM_REVISION_ARM = 103
 REQUIRER_CHARM_REVISION_AMD = 104
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
@@ -50,6 +51,24 @@ async def get_leader_unit(model: Model, application_name: str) -> Unit:
         if unit.application == application_name and await unit.is_leader_from_status():
             return unit
     raise RuntimeError(f"Leader unit for `{application_name}` not found.")
+
+
+async def deploy_any_charm_as_cert_transfer_requirer(model: Model):
+    """Deploy AnyCharm as a certificate_transfer requirer."""
+    cert_transfer_lib = Path(CERT_TRANSFER_LIB_PATH).read_text()
+    any_charm_src_overwrite = {
+        "certificate_transfer.py": cert_transfer_lib,
+        "any_charm.py": Path(ANY_CHARM_PATH).read_text(),
+    }
+    await model.deploy(
+        "any-charm",
+        application_name=ANY_APP_NAME,
+        channel="beta",
+        config={
+            "src-overwrite": json.dumps(any_charm_src_overwrite),
+            "python-packages": "ops==2.17.1\npytest-interface-tester",
+        },
+    )
 
 
 class TestManualTLSCertificatesOperator:
@@ -227,24 +246,9 @@ class TestManualTLSCertificatesOperator:
     ):
         assert ops_test.model
 
-        any_app_name = "any-cert-transfer-requirer"
-        cert_transfer_lib_url = "https://github.com/canonical/certificate-transfer-interface/raw/main/lib/charms/certificate_transfer_interface/v1/certificate_transfer.py"  # noqa: E501
-        cert_transfer_lib = requests.get(cert_transfer_lib_url, timeout=10).text
-        any_charm_src_overwrite = {
-            "certificate_transfer.py": cert_transfer_lib,
-            "any_charm.py": Path(ANY_CHARM_PATH).read_text(),
-        }
-        await ops_test.model.deploy(
-            "any-charm",
-            application_name=any_app_name,
-            channel="beta",
-            config={
-                "src-overwrite": json.dumps(any_charm_src_overwrite),
-                "python-packages": "ops==2.17.1\npytest-interface-tester",
-            },
-        )
+        await deploy_any_charm_as_cert_transfer_requirer(ops_test.model)
         relation = await ops_test.model.integrate(
-            relation1=f"{APPLICATION_NAME}:trust_certificate", relation2=any_app_name
+            relation1=f"{APPLICATION_NAME}:trust_certificate", relation2=ANY_APP_NAME
         )
         assert isinstance(relation, Relation)
 
@@ -254,7 +258,7 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
         await ops_test.model.wait_for_idle(
-            apps=[any_app_name],
+            apps=[ANY_APP_NAME],
             status="waiting",
             timeout=1000,
         )
@@ -270,7 +274,7 @@ class TestManualTLSCertificatesOperator:
             timeout=1000,
         )
         await ops_test.model.wait_for_idle(
-            apps=[any_app_name],
+            apps=[ANY_APP_NAME],
             status="active",
             timeout=1000,
         )

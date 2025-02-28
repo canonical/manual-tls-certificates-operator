@@ -88,8 +88,11 @@ class ManualTLSCertificatesCharm(CharmBase):
         if self.model.relations.get(CERTIFICATE_TRANSFER_RELATION):
             try:
                 self._get_trusted_certificate_bundle()
+            except KeyError:
+                event.add_status(ActiveStatus("No trusted certificate bundle configured"))
+                return
             except ValueError:
-                event.add_status(BlockedStatus("No trusted certificate bundle configured"))
+                event.add_status(BlockedStatus("Invalid trusted certificate bundle configured"))
                 return
 
         outstanding_requests_num = len(
@@ -114,11 +117,9 @@ class ManualTLSCertificatesCharm(CharmBase):
         """
         try:
             bundle = self._get_trusted_certificate_bundle()
-        except ValueError as e:
+            self.certificate_transfer.add_certificates(bundle)
+        except (KeyError, ValueError) as e:
             logger.warning("Trust certificate relation cannot be fulfilled: %s", e)
-            return
-
-        self.certificate_transfer.add_certificates(bundle)
 
     def _on_get_outstanding_certificate_requests_action(
         self,
@@ -236,7 +237,7 @@ class ManualTLSCertificatesCharm(CharmBase):
                 bundle,
                 relation_id=event.relation.id,
             )
-        except ValueError as e:
+        except (KeyError, ValueError) as e:
             logger.warning("Trust certificate relation cannot be fulfilled: %s", e)
 
     def _get_trusted_certificate_bundle(self) -> Set[str]:
@@ -246,17 +247,18 @@ class ManualTLSCertificatesCharm(CharmBase):
             event: Juju event.
 
         Returns:
-            list[Certificate]: List of certificates in the bundle
+            set[Certificate]: Set of certificates in the bundle
 
         Raises:
-            ValueError: if the configuration is not provided or invalid
+            KeyError: if the configuration is not provided
+            ValueError: if the configuration is invalid
         """
         if bundle := self.model.config.get("trusted-certificate-bundle"):
             return {
                 cert.public_bytes(serialization.Encoding.PEM).decode("utf-8").strip()
                 for cert in parse_pem_bundle(str(bundle))
             }
-        raise ValueError("Trusted certificate bundle config is not set")
+        raise KeyError("Trust certificate bundle configuration not provided")
 
     def _csr_exists_in_requirer(self, csr: CertificateSigningRequest, relation_id: int) -> bool:
         """Validate certificates provided in action.

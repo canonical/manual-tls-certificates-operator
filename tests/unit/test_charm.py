@@ -15,7 +15,7 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     generate_csr,
     generate_private_key,
 )
-from ops import ActiveStatus, BlockedStatus
+from ops import ActiveStatus
 
 from charm import ManualTLSCertificatesCharm
 
@@ -25,7 +25,11 @@ CERTIFICATE_TRANSFER_PROVIDES_PATH = (
 TLS_CERTIFICATES_PROVIDES_PATH = (
     "charms.tls_certificates_interface.v4.tls_certificates.TLSCertificatesProvidesV4"
 )
-TEST_CERT = """-----BEGIN CERTIFICATE-----
+
+
+@pytest.fixture()
+def test_cert() -> str:
+    return """-----BEGIN CERTIFICATE-----
 MIIF5jCCA86gAwIBAgIUExOeCpqObGsnMcd8F8UznJw5CUkwDQYJKoZIhvcNAQEL
 BQAwgYkxCzAJBgNVBAYTAkNBMQswCQYDVQQIDAJRQzERMA8GA1UEBwwITW9udHJl
 YWwxFjAUBgNVBAoMDUNhbm9uaWNhbCBMdGQxDDAKBgNVBAsMA1RMUzEUMBIGA1UE
@@ -59,7 +63,11 @@ yy6Zd9KbSYioZMrb//puZe7JbGLSOhDvoMDNLrS6yrHzCI8ECiEA9QKJBlu6g/m3
 pDyMkmz2qV8CJQWVU5WWdzFz53FNCa8IsPdyPe3ddQ/fE1gsVZo6omz6jOzncVqa
 bTvWRcTns/sRTw1iXlmwXT0K1yQgeDjG/2s=
 -----END CERTIFICATE-----"""
-TEST_CA = """-----BEGIN CERTIFICATE-----
+
+
+@pytest.fixture()
+def test_ca() -> str:
+    return """-----BEGIN CERTIFICATE-----
 MIIF9zCCA9+gAwIBAgIUdka9zOtMdnLbxE17zz5GXOOof6EwDQYJKoZIhvcNAQEL
 BQAwgYkxCzAJBgNVBAYTAkNBMQswCQYDVQQIDAJRQzERMA8GA1UEBwwITW9udHJl
 YWwxFjAUBgNVBAoMDUNhbm9uaWNhbCBMdGQxDDAKBgNVBAsMA1RMUzEUMBIGA1UE
@@ -93,7 +101,11 @@ ucStxiVtzALlqzb+gbVIl0uGPRuqQ46wAk2q32fNeaFilO53bkViAlM9IkkWAGBN
 OUKhy8Aqd6CLco2eUQgCNuJ27v88FMjRP/WpoSiOBRPRM2RC/ShJ+9LCf9aReMve
 QsjX6/rAHT19A8H57ogHDUC5hEpH0+2bJGLZPN/OnL8bT1ZNYZ474VaI1w==
 -----END CERTIFICATE-----"""
-TEST_CERT_BUNDLE = f"{TEST_CERT}\n{TEST_CA}"
+
+
+@pytest.fixture()
+def test_cert_bundle(test_cert: str, test_ca: str) -> str:
+    return f"{test_cert}\n{test_ca}"
 
 
 class TestCharm:
@@ -621,6 +633,9 @@ class TestCharm:
     def test_given_valid_bundle_in_config_when_config_changed_then_all_relations_are_updated(
         self,
         mock_add_certificates: MagicMock,
+        test_cert_bundle: str,
+        test_cert: str,
+        test_ca: str,
         caplog: pytest.LogCaptureFixture,
     ):
         transfer_relation1 = scenario.Relation(
@@ -634,7 +649,7 @@ class TestCharm:
             remote_app_name="app2",
         )
         state_in = scenario.State(
-            config={"trusted-certificate-bundle": TEST_CERT_BUNDLE},
+            config={"trusted-certificate-bundle": test_cert_bundle},
             relations={transfer_relation1, transfer_relation2},
         )
 
@@ -642,8 +657,8 @@ class TestCharm:
         assert "Trust certificate relation cannot be fulfilled" not in caplog.text
         mock_add_certificates.assert_called_with(
             {
-                TEST_CERT,
-                TEST_CA,
+                test_cert,
+                test_ca,
             }
         )
 
@@ -677,6 +692,9 @@ class TestCharm:
     def test_given_valid_bundle_in_config_when_trust_certificate_relation_joined_then_certificate_is_set(  # noqa: E501
         self,
         mock_add_certificates: MagicMock,
+        test_cert_bundle: str,
+        test_cert: str,
+        test_ca: str,
         caplog: pytest.LogCaptureFixture,
     ):
         transfer_relation = scenario.Relation(
@@ -685,14 +703,14 @@ class TestCharm:
             remote_app_name="app1",
         )
         state_in = scenario.State(
-            config={"trusted-certificate-bundle": TEST_CERT_BUNDLE},
+            config={"trusted-certificate-bundle": test_cert_bundle},
             relations={transfer_relation},
         )
 
         self.ctx.run(self.ctx.on.relation_joined(transfer_relation), state_in)
         assert "Trust certificate relation cannot be fulfilled" not in caplog.text
         mock_add_certificates.assert_called_with(
-            {TEST_CERT, TEST_CA},
+            {test_cert, test_ca},
             relation_id=transfer_relation.id,
         )
 
@@ -710,4 +728,4 @@ class TestCharm:
 
         state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-        assert state_out.unit_status == BlockedStatus("No trusted certificate bundle configured")
+        assert state_out.unit_status == ActiveStatus("No trusted certificate bundle configured")
