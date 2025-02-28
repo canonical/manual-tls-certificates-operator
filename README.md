@@ -51,7 +51,7 @@ The charm supports the `trusted-certificate-bundle` configuration to provide
 a list of certificates that requirers should trust, in PEM format.
 
 Assuming you have a list of certificates that should be trusted in the file
-`bundle.yaml` that looks like this:
+`bundle.pem` that looks like this:
 
 ```pem
 -----BEGIN CERTIFICATE-----
