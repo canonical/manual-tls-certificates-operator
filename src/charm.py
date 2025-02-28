@@ -115,6 +115,8 @@ class ManualTLSCertificatesCharm(CharmBase):
         Args:
             event: Juju ConfigChangedEvent
         """
+        if not self._relation_created(CERTIFICATE_TRANSFER_RELATION):
+            return
         try:
             bundle = self._get_trusted_certificate_bundle()
             self.certificate_transfer.add_certificates(bundle)
