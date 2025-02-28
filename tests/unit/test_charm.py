@@ -619,11 +619,42 @@ class TestCharm:
             ),
         ],
     )
-    def test_given_invalid_config_when_config_changed_then_error_is_logged(
+    def test_given_invalid_config_and_no_relations_when_config_changed_then_error_is_not_logged(
         self, config: dict, caplog: pytest.LogCaptureFixture
     ):
         state_in = scenario.State(
             config=config,
+        )
+
+        self.ctx.run(self.ctx.on.config_changed(), state_in)
+        assert "Trust certificate relation cannot be fulfilled" not in caplog.text
+
+    @pytest.mark.parametrize(
+        "config",
+        [
+            pytest.param({}, id="Empty config"),
+            pytest.param(
+                {"trusted-certificate-bundle": "Not a cert bundle"},
+                id="Not a cert bundle",
+            ),
+        ],
+    )
+    def test_given_invalid_config_and_relations_when_config_changed_then_error_is_logged(
+        self, config: dict, caplog: pytest.LogCaptureFixture
+    ):
+        transfer_relation1 = scenario.Relation(
+            endpoint="trust_certificate",
+            interface="certificates_transfer",
+            remote_app_name="app1",
+        )
+        transfer_relation2 = scenario.Relation(
+            endpoint="trust_certificate",
+            interface="certificates_transfer",
+            remote_app_name="app2",
+        )
+        state_in = scenario.State(
+            config=config,
+            relations={transfer_relation1, transfer_relation2},
         )
 
         self.ctx.run(self.ctx.on.config_changed(), state_in)
