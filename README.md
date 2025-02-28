@@ -38,7 +38,7 @@ juju run manual-tls-certificates/leader provide-certificate \
 
 ## Usage as a provider of certificates to trust
 
-Deploy the charm and integrate it to requirer of `certificate_transfer`:
+Deploy the charm and integrate it to requirer of the `certificate_transfer` interface:
 
 ```bash
 juju deploy --channel beta manual-tls-certificates trusted-certificates
