@@ -666,6 +666,7 @@ class TestCharm:
         "config",
         [
             pytest.param({}, id="Empty config"),
+            pytest.param({"trusted-certificate-bundle": ""}, id="Empty value"),
             pytest.param(
                 {"trusted-certificate-bundle": "Not a cert bundle"},
                 id="Not a cert bundle",
