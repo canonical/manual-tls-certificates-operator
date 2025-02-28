@@ -253,12 +253,11 @@ class ManualTLSCertificatesCharm(CharmBase):
             KeyError: if the configuration is not provided
             ValueError: if the configuration is invalid
         """
-        if bundle := self.model.config.get("trusted-certificate-bundle"):
-            return {
-                cert.public_bytes(serialization.Encoding.PEM).decode("utf-8").strip()
-                for cert in parse_pem_bundle(str(bundle))
-            }
-        raise KeyError("Trust certificate bundle configuration not provided")
+        bundle = self.model.config["trusted-certificate-bundle"]
+        return {
+            cert.public_bytes(serialization.Encoding.PEM).decode("utf-8").strip()
+            for cert in parse_pem_bundle(str(bundle))
+        }
 
     def _csr_exists_in_requirer(self, csr: CertificateSigningRequest, relation_id: int) -> bool:
         """Validate certificates provided in action.
