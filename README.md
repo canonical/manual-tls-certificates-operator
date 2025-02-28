@@ -3,7 +3,7 @@
 
 This charm is used to provide X.509 certificates in environments where certificates are obtained through a manual process.
 
-## Usage as a certificate authority
+## Usage for signing other charms certificates
 
 Deploy the charm and integrate it to a certificate requirer:
 
@@ -38,7 +38,7 @@ juju run manual-tls-certificates/leader provide-certificate \
 
 ## Usage as a provider of certificates to trust
 
-Deploy the charm and integrate it to requirer of the `certificate_transfer` interface:
+Deploy the charm and integrate it to a requirer of the `certificate_transfer` interface:
 
 ```bash
 juju deploy --channel beta manual-tls-certificates trusted-certificates
