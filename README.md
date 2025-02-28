@@ -127,7 +127,7 @@ QsjX6/rAHT19A8H57ogHDUC5hEpH0+2bJGLZPN/OnL8bT1ZNYZ474VaI1w==
 You can configure the charm with that bundle with the command:
 
 ```bash
-juju config trusted-certificates trusted-certificate-bundle="$(cat bundle.pem)"
+juju config trusted-certificates trusted-certificate-bundle=@bundle.pem
 ```
 
 ## Integrations
