@@ -72,7 +72,7 @@ class TestHelpers(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_ca_chain(ca_chain)
 
-    def test_given_multiple_certificate_not_in_a_chain_when_parse_pem_bundle_then_certificate_are_returned(  # noqa: E501
+    def test_given_multiple_certificates_not_as_a_chain_when_parse_pem_bundle_then_certificates_are_returned(  # noqa: E501
         self,
     ):
         private_key1 = generate_private_key()
