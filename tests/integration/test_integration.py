@@ -253,11 +253,6 @@ class TestManualTLSCertificatesOperator:
         assert isinstance(relation, Relation)
 
         await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="blocked",
-            timeout=1000,
-        )
-        await ops_test.model.wait_for_idle(
             apps=[ANY_APP_NAME],
             status="waiting",
             timeout=1000,
