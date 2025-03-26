@@ -10,8 +10,11 @@ Certificates are provided by the operator through Juju configs.
 import base64
 import json
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Set
 
+from charms.certificate_transfer_interface.v1.certificate_transfer import (
+    CertificateTransferProvides,
+)
 from charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
 from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
 from charms.tls_certificates_interface.v4.tls_certificates import (
@@ -22,15 +25,23 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     TLSCertificatesProvidesV4,
 )
 from cryptography.hazmat.primitives import serialization
-from ops.charm import ActionEvent, CharmBase, CollectStatusEvent
+from ops import BlockedStatus
+from ops.charm import (
+    ActionEvent,
+    CharmBase,
+    CollectStatusEvent,
+    ConfigChangedEvent,
+    RelationJoinedEvent,
+)
 from ops.main import main
 from ops.model import ActiveStatus
 
-from helpers import parse_ca_chain
+from helpers import parse_ca_chain, parse_pem_bundle
 
 logger = logging.getLogger(__name__)
 
 CERTIFICATES_RELATION = "certificates"
+CERTIFICATE_TRANSFER_RELATION = "trust_certificate"
 
 
 @trace_charm(
@@ -45,7 +56,12 @@ class ManualTLSCertificatesCharm(CharmBase):
         super().__init__(*args)
         self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
         self.tls_certificates = TLSCertificatesProvidesV4(self, CERTIFICATES_RELATION)
+        self.certificate_transfer = CertificateTransferProvides(
+            self,
+            CERTIFICATE_TRANSFER_RELATION,
+        )
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.on.get_outstanding_certificate_requests_action,
             self._on_get_outstanding_certificate_requests_action,
@@ -53,6 +69,10 @@ class ManualTLSCertificatesCharm(CharmBase):
         self.framework.observe(
             self.on.provide_certificate_action,
             self._on_provide_certificate_action,
+        )
+        self.framework.observe(
+            self.on.trust_certificate_relation_joined,
+            self._on_trust_certificate_relation_joined,
         )
 
     @property
@@ -65,18 +85,43 @@ class ManualTLSCertificatesCharm(CharmBase):
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
         """Centralized status management for the charm."""
+        if self.model.relations.get(CERTIFICATE_TRANSFER_RELATION):
+            try:
+                self._get_trusted_certificate_bundle()
+            except KeyError:
+                event.add_status(ActiveStatus("No trusted certificate bundle configured"))
+                return
+            except ValueError:
+                event.add_status(BlockedStatus("Invalid trusted certificate bundle configured"))
+                return
+
         outstanding_requests_num = len(
             self.tls_certificates.get_outstanding_certificate_requests()
         )
         if outstanding_requests_num == 0:
             event.add_status(ActiveStatus("No outstanding requests."))
             return
+
         event.add_status(
             ActiveStatus(
                 f"{outstanding_requests_num} outstanding requests, "
                 f"use juju actions to provide certificates"
             )
         )
+
+    def _on_config_changed(self, _: ConfigChangedEvent) -> None:
+        """Update certificate_transfer relations when configuration changed.
+
+        Args:
+            event: Juju ConfigChangedEvent
+        """
+        if not self._relation_created(CERTIFICATE_TRANSFER_RELATION):
+            return
+        try:
+            bundle = self._get_trusted_certificate_bundle()
+            self.certificate_transfer.add_certificates(bundle)
+        except (KeyError, ValueError) as e:
+            logger.warning("Trust certificate relation cannot be fulfilled: %s", e)
 
     def _on_get_outstanding_certificate_requests_action(
         self,
@@ -178,6 +223,43 @@ class ManualTLSCertificatesCharm(CharmBase):
             event.fail(message="Relation does not exist with the provided id.")
             return
         event.set_results({"result": "Certificates successfully provided."})
+
+    def _on_trust_certificate_relation_joined(self, event: RelationJoinedEvent) -> None:
+        """Provide trust certificate if configured to new requirer.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            None
+        """
+        try:
+            bundle = self._get_trusted_certificate_bundle()
+            self.certificate_transfer.add_certificates(
+                bundle,
+                relation_id=event.relation.id,
+            )
+        except (KeyError, ValueError) as e:
+            logger.warning("Trust certificate relation cannot be fulfilled: %s", e)
+
+    def _get_trusted_certificate_bundle(self) -> Set[str]:
+        """Provide trust certificate if configured to new requirer.
+
+        Args:
+            event: Juju event.
+
+        Returns:
+            set[Certificate]: Set of certificates in the bundle
+
+        Raises:
+            KeyError: if the configuration is not provided
+            ValueError: if the configuration is invalid
+        """
+        bundle = self.model.config["trusted-certificate-bundle"]
+        return {
+            cert.public_bytes(serialization.Encoding.PEM).decode("utf-8").strip()
+            for cert in parse_pem_bundle(str(bundle))
+        }
 
     def _csr_exists_in_requirer(self, csr: CertificateSigningRequest, relation_id: int) -> bool:
         """Validate certificates provided in action.
