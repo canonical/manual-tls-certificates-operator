@@ -43,8 +43,8 @@ jobs:
         with:
           credentials: ${{ secrets.CHARMCRAFT_AUTH }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          destination-channel: latest/${{ env.promote-to }}
-          origin-channel: latest/${{ env.promote-from }}
-          charmcraft-channel: latest/stable
-          base-channel: "22.04"
+          destination-channel: 1/${{ env.promote-to }}
+          origin-channel: 1/${{ env.promote-from }}
+          charmcraft-channel: 1/stable
+          base-channel: "24.04"
           base-architecture: ${{ github.event.inputs.arch }}

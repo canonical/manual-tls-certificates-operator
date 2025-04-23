@@ -117,7 +117,7 @@ class TestManualTLSCertificatesOperator:
         await ops_test.model.deploy(
             entity_url=charm_path,
             application_name=APPLICATION_NAME,
-            series="jammy",
+            series="noble",
             constraints={"arch": ARCH},
         )
 
