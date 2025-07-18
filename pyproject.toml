@@ -15,10 +15,11 @@ dependencies = [
 test = [
     "coverage[toml]",
     "juju",
+    "ops[testing]",
     "pytest",
     "pytest-operator",
     "pytest-asyncio==0.21.2",
-    "ops[testing]",
+    "requests",
 ]
 dev = [
     "codespell",

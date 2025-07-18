@@ -11,7 +11,7 @@ class AnyCharm(AnyCharmBase):
         super().__init__(*args, **kwargs)
         self.certificate_transfer = CertificateTransferRequires(
             self,
-            "send-ca-cert",
+            "require-certificate-transfer",
         )
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
 
