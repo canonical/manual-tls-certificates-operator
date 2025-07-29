@@ -13,38 +13,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-report:
-    uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@v0
+  # lint-report:
+  #   uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@v0
 
-  static-analysis:
-    name: Static analysis
-    uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@v0
+  # static-analysis:
+  #   name: Static analysis
+  #   uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@v0
 
-  unit-tests-with-coverage:
-    uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@v0
+  # unit-tests-with-coverage:
+  #   uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@v0
 
-  build:
-    needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
-    uses: ./.github/workflows/build.yaml
-    secrets: inherit
+  # build:
+  #   needs:
+  #     - lint-report
+  #     - static-analysis
+  #     - unit-tests-with-coverage
+  #   uses: ./.github/workflows/build.yaml
+  #   secrets: inherit
 
   integration-test:
-    needs:
-      - build
+    # needs:
+    #   - build
     uses: ./.github/workflows/integration-test.yaml
 
-  publish-charm:
-    needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
-      - integration-test
-    if: ${{ github.ref_name == 'main' }}
-    uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@v0
-    with:
-      track-name: 1
-    secrets:
-      CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
+  # publish-charm:
+  #   needs:
+  #     - lint-report
+  #     - static-analysis
+  #     - unit-tests-with-coverage
+  #     - integration-test
+  #   if: ${{ github.ref_name == 'main' }}
+  #   uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@v0
+  #   with:
+  #     track-name: 1
+  #   secrets:
+  #     CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}

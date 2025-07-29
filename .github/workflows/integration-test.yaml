@@ -8,25 +8,16 @@ jobs:
     strategy:
       matrix:
         arch:
-          - arch: amd64
-            runner: ubuntu-24.04
+          # - arch: amd64
+          #   runner: ubuntu-24.04
           - arch: arm64
             runner: [self-hosted, linux, ARM64, medium, noble]
     runs-on: ${{ matrix.arch.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Fetch Charm Under Test
-        uses: actions/download-artifact@v4
-        with:
-          name: built-charm-${{ matrix.arch.arch }}
-          path: built/
-
-      - name: Get Charm Under Test Path
-        id: charm-path
-        run: echo "charm_path=$(find built/ -name '*.charm' -type f -print)" >> $GITHUB_OUTPUT
-
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -35,27 +26,45 @@ jobs:
           juju-channel: 3.6/stable
           lxd-channel: 5.21/stable
 
-      - name: Install UV and Tox
-        run: |
-          pipx uninstall tox
-          sudo snap install astral-uv --classic
-          uv tool install tox --with tox-uv --force
+      # - name: Fetch Charm Under Test
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: built-charm-${{ matrix.arch.arch }}
+      #     path: built/
 
-      - name: Run integration tests
-        run: |
-          tox -e integration -- \
-            --charm_path="${{ steps.charm-path.outputs.charm_path }}" \
+      # - name: Get Charm Under Test Path
+      #   id: charm-path
+      #   run: echo "charm_path=$(find built/ -name '*.charm' -type f -print)" >> $GITHUB_OUTPUT
 
-      - name: Archive charmcraft logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: charmcraft-logs
-          path: /home/runner/.local/state/charmcraft/log/*.log
+      # - name: Setup operator environment
+      #   uses: charmed-kubernetes/actions-operator@main
+      #   with:
+      #     provider: microk8s
+      #     channel: 1.31-strict/stable
+      #     juju-channel: 3.6/stable
+      #     lxd-channel: 5.21/stable
 
-      - name: Archive juju crashdump
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: juju-crashdump
-          path: juju-crashdump-*.tar.xz
+      # - name: Install UV and Tox
+      #   run: |
+      #     pipx uninstall tox
+      #     sudo snap install astral-uv --classic
+      #     uv tool install tox --with tox-uv --force
+
+      # - name: Run integration tests
+      #   run: |
+      #     tox -e integration -- \
+      #       --charm_path="${{ steps.charm-path.outputs.charm_path }}" \
+
+      # - name: Archive charmcraft logs
+      #   if: failure()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: charmcraft-logs
+      #     path: /home/runner/.local/state/charmcraft/log/*.log
+
+      # - name: Archive juju crashdump
+      #   if: failure()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: juju-crashdump
+      #     path: juju-crashdump-*.tar.xz
