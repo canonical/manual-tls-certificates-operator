@@ -27,17 +27,36 @@ jobs:
         id: charm-path
         run: echo "charm_path=$(find built/ -name '*.charm' -type f -print)" >> $GITHUB_OUTPUT
 
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
-          channel: 1.31-strict/stable
-          juju-channel: 3.6/stable
-          lxd-channel: 5.21/stable
+      # Configuring manually instead of using the charmed-kubernetes/actions-operator@main
+      # so we can run sudo microk8s config | juju add-k8s my-k8s --client before bootstrap
+      # This workaround is needed because ARM runners are failing to setup strictly confined microk8s
+      - name: Install charmcraft
+        run: sudo snap install charmcraft --classic
+
+      - name: Install Juju
+        run: |
+          sudo snap install juju --channel=3.6/stable
+
+      - name: Install and setup Microk8s
+        run: |
+          sudo snap install microk8s --channel=1.32/stable --classic
+          sudo microk8s enable dns storage rbac
+
+      - name: Wait for Microk8s to be ready
+        run: |
+          sudo microk8s status --wait-ready
+
+      - name: Add Microk8s to Juju
+        run: |
+          sudo microk8s config | juju add-k8s my-k8s --client
+
+      - name: Bootstrap Juju controller
+        run: |
+          juju bootstrap my-k8s github-pr-${{ github.run_id }}-microk8s
 
       - name: Install UV and Tox
         run: |
-          pipx uninstall tox
+          pipx uninstall tox || true
           sudo snap install astral-uv --classic
           uv tool install tox --with tox-uv --force
 
