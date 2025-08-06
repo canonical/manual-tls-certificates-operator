@@ -52,7 +52,7 @@ jobs:
 
       - name: Bootstrap Juju controller
         run: |
-          juju bootstrap my-k8s github-pr-${{ github.run_id }}-microk8s
+          juju bootstrap my-k8s github-pr-${{ github.run_id }}-microk8s --debug --verbose
 
       - name: Install UV and Tox
         run: |
