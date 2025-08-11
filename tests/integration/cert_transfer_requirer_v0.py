@@ -22,7 +22,7 @@ class AnyCharm(AnyCharmBase):
         try:
             rel = self.model.get_relation(REQUIRES_RELATION_NAME)
             rel_data = rel.data.get(rel.units.pop(), None)
-            if json.loads(rel_data.get("certificates", "[]")).pop().get("ca"):
+            if json.loads(rel_data).pop().get("ca"):
                 event.add_status(ops.ActiveStatus("Received trust certificate"))
                 return
         except Exception:
