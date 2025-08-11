@@ -1,5 +1,3 @@
-import json
-
 import ops
 from any_charm_base import AnyCharmBase  # type: ignore[import]
 from certificate_transfer import (  # type: ignore[import]
@@ -22,7 +20,7 @@ class AnyCharm(AnyCharmBase):
         try:
             rel = self.model.get_relation(REQUIRES_RELATION_NAME)
             rel_data = rel.data.get(rel.units.pop(), None)
-            if json.loads(rel_data).pop().get("ca"):
+            if rel_data.get("ca"):
                 event.add_status(ops.ActiveStatus("Received trust certificate"))
                 return
         except Exception:
