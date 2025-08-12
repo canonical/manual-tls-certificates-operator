@@ -130,6 +130,17 @@ You can configure the charm with that bundle with the command:
 juju config trusted-certificates trusted-certificate-bundle=@bundle.pem
 ```
 
+#### Requirers using version 0 of the `certificate_transfer` interface
+
+This charm uses the `certificate_transfer` library version 1, that supports
+version 1 of the interface. It also has backwards compatibility with version 0
+of the interface. When related to a requirer using version 0 of the interface,
+it is strongly recommended to limit the trusted certificiate bundle to a single
+certificate.
+
+You can confirm if a related requirer is using version 0 by looking at this
+charms's logs.
+
 ## Integrations
 
 This charm provides signed certificates for CSRs using the `tls-certificates` integration.
