@@ -34,10 +34,10 @@ provides:
       Provides certificates for other charms to add to their trust store
 
 type: charm
-base: ubuntu@24.04
+
 platforms:
-  amd64:
-  arm64:
+  ubuntu@24.04:amd64:
+  ubuntu@24.04:arm64:
 
 parts:
   charm:
