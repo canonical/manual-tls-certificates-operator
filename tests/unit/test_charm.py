@@ -544,6 +544,39 @@ class TestCharm:
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
+    def test_given_valid_input_with_no_ca_chain_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
+        self, mock_set_relation_cert: MagicMock, mock_get_certificate_requests: MagicMock
+    ):
+        certificates_relation = scenario.Relation(
+            endpoint="certificates",
+            interface="tls-certificates",
+        )
+        example_unit_csrs = [
+            RequirerCertificateRequest(
+                relation_id=certificates_relation.id,
+                certificate_signing_request=self.csr,
+                is_ca=False,
+            )
+        ]
+        mock_get_certificate_requests.return_value = example_unit_csrs
+        state_in = scenario.State(
+            relations={certificates_relation},
+        )
+        params = {
+            "certificate-signing-request": self.decoded_csr,
+            "certificate": self.decoded_certificate,
+            "ca-certificate": self.decoded_ca_certificate,
+            "relation-id": certificates_relation.id,
+        }
+
+        self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
+
+        assert self.ctx.action_results
+        assert self.ctx.action_results["result"] == "Certificates successfully provided."
+        mock_set_relation_cert.assert_called_once()
+
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
+    @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")
     def test_given_valid_input_without_relation_id_when_provide_certificate_action_then_certificate_is_provided(  # noqa: E501
         self, mock_set_relation_cert: MagicMock, mock_get_certificate_requests: MagicMock
     ):
