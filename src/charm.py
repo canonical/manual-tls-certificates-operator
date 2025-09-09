@@ -169,13 +169,8 @@ class ManualTLSCertificatesCharm(CharmBase):
         if not self._relation_created("certificates"):
             event.fail(message="No certificates relation has been created yet.")
             return
+
         try:
-            ca_chain = [
-                Certificate.from_string(
-                    cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
-                )
-                for cert in parse_ca_chain(decode_action_base64_input(event.params["ca-chain"]))
-            ]
             certificate = Certificate.from_string(
                 decode_action_base64_input(event.params["certificate"])
             )
@@ -185,6 +180,17 @@ class ManualTLSCertificatesCharm(CharmBase):
             csr = CertificateSigningRequest.from_string(
                 decode_action_base64_input(event.params["certificate-signing-request"])
             )
+            if event.params.get("ca-chain"):
+                ca_chain = [
+                    Certificate.from_string(
+                        cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
+                    )
+                    for cert in parse_ca_chain(
+                        decode_action_base64_input(event.params["ca-chain"])
+                    )
+                ]
+            else:
+                ca_chain = [certificate, ca_certificate]
         except KeyError:
             event.fail(message="One or more action parameters are missing.")
             return
