@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import scenario
-from charms.tls_certificates_interface.v4.tls_certificates import (
+from charmlibs.interfaces.tls_certificates import (
     RequirerCertificateRequest,
     TLSCertificatesError,
     generate_ca,
@@ -22,9 +22,7 @@ from charm import ManualTLSCertificatesCharm
 CERTIFICATE_TRANSFER_PROVIDES_PATH = (
     "charms.certificate_transfer_interface.v1.certificate_transfer.CertificateTransferProvides"
 )
-TLS_CERTIFICATES_PROVIDES_PATH = (
-    "charms.tls_certificates_interface.v4.tls_certificates.TLSCertificatesProvidesV4"
-)
+TLS_CERTIFICATES_PROVIDES_PATH = "charmlibs.interfaces.tls_certificates.TLSCertificatesProvidesV4"
 
 
 @pytest.fixture()

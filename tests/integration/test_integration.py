@@ -97,7 +97,6 @@ async def deploy_any_charm_as_cert_transfer_requirer_v0(model: Model):
 
 class TestManualTLSCertificatesOperator:
     @pytest.fixture(scope="module")
-    @pytest.mark.abort_on_fail
     async def charm_path(self, request: pytest.FixtureRequest) -> Path:
         return Path(str(request.config.getoption("--charm_path"))).resolve()
 
@@ -169,6 +168,7 @@ class TestManualTLSCertificatesOperator:
 
         await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
 
+    @pytest.mark.abort_on_fail
     async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
         self, ops_test: OpsTest
     ):

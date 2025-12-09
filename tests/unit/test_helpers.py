@@ -4,7 +4,7 @@
 import unittest
 from datetime import timedelta
 
-from charms.tls_certificates_interface.v4.tls_certificates import (
+from charmlibs.interfaces.tls_certificates import (
     generate_ca,
     generate_certificate,
     generate_csr,
