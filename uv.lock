@@ -148,11 +148,11 @@ wheels = [
 
 [[package]]
 name = "cachetools"
-version = "6.2.2"
+version = "6.2.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/44/ca1675be2a83aeee1886ab745b28cda92093066590233cc501890eb8417a/cachetools-6.2.2.tar.gz", hash = "sha256:8e6d266b25e539df852251cfd6f990b4bc3a141db73b939058d809ebd2590fc6", size = 31571, upload-time = "2025-11-13T17:42:51.465Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/1d/ede8680603f6016887c062a2cf4fc8fdba905866a3ab8831aa8aa651320c/cachetools-6.2.4.tar.gz", hash = "sha256:82c5c05585e70b6ba2d3ae09ea60b79548872185d2f24ae1f2709d37299fd607", size = 31731, upload-time = "2025-12-15T18:24:53.744Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/46/eb6eca305c77a4489affe1c5d8f4cae82f285d9addd8de4ec084a7184221/cachetools-6.2.2-py3-none-any.whl", hash = "sha256:6c09c98183bf58560c97b2abfcedcbaf6a896a490f534b031b661d3723b45ace", size = 11503, upload-time = "2025-11-13T17:42:50.232Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/fc/1d7b80d0eb7b714984ce40efc78859c022cd930e402f599d8ca9e39c78a4/cachetools-6.2.4-py3-none-any.whl", hash = "sha256:69a7a52634fed8b8bf6e24a050fb60bff1c9bd8f6d24572b99c32d4e71e62a51", size = 11551, upload-time = "2025-12-15T18:24:52.332Z" },
 ]
 
 [[package]]
@@ -248,16 +248,16 @@ wheels = [
 
 [[package]]
 name = "charmlibs-interfaces-tls-certificates"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/61/78/92c123d5e78c0e5d677f549fc103ba782a903a3a64767c309b1623c262fa/charmlibs_interfaces_tls_certificates-1.2.0.tar.gz", hash = "sha256:cdfc9bdee251830db80a5fcb11affaf53f840aeb06e19ff6b5c4304153ef8419", size = 122490, upload-time = "2025-12-06T10:29:20.173Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/c6/98bdbea34a6889774ce7fde1dc7f1fc16a603900d4530c34779503900ec4/charmlibs_interfaces_tls_certificates-1.3.0.tar.gz", hash = "sha256:db9ccd7af335b51c69c3f82ff4637a77adbfa017e2dc137bed2fcee30839547d", size = 126761, upload-time = "2025-12-17T18:24:31.131Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/52/58fe2d50b77c76b6c399729292bcedb2ef7d241cac2a92f0675f19e143bc/charmlibs_interfaces_tls_certificates-1.2.0-py3-none-any.whl", hash = "sha256:65a83b69487c67817d7a74195c1c7e828d6e69c85a60a37310254f59db9ad692", size = 21208, upload-time = "2025-12-06T10:29:18.576Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/9f/5511c063bed2f3cb7deb40100de9675deb144bf121026af361ba2487087c/charmlibs_interfaces_tls_certificates-1.3.0-py3-none-any.whl", hash = "sha256:20463ff94e9b45d54cbccc5b2dde43ab486f3805461a65d9c11e66c2ce8f1261", size = 22577, upload-time = "2025-12-17T18:24:29.753Z" },
 ]
 
 [[package]]
@@ -568,16 +568,16 @@ wheels = [
 
 [[package]]
 name = "google-auth"
-version = "2.43.0"
+version = "2.45.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
     { name = "pyasn1-modules" },
     { name = "rsa" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/ef/66d14cf0e01b08d2d51ffc3c20410c4e134a1548fc246a6081eae585a4fe/google_auth-2.43.0.tar.gz", hash = "sha256:88228eee5fc21b62a1b5fe773ca15e67778cb07dc8363adcb4a8827b52d81483", size = 296359, upload-time = "2025-11-06T00:13:36.587Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/00/3c794502a8b892c404b2dea5b3650eb21bfc7069612fbfd15c7f17c1cb0d/google_auth-2.45.0.tar.gz", hash = "sha256:90d3f41b6b72ea72dd9811e765699ee491ab24139f34ebf1ca2b9cc0c38708f3", size = 320708, upload-time = "2025-12-15T22:58:42.889Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/d1/385110a9ae86d91cc14c5282c61fe9f4dc41c0b9f7d423c6ad77038c4448/google_auth-2.43.0-py2.py3-none-any.whl", hash = "sha256:af628ba6fa493f75c7e9dbe9373d148ca9f4399b5ea29976519e0a3848eddd16", size = 223114, upload-time = "2025-11-06T00:13:35.209Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/97/451d55e05487a5cd6279a01a7e34921858b16f7dc8aa38a2c684743cd2b3/google_auth-2.45.0-py2.py3-none-any.whl", hash = "sha256:82344e86dc00410ef5382d99be677c6043d72e502b625aa4f4afa0bdacca0f36", size = 233312, upload-time = "2025-12-15T22:58:40.777Z" },
 ]
 
 [[package]]
@@ -863,7 +863,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.2" },
+    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.3" },
     { name = "cryptography" },
     { name = "jsonschema" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
