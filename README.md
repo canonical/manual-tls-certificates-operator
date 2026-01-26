@@ -1,4 +1,5 @@
 # Manual TLS Certificates
+
 [![CharmHub Badge](https://charmhub.io/manual-tls-certificates/badge.svg)](https://charmhub.io/manual-tls-certificates)
 
 This charm is used to provide X.509 certificates in environments where certificates are obtained through a manual process.
@@ -35,6 +36,40 @@ juju run manual-tls-certificates/leader provide-certificate \
   ca-certificate="$(base64 -w0 ca-certificate.pem)" \
   certificate-signing-request="$(base64 -w0 csr.pem)" \
 ```
+
+### Refreshing/Rotating Certificates
+
+Certificates can be refreshed or rotated without recreating relations. This is useful when:
+
+- Certificates are expiring and need renewal
+- You need to rotate your certificate authority (CA) certificates
+- You want to update certificate details while maintaining existing integrations
+
+#### Process Overview
+
+To update certificates this way, you need to have the existing certificate signing request (CSR) and provide new certificate data using the `provide-certificate` action.
+
+If you have the original CSR files, you can use that directly.
+Otherwise, if saved, it can be retrieved from the operator:
+
+  ```bash
+  juju show-unit manual-tls-certificates/0 --endpoint certificates
+  ```
+
+Under the `certificate_signing_request` field in the `related-units` data.
+
+Generate or obtain new certificates, using your certificate authority while ensuring the certificates match the same CSR.
+
+Provide the new certificates by running:
+
+  ```bash
+  juju run manual-tls-certificates/leader provide-certificate \
+  relation-id=<id> \
+  certificate="$(base64 -w0 renewed-certificate.pem)" \
+  ca-chain="$(base64 -w0 renewed-ca-chain.pem)" \
+  ca-certificate="$(base64 -w0 renewed-ca-certificate.pem)" \
+  certificate-signing-request="$(base64 -w0 original-csr.pem)"
+  ```
 
 ## Usage as a provider of certificates to trust
 
