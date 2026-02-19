@@ -239,16 +239,16 @@ wheels = [
 
 [[package]]
 name = "charmlibs-interfaces-tls-certificates"
-version = "1.6.1"
+version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/53/62/5b67367bdfa103b1f3387e79ede47dcc4b409f75d25aa066edd884fadd53/charmlibs_interfaces_tls_certificates-1.6.1.tar.gz", hash = "sha256:b53a34479c6fbd943b53e970bd30d1defbc29d4959960894076140a81e373212", size = 134974, upload-time = "2026-02-05T15:53:06.099Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/fa/9c20a264c42adcad31293e4588e421c53ae24c105199e4e1c9d7374a4e64/charmlibs_interfaces_tls_certificates-1.7.0.tar.gz", hash = "sha256:7fe79c78fab51a864c96d8d731049479610a014152a75dd585568ad268ecaafa", size = 145552, upload-time = "2026-02-19T10:43:57.758Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/c5/bc61043eed16e90c18c46dc4022167d271c6c2a8984b7f1a827122348cb2/charmlibs_interfaces_tls_certificates-1.6.1-py3-none-any.whl", hash = "sha256:ac331b4ce49b79ac7005717d684259def7fa1e6b1f222c7bd849d0d34bbd5f97", size = 23651, upload-time = "2026-02-05T15:53:04.776Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/13/e37838eb262a18c138851d7c3632678525bc2af886fb06fc75627018745c/charmlibs_interfaces_tls_certificates-1.7.0-py3-none-any.whl", hash = "sha256:a810191f804d6875704390f57ed46775ad94a0d9932785c71d9459f30db30f6d", size = 26728, upload-time = "2026-02-19T10:43:56.441Z" },
 ]
 
 [[package]]
@@ -550,7 +550,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -863,7 +863,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.6" },
+    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.7" },
     { name = "cryptography" },
     { name = "jsonschema" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
