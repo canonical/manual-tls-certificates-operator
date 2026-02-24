@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.10"
 
 dependencies = [
-    "charmlibs-interfaces-tls-certificates~=1.7",
+    "charmlibs-interfaces-tls-certificates~=1.8",
     "cryptography",
     "jsonschema",
     "ops",
