@@ -153,6 +153,7 @@ class TestManualTLSCertificatesOperator:
             "ca_cert": ca_cert,
         }
 
+    @pytest.mark.abort_on_fail
     async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
         self, ops_test: OpsTest, charm_path: Path
     ):
