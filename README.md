@@ -170,7 +170,7 @@ juju config trusted-certificates trusted-certificate-bundle=@bundle.pem
 This charm uses the `certificate_transfer` library version 1, that supports
 version 1 of the interface. It also has backwards compatibility with version 0
 of the interface. When related to a requirer using version 0 of the interface,
-it is strongly recommended to limit the trusted certificiate bundle to a single
+it is strongly recommended to limit the trusted certificate bundle to a single
 certificate.
 
 You can confirm if a related requirer is using version 0 by looking at this
