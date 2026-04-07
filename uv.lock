@@ -652,11 +652,11 @@ wheels = [
 
 [[package]]
 name = "invoke"
-version = "3.0.1"
+version = "3.0.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ed/60/dd6f8a80927e742ac04097ed927e96875318fba456dfc917c2698dc82856/invoke-3.0.1.tar.gz", hash = "sha256:7759ab2f4f268668c4e72cac04465e50059a76a92e5005b5f2ad5803e29c61bc", size = 308935, upload-time = "2026-04-06T22:35:07.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/28/fa87042c0685ed0c168a87f1aae4bc511b598a604930052da91ff3cc3bbc/invoke-3.0.2.tar.gz", hash = "sha256:a4613e79ad35b5d9f9781af09452b8d505a3ecdc0169b729bf0426574700f817", size = 309130, upload-time = "2026-04-06T23:22:39.629Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/13/d6a31f646955014fad9a7ecd281b56dd718cbb5a2851ecadaa77197c2aef/invoke-3.0.1-py3-none-any.whl", hash = "sha256:a16cb37ff03206255aa63ef410f6344b432504cdd77e0d6e28fa4b7c881573c0", size = 160935, upload-time = "2026-04-06T22:35:06.335Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/99/ce10f1c29c34a1daa0a5d2b5b8b67509e4f3fad92c16eb8847834476bfb1/invoke-3.0.2-py3-none-any.whl", hash = "sha256:2a74699f3059c05774e155c90d6de1f71e5cae4aeeded394818a1b6eec907464", size = 160976, upload-time = "2026-04-06T23:22:38.303Z" },
 ]
 
 [[package]]
