@@ -9,7 +9,7 @@ dependencies = [
     "jsonschema",
     "ops",
     "opentelemetry-exporter-otlp-proto-http",
-    "pydantic==2.13.1",
+    "pydantic==2.13.2",
 ]
 
 [dependency-groups]
