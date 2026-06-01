@@ -8,45 +8,60 @@ for the Juju Terraform provider.
 
 ## Requirements
 
-This module requires a Juju model to be available. Refer to the [usage](#usage)
-section for more details.
+- Terraform >= 1.0
+- Juju Terraform provider >= 1.0.0, < 2.0.0
+- An existing Juju model
 
 ## API
 
 ### Inputs
 
-This module offers the following configurable inputs:
-
-| Name          | Type         | Description                                               | Default                    | Required |
-|:--------------|:-------------|:----------------------------------------------------------|:---------------------------|:--------:|
-| `app_name`    | string       | Application name                                          | manual-tls-certificates    |          |
-| `base`        | string       | Base version to use for deployed machine                  | ubuntu@22.04               |          |
-| `channel`     | string       | Channel that charm is deployed from                       | latest/stable              |          |
-| `config`      | map(string)  | Map of charm configuration options to pass at deployment  | {}                         |          |
-| `constraints` | string       | Constraints for the charm deployment                      | ""                         |          |
-| `model_uuid`  | string       | UUID of the Juju model to deploy to                       |                            |    Y     |
-| `revision`    | number       | Revision number of charm to deploy                        | null                       |          |
-| `units`       | number       | Number of units to deploy                                 | 1                          |          |
+| Name          | Type        | Description                                                        | Default                     | Required |
+|---------------|-------------|--------------------------------------------------------------------|-----------------------------|:--------:|
+| `app_name`    | string      | Name of the application                                            | `"manual-tls-certificates"` |          |
+| `base`        | string      | Operating system (e.g. ubuntu@22.04)                               | `null`                      |          |
+| `channel`     | string      | Charm channel to deploy from                                       | `"1/stable"`                |          |
+| `config`      | map(string) | Map of charm configuration options                                 | `{}`                        |          |
+| `constraints` | string      | Constraints string                                                 | `null`                      |          |
+| `model_uuid`  | string      | UUID of the Juju model to deploy the charm into                    |                             |    Y     |
+| `revision`    | number      | Charm revision to deploy. Null deploys the latest on given channel | `null`                      |          |
+| `units`       | number      | Number of application units to deploy                              | `1`                         |          |
 
 ### Outputs
 
-After applying, the module exports the following outputs:
+| Name          | Description                              |
+|---------------|------------------------------------------|
+| `application` | The deployed `juju_application` resource |
+| `provides`    | Map of provides endpoint names           |
+| `requires`    | Map of requires endpoint names           |
 
-| Name       | Description                 |
-|:-----------|:----------------------------|
-| `app_name` | Application name            |
-| `provides` | Map of `provides` endpoints |
-| `requires` | Map of `requires` endpoints |
+The `provides` output exposes the following endpoint names:
+
+| Key                 | Endpoint name       |
+|---------------------|---------------------|
+| `certificates`      | `certificates`      |
+| `trust_certificate` | `trust_certificate` |
+
+The `requires` output exposes the following endpoint names:
+
+| Key       | Endpoint name |
+|-----------|---------------|
+| `tracing` | `tracing`     |
 
 ## Usage
 
-Users should ensure that Terraform is aware of the Juju model dependency of the
-charm module.
+Ensure that Terraform is aware of the Juju model dependency of the charm module.
 
-To deploy this module with its required dependency, you can run
-the following command:
+```hcl
+module "manual-tls-certificates" {
+  source     = "git::https://github.com/canonical/manual-tls-certificates-operator//terraform"
+  model_uuid = juju_model.my_model.uuid
+}
+```
+
+To deploy this module with its required dependency, you can run the following
+command:
 
 ```shell
 terraform apply -var="model_uuid=<MODEL_UUID>" -auto-approve
 ```
-
