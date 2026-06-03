@@ -246,7 +246,7 @@ class TestManualTLSCertificatesOperator:
             lambda status: jubilant.all_active(status, APPLICATION_NAME),
             timeout=300,
         )
-        juju.remove_unit(f"{APPLICATION_NAME}/1", f"{APPLICATION_NAME}/2")
+        juju.remove_unit(APPLICATION_NAME, num_units=2)
         juju.wait(
             lambda status: (
                 APPLICATION_NAME in status.apps
