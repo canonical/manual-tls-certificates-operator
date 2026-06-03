@@ -8,8 +8,8 @@ import logging
 import platform
 import time
 from pathlib import Path
-from typing import Dict
 
+import jubilant
 import pytest
 import requests
 from cryptography import x509
@@ -17,10 +17,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from juju.model import Model
-from juju.relation import Relation
-from juju.unit import Unit
-from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
@@ -40,35 +36,26 @@ TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
 TRUSTED_PEM = "./tests/integration/trusted_certs.pem"
 
 
-async def deploy_tls_requirer_charm(ops_test: OpsTest):
-    assert ops_test.model
-    await ops_test.model.deploy(
+def deploy_tls_requirer_charm(juju: jubilant.Juju) -> None:
+    """Deploy the tls-certificates-requirer charm."""
+    juju.deploy(
         TLS_REQUIRER_CHARM_NAME,
-        application_name=TLS_REQUIRER_CHARM_NAME,
         revision=REQUIRER_CHARM_REVISION_ARM if ARCH == "arm64" else REQUIRER_CHARM_REVISION_AMD,
         channel="stable",
         constraints={"arch": ARCH},
     )
 
 
-async def get_leader_unit(model: Model, application_name: str) -> Unit:
-    """Return the leader unit for the given application."""
-    for unit in model.units.values():
-        if unit.application == application_name and await unit.is_leader_from_status():
-            return unit
-    raise RuntimeError(f"Leader unit for `{application_name}` not found.")
-
-
-async def deploy_any_charm_as_cert_transfer_requirer(model: Model):
+def deploy_any_charm_as_cert_transfer_requirer(juju: jubilant.Juju) -> None:
     """Deploy AnyCharm as a certificate_transfer requirer."""
     cert_transfer_lib = Path(CERT_TRANSFER_V1_LIB_PATH).read_text()
     any_charm_src_overwrite = {
         "certificate_transfer.py": cert_transfer_lib,
         "any_charm.py": Path(CERT_TRANSFER_REQUIRER_V1_PATH).read_text(),
     }
-    await model.deploy(
+    juju.deploy(
         "any-charm",
-        application_name=CERT_TRANSFER_REQUIRER_V1_APP_NAME,
+        CERT_TRANSFER_REQUIRER_V1_APP_NAME,
         channel="beta",
         config={
             "src-overwrite": json.dumps(any_charm_src_overwrite),
@@ -77,16 +64,16 @@ async def deploy_any_charm_as_cert_transfer_requirer(model: Model):
     )
 
 
-async def deploy_any_charm_as_cert_transfer_requirer_v0(model: Model):
-    """Deploy AnyCharm as a certificate_transfer requirer."""
+def deploy_any_charm_as_cert_transfer_requirer_v0(juju: jubilant.Juju) -> None:
+    """Deploy AnyCharm as a certificate_transfer requirer (v0)."""
     cert_transfer_lib = requests.get(CERT_TRANSFER_V0_LIB_URL, timeout=10).text
     any_charm_src_overwrite = {
         "certificate_transfer.py": cert_transfer_lib,
         "any_charm.py": Path(CERT_TRANSFER_REQUIRER_V0_PATH).read_text(),
     }
-    await model.deploy(
+    juju.deploy(
         "any-charm",
-        application_name=CERT_TRANSFER_REQUIRER_V0_APP_NAME,
+        CERT_TRANSFER_REQUIRER_V0_APP_NAME,
         channel="beta",
         config={
             "src-overwrite": json.dumps(any_charm_src_overwrite),
@@ -96,10 +83,6 @@ async def deploy_any_charm_as_cert_transfer_requirer_v0(model: Model):
 
 
 class TestManualTLSCertificatesOperator:
-    @pytest.fixture(scope="module")
-    async def charm_path(self, request: pytest.FixtureRequest) -> Path:
-        return Path(str(request.config.getoption("--charm_path"))).resolve()
-
     @staticmethod
     def get_certificate_and_ca_certificate_from_csr(csr: str) -> dict:
         """Create a Certificate and a CA certificate from a CSR.
@@ -153,75 +136,73 @@ class TestManualTLSCertificatesOperator:
             "ca_cert": ca_cert,
         }
 
-    async def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
-        self, ops_test: OpsTest, charm_path: Path
+    @pytest.mark.juju_setup
+    def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
+        self, juju: jubilant.Juju, charm: Path
     ):
-        assert ops_test.model
         logger.info("Deploying charms for architecture: %s", ARCH)
-        await ops_test.model.set_constraints({"arch": ARCH})
-        await ops_test.model.deploy(
-            entity_url=charm_path,
-            application_name=APPLICATION_NAME,
-            series="noble",
+        juju.model_constraints({"arch": ARCH})
+        juju.deploy(
+            charm,
+            APPLICATION_NAME,
+            base="ubuntu@24.04",
             constraints={"arch": ARCH},
         )
 
-        await ops_test.model.wait_for_idle(apps=[APPLICATION_NAME], status="active", timeout=1000)
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
+            timeout=1000,
+        )
 
-    @pytest.mark.abort_on_fail
-    async def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
-        self, ops_test: OpsTest
+    @pytest.mark.juju_setup
+    def test_given_requirer_requests_certificate_creation_when_deploy_then_status_is_active(  # noqa: E501
+        self, juju: jubilant.Juju
     ):
-        assert ops_test.model
-        await deploy_tls_requirer_charm(ops_test)
+        deploy_tls_requirer_charm(juju)
 
-        await ops_test.model.integrate(
-            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
-        )
+        juju.integrate(APPLICATION_NAME, TLS_REQUIRER_CHARM_NAME)
 
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="active",
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
             timeout=1000,
         )
 
-    async def test_given_tls_requirer_is_deployed_with_3_units_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
-        self, ops_test: OpsTest
+    def test_given_tls_requirer_is_deployed_with_3_units_and_related_when_provide_certificate_then_certificate_is_passed_correctly(  # noqa: E501
+        self, juju: jubilant.Juju
     ):
-        assert ops_test.model
-        await ops_test.model.applications[TLS_REQUIRER_CHARM_NAME].destroy_relation(
-            local_relation="certificates",
-            remote_relation=f"{APPLICATION_NAME}:certificates",
-            block_until_done=True,
+        juju.remove_relation(
+            f"{TLS_REQUIRER_CHARM_NAME}:certificates",
+            f"{APPLICATION_NAME}:certificates",
+        )
+        # Wait for the dying relation to be fully removed before re-integrating.
+        # This mirrors the block_until_done=True behaviour of the old API.
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
+            timeout=300,
         )
 
-        await ops_test.model.applications[APPLICATION_NAME].scale(3)
+        juju.add_unit(APPLICATION_NAME, num_units=2)
 
-        relation = await ops_test.model.integrate(
-            relation1=APPLICATION_NAME, relation2=TLS_REQUIRER_CHARM_NAME
-        )
-        assert isinstance(relation, Relation)
+        juju.integrate(APPLICATION_NAME, TLS_REQUIRER_CHARM_NAME)
 
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="active",
-            timeout=1000,
-            wait_for_at_least_units=3,
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[TLS_REQUIRER_CHARM_NAME],
-            status="active",
+        juju.wait(
+            lambda status: (
+                APPLICATION_NAME in status.apps
+                and len(status.apps[APPLICATION_NAME].units) >= 3
+                and jubilant.all_active(status, APPLICATION_NAME)
+            ),
             timeout=1000,
         )
-
-        await _wait_for_certificate_request(ops_test)
-
-        get_outstanding_csrs_action_output = await run_get_outstanding_csrs_action(ops_test)
-
-        get_outstanding_csrs_action_output = json.loads(
-            get_outstanding_csrs_action_output["result"]
+        juju.wait(
+            lambda status: jubilant.all_active(status, TLS_REQUIRER_CHARM_NAME),
+            timeout=1000,
         )
-        csr = get_outstanding_csrs_action_output[0]["csr"]
+
+        _wait_for_certificate_request(juju)
+
+        task = run_get_outstanding_csrs_action(juju)
+        outstanding_csrs = json.loads(task.results.get("result", "[]"))
+        csr = outstanding_csrs[0]["csr"]
 
         csr_bytes = base64.b64encode(csr.encode("utf-8"))
 
@@ -233,22 +214,21 @@ class TestManualTLSCertificatesOperator:
         ca_chain_pem = certificate_pem + ca_certificate_pem
         ca_chain_bytes = base64.b64encode(ca_chain_pem)
 
-        await run_provide_certificate_action(
-            ops_test,
+        run_provide_certificate_action(
+            juju,
             certificate=certificate_bytes.decode("utf-8"),
             ca_certificate=ca_certificate_bytes.decode("utf-8"),
             ca_chain=ca_chain_bytes.decode("utf-8"),
             csr=csr_bytes.decode("utf-8"),
         )
 
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME, TLS_REQUIRER_CHARM_NAME],
-            status="active",
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME, TLS_REQUIRER_CHARM_NAME),
             timeout=1000,
         )
 
-        requirer_certificates = await wait_for_requirer_certificates(
-            ops_test, unit_name=f"{TLS_REQUIRER_CHARM_NAME}/0"
+        requirer_certificates = wait_for_requirer_certificates(
+            juju, unit_name=f"{TLS_REQUIRER_CHARM_NAME}/0"
         )
 
         assert requirer_certificates.get("certificate", "") == certificate_pem.decode(
@@ -258,135 +238,119 @@ class TestManualTLSCertificatesOperator:
             "utf-8"
         ).strip("\n")
 
-        await ops_test.model.applications[TLS_REQUIRER_CHARM_NAME].destroy_relation(
-            local_relation="certificates",
-            remote_relation=f"{APPLICATION_NAME}:certificates",
-            block_until_done=True,
+        juju.remove_relation(
+            f"{TLS_REQUIRER_CHARM_NAME}:certificates",
+            f"{APPLICATION_NAME}:certificates",
         )
-        await ops_test.model.applications[APPLICATION_NAME].scale(1)
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
+            timeout=300,
+        )
+        juju.remove_unit(APPLICATION_NAME, num_units=2)
+        juju.wait(
+            lambda status: (
+                APPLICATION_NAME in status.apps
+                and len(status.apps[APPLICATION_NAME].units) == 1
+                and jubilant.all_active(status, APPLICATION_NAME)
+            ),
+            timeout=1000,
+        )
 
-    async def test_given_certificate_transfer_requirer_v1_related_when_config_changed_then_certificate_is_passed(  # noqa: E501
-        self, ops_test: OpsTest
+    def test_given_certificate_transfer_requirer_v1_related_when_config_changed_then_certificate_is_passed(  # noqa: E501
+        self, juju: jubilant.Juju
     ):
-        assert ops_test.model
-
-        await deploy_any_charm_as_cert_transfer_requirer(ops_test.model)
-        relation = await ops_test.model.integrate(
-            relation1=f"{APPLICATION_NAME}:trust_certificate",
-            relation2=f"{CERT_TRANSFER_REQUIRER_V1_APP_NAME}:require-certificate-transfer",
+        deploy_any_charm_as_cert_transfer_requirer(juju)
+        juju.integrate(
+            f"{APPLICATION_NAME}:trust_certificate",
+            f"{CERT_TRANSFER_REQUIRER_V1_APP_NAME}:require-certificate-transfer",
         )
-        assert isinstance(relation, Relation)
 
-        await ops_test.model.wait_for_idle(
-            apps=[CERT_TRANSFER_REQUIRER_V1_APP_NAME],
-            status="waiting",
+        juju.wait(
+            lambda status: jubilant.all_waiting(status, CERT_TRANSFER_REQUIRER_V1_APP_NAME),
             timeout=1000,
         )
 
-        await ops_test.model.applications[APPLICATION_NAME].set_config(
-            {
-                "trusted-certificate-bundle": Path(TRUSTED_PEM).read_text(),
-            }
+        juju.config(
+            APPLICATION_NAME, {"trusted-certificate-bundle": Path(TRUSTED_PEM).read_text()}
         )
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="active",
+
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
             timeout=1000,
         )
-        await ops_test.model.wait_for_idle(
-            apps=[CERT_TRANSFER_REQUIRER_V1_APP_NAME],
-            status="active",
+        juju.wait(
+            lambda status: jubilant.all_active(status, CERT_TRANSFER_REQUIRER_V1_APP_NAME),
             timeout=1000,
         )
 
-    async def test_given_certificate_transfer_requirer_v0_related_when_config_changed_then_certificate_is_passed(  # noqa: E501
-        self, ops_test: OpsTest
+    def test_given_certificate_transfer_requirer_v0_related_when_config_changed_then_certificate_is_passed(  # noqa: E501
+        self, juju: jubilant.Juju
     ):
-        assert ops_test.model
-
-        await deploy_any_charm_as_cert_transfer_requirer_v0(ops_test.model)
-        await ops_test.model.wait_for_idle(
-            apps=[CERT_TRANSFER_REQUIRER_V0_APP_NAME],
-            status="waiting",
+        deploy_any_charm_as_cert_transfer_requirer_v0(juju)
+        juju.wait(
+            lambda status: jubilant.all_waiting(status, CERT_TRANSFER_REQUIRER_V0_APP_NAME),
             timeout=1000,
         )
 
-        relation = await ops_test.model.integrate(
-            relation1=f"{APPLICATION_NAME}:trust_certificate",
-            relation2=f"{CERT_TRANSFER_REQUIRER_V0_APP_NAME}:require-certificate-transfer",
+        juju.integrate(
+            f"{APPLICATION_NAME}:trust_certificate",
+            f"{CERT_TRANSFER_REQUIRER_V0_APP_NAME}:require-certificate-transfer",
         )
-        assert isinstance(relation, Relation)
 
-        await ops_test.model.applications[APPLICATION_NAME].set_config(
-            {
-                "trusted-certificate-bundle": Path(TRUSTED_PEM).read_text(),
-            }
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[APPLICATION_NAME],
-            status="active",
+        juju.wait(
+            lambda status: jubilant.all_active(status, APPLICATION_NAME),
             timeout=1000,
         )
-        await ops_test.model.wait_for_idle(
-            apps=[CERT_TRANSFER_REQUIRER_V0_APP_NAME],
-            status="active",
+        juju.wait(
+            lambda status: jubilant.all_active(status, CERT_TRANSFER_REQUIRER_V0_APP_NAME),
             timeout=1000,
         )
 
 
-async def run_get_certificate_action(ops_test: OpsTest, unit_name: str) -> dict:
+def run_get_certificate_action(juju: jubilant.Juju, unit_name: str) -> jubilant.Task:
     """Run `get-certificate` on the unit provided.
 
     Args:
-        ops_test (OpsTest): OpsTest
-        unit_name (str): Unit name
+        juju: Jubilant Juju instance.
+        unit_name: Unit name.
 
     Returns:
-        dict: Action output
-        str: Unit name
+        Task containing the action result.
     """
-    assert ops_test.model
-    tls_requirer_unit = ops_test.model.units[unit_name]
-    action = await tls_requirer_unit.run_action(action_name="get-certificate")
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
-    return action_output
+    return juju.run(unit_name, "get-certificate", wait=240)
 
 
-async def run_get_outstanding_csrs_action(ops_test: OpsTest) -> dict:
-    """Run `get-outstanding-certificate-requests` on the `manual-tls-certificates/leader` unit.
+def run_get_outstanding_csrs_action(juju: jubilant.Juju) -> jubilant.Task:
+    """Run `get-outstanding-certificate-requests` on the leader unit.
 
     Args:
-        ops_test (OpsTest): OpsTest
+        juju: Jubilant Juju instance.
 
     Returns:
-        dict: Action output
+        Task containing the action result.
     """
-    assert ops_test.model
-    manual_tls_unit = await get_leader_unit(ops_test.model, APPLICATION_NAME)
-    action = await manual_tls_unit.run_action(
-        action_name="get-outstanding-certificate-requests",
+    return juju.run(
+        f"{APPLICATION_NAME}/leader",
+        "get-outstanding-certificate-requests",
+        wait=240,
     )
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
-    return action_output
 
 
-async def _wait_for_certificate_request(ops_test: OpsTest):
+def _wait_for_certificate_request(juju: jubilant.Juju) -> None:
     """Wait for the certificate request to be created."""
-    assert ops_test.model
     start_time = time.time()
     timeout = 60 * 5
     while time.time() < start_time + timeout:
-        action_output = await run_get_outstanding_csrs_action(ops_test)
-        action_output_result = json.loads(action_output["result"])
-        csr = action_output_result[0].get("csr", None)
-        if csr:
+        task = run_get_outstanding_csrs_action(juju)
+        result = json.loads(task.results.get("result", "[]"))
+        if result and result[0].get("csr"):
             return
         time.sleep(5)
     raise TimeoutError("Timeout waiting for certificate request.")
 
 
-async def wait_for_requirer_certificates(ops_test: OpsTest, unit_name: str) -> Dict[str, str]:
-    """Wait for the certificate to be provided to the `tls-requirer-requirer/0` unit.
+def wait_for_requirer_certificates(juju: jubilant.Juju, unit_name: str) -> dict[str, str]:
+    """Wait for the certificate to be provided to the given unit.
 
     Returns the certificate output from the get-certificate action if successful.
     Otherwise, times out and raises a TimeoutError.
@@ -396,10 +360,14 @@ async def wait_for_requirer_certificates(ops_test: OpsTest, unit_name: str) -> D
     while time.time() - t0 < timeout:
         logger.info("Waiting for requirer certificates")
         time.sleep(5)
-        action_output = await run_get_certificate_action(ops_test, unit_name=unit_name)
+        task = run_get_certificate_action(juju, unit_name=unit_name)
         try:
-            certificates = json.loads(action_output.get("certificates", ""))[0]
-        except json.JSONDecodeError:
+            certs_raw = task.results.get("certificates", "")
+            if isinstance(certs_raw, list):
+                certificates = certs_raw[0]
+            else:
+                certificates = json.loads(certs_raw)[0]
+        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
             continue
         ca_certificate = certificates.get("ca-certificate", "")
         certificate = certificates.get("certificate", "")
@@ -409,35 +377,33 @@ async def wait_for_requirer_certificates(ops_test: OpsTest, unit_name: str) -> D
     raise TimeoutError("Timed out waiting for certificate")
 
 
-async def run_provide_certificate_action(
-    ops_test: OpsTest,
+def run_provide_certificate_action(
+    juju: jubilant.Juju,
     certificate: str,
     ca_certificate: str,
     ca_chain: str,
     csr: str,
-) -> dict:
-    """Run `provide-certificate` on the `manual-tls-certificates/leader` unit.
+) -> jubilant.Task:
+    """Run `provide-certificate` on the leader unit.
 
     Args:
-        ops_test (OpsTest): OpsTest
-        certificate (str): Certificate
-        ca_certificate (str): CA Certificate
-        ca_chain (str): CA Chain
-        csr (str): CSR
+        juju: Jubilant Juju instance.
+        certificate: Certificate (base64-encoded).
+        ca_certificate: CA Certificate (base64-encoded).
+        ca_chain: CA Chain (base64-encoded).
+        csr: CSR (base64-encoded).
 
     Returns:
-        dict: Action output
+        Task containing the action result.
     """
-    assert ops_test.model
-    manual_tls_unit = await get_leader_unit(ops_test.model, APPLICATION_NAME)
-    action = await manual_tls_unit.run_action(
-        action_name="provide-certificate",
-        **{
+    return juju.run(
+        f"{APPLICATION_NAME}/leader",
+        "provide-certificate",
+        {
             "certificate": certificate,
             "ca-certificate": ca_certificate,
             "ca-chain": ca_chain,
             "certificate-signing-request": csr,
         },
+        wait=240,
     )
-    action_output = await ops_test.model.get_action_output(action_uuid=action.entity_id, wait=240)
-    return action_output
