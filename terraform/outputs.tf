@@ -1,14 +1,13 @@
 # Copyright 2024-2026 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-
-output "app_name" {
-  description = "Application name"
-  value       = juju_application.manual_tls_certificates.name
+output "application" {
+  description = "The deployed `juju_application` resource"
+  value       = juju_application.manual_tls_certificates
 }
 
 output "provides" {
-  description = "Map of provides endpoints"
+  description = "Map of provides endpoint names"
   value = {
     certificates      = "certificates"
     trust_certificate = "trust_certificate"
@@ -16,7 +15,7 @@ output "provides" {
 }
 
 output "requires" {
-  description = "Map of requires endpoints"
+  description = "Map of requires endpoint names"
   value = {
     tracing = "tracing"
   }

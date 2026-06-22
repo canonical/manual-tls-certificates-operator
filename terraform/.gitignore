@@ -2,8 +2,7 @@
 **/.terraform/*
 
 # .tfstate files
-*.tfstate
-*.tfstate.*
+*.tfstate*
 
 # Crash log files
 crash.log
@@ -23,6 +22,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Lock file (optional - remove this line if you want to commit the lock file)
+# Lock file
 .terraform.lock.hcl
 
