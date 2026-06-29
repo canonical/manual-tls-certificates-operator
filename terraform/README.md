@@ -37,6 +37,7 @@ After applying, the module exports the following outputs:
 | `app_name` | Application name            |
 | `provides` | Map of `provides` endpoints |
 | `requires` | Map of `requires` endpoints |
+| `offers`   | Map of Juju offer URLs      |
 
 ## Usage
 

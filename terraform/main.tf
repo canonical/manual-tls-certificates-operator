@@ -23,3 +23,17 @@ resource "juju_application" "manual_tls_certificates" {
   }
 }
 
+resource "juju_offer" "certificates" {
+  name             = "certificates"
+  model_uuid       = var.model_uuid
+  application_name = var.app_name
+  endpoints        = ["certificates"]
+}
+
+resource "juju_offer" "trust_certificate" {
+  name             = "trust-certificate"
+  model_uuid       = var.model_uuid
+  application_name = var.app_name
+  endpoints        = ["trust_certificate"]
+}
+
