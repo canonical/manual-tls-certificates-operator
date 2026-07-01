@@ -21,3 +21,11 @@ output "requires" {
     tracing = "tracing"
   }
 }
+
+output "offers" {
+  description = "Map of Juju offer URLs"
+  value = {
+    certificates      = juju_offer.certificates.url
+    trust_certificate = juju_offer.trust_certificate.url
+  }
+}
