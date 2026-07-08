@@ -12,15 +12,15 @@ import json
 import logging
 from typing import Any, List, Optional, Set
 
+from charmlibs.interfaces.certificate_transfer import (
+    CertificateTransferProvides,
+)
 from charmlibs.interfaces.tls_certificates import (
     Certificate,
     CertificateSigningRequest,
     ProviderCertificate,
     TLSCertificatesError,
     TLSCertificatesProvidesV4,
-)
-from charms.certificate_transfer_interface.v1.certificate_transfer import (
-    CertificateTransferProvides,
 )
 from charms.tempo_coordinator_k8s.v0.charm_tracing import trace_charm
 from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer

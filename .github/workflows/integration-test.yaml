@@ -2,17 +2,23 @@ name: Integration tests
 
 on:
   workflow_call:
+    inputs:
+      artifacts-key:
+        description: Key used to download the charm artifacts
+        required: true
+        type: string
+      charm-paths:
+        description: Comma-separated list of built charm file names
+        required: true
+        type: string
+      runner:
+        description: GitHub Actions runner label(s) as a JSON string
+        required: true
+        type: string
 
 jobs:
   integration-test:
-    strategy:
-      matrix:
-        arch:
-          - arch: amd64
-            runner: ubuntu-24.04
-          - arch: arm64
-            runner: [self-hosted, linux, ARM64, xlarge, noble]
-    runs-on: ${{ matrix.arch.runner }}
+    runs-on: ${{ fromJson(inputs.runner) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -20,7 +26,7 @@ jobs:
       - name: Fetch Charm Under Test
         uses: actions/download-artifact@v8
         with:
-          name: built-charm-${{ matrix.arch.arch }}
+          name: ${{ inputs.artifacts-key }}
           path: built/
 
       - name: Get Charm Under Test Path

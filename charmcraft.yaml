@@ -100,3 +100,9 @@ actions:
       - certificate-signing-request
       - certificate
       - ca-certificate
+
+charm-libs:
+  - lib: tempo_coordinator_k8s.charm_tracing
+    version: "0.9"
+  - lib: tempo_coordinator_k8s.tracing
+    version: "0.9"

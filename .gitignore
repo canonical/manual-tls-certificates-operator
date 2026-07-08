@@ -4,6 +4,9 @@ build/
 *.charm
 *.egg-info/
 
+# lib files are fetched with `charmcraft fetch-libs`
+lib/
+
 .coverage
 __pycache__/
 *.py[cod]

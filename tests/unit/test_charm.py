@@ -20,7 +20,7 @@ from ops import ActiveStatus
 from charm import ManualTLSCertificatesCharm
 
 CERTIFICATE_TRANSFER_PROVIDES_PATH = (
-    "charms.certificate_transfer_interface.v1.certificate_transfer.CertificateTransferProvides"
+    "charmlibs.interfaces.certificate_transfer.CertificateTransferProvides"
 )
 TLS_CERTIFICATES_PROVIDES_PATH = "charmlibs.interfaces.tls_certificates.TLSCertificatesProvidesV4"
 

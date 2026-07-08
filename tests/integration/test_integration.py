@@ -27,9 +27,6 @@ CERT_TRANSFER_REQUIRER_V0_APP_NAME = "any-cert-transfer-requirer-v0"
 CERT_TRANSFER_V0_LIB_URL = "https://raw.githubusercontent.com/canonical/certificate-transfer-interface/refs/heads/main/lib/charms/certificate_transfer_interface/v0/certificate_transfer.py"  # noqa: E501
 CERT_TRANSFER_REQUIRER_V1_PATH = "./tests/integration/cert_transfer_requirer_v1.py"
 CERT_TRANSFER_REQUIRER_V1_APP_NAME = "any-cert-transfer-requirer-v1"
-CERT_TRANSFER_V1_LIB_PATH = (
-    "./lib/charms/certificate_transfer_interface/v1/certificate_transfer.py"  # noqa: E501
-)
 REQUIRER_CHARM_REVISION_ARM = 103
 REQUIRER_CHARM_REVISION_AMD = 104
 TLS_REQUIRER_CHARM_NAME = "tls-certificates-requirer"
@@ -48,9 +45,7 @@ def deploy_tls_requirer_charm(juju: jubilant.Juju) -> None:
 
 def deploy_any_charm_as_cert_transfer_requirer(juju: jubilant.Juju) -> None:
     """Deploy AnyCharm as a certificate_transfer requirer."""
-    cert_transfer_lib = Path(CERT_TRANSFER_V1_LIB_PATH).read_text()
     any_charm_src_overwrite = {
-        "certificate_transfer.py": cert_transfer_lib,
         "any_charm.py": Path(CERT_TRANSFER_REQUIRER_V1_PATH).read_text(),
     }
     juju.deploy(
@@ -59,7 +54,13 @@ def deploy_any_charm_as_cert_transfer_requirer(juju: jubilant.Juju) -> None:
         channel="beta",
         config={
             "src-overwrite": json.dumps(any_charm_src_overwrite),
-            "python-packages": "ops==2.17.1\npytest-interface-tester",
+            "python-packages": "\n".join(
+                (
+                    "ops==2.17.1",
+                    "pytest-interface-tester",
+                    "charmlibs-interfaces-certificate-transfer>=1.0.0",
+                )
+            ),
         },
     )
 
