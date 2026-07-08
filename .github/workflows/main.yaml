@@ -12,26 +12,33 @@ concurrency:
   group: ${{ github.ref == 'refs/heads/main' && format('ignore-main-{0}', github.run_id) || format('{0}-{1}', github.workflow, github.ref_name) }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  lint-report:
-    uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@v3.1.2
+  quality:
+    name: Quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.2
 
-  static-analysis:
-    name: Static analysis
-    uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@v3.1.2
-    with:
-      fetch-libs: true
+      - name: Install charmcraft
+        run: sudo snap install charmcraft --classic
 
-  unit-tests-with-coverage:
-    uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@v3.1.2
-    with:
-      fetch-libs: true
+      - name: Fetch charmcraft libs
+        run: charmcraft fetch-libs
+
+      - uses: canonical/identity-credentials-workflows/.github/actions/code-quality@v3.1.2
+        with:
+          python-enabled: "true"
+
+      - uses: canonical/identity-credentials-workflows/.github/actions/unit-test@v3.1.2
+        with:
+          python-enabled: "true"
 
   build:
     needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
+      - quality
     uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.2
     with:
       path: ""
@@ -39,9 +46,7 @@ jobs:
 
   build-arm:
     needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
+      - quality
     uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.2
     with:
       path: ""
@@ -69,12 +74,12 @@ jobs:
 
   publish-charm-amd64:
     needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
+      - quality
       - integration-test
       - build
     if: ${{ github.ref_name == 'main' }}
+    permissions:
+      contents: write
     uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.2
     with:
       destination_channel: 1/edge
@@ -85,12 +90,12 @@ jobs:
 
   publish-charm-arm64:
     needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
+      - quality
       - integration-test-arm
       - build-arm
     if: ${{ github.ref_name == 'main' }}
+    permissions:
+      contents: write
     uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.2
     with:
       destination_channel: 1/edge
