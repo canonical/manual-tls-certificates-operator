@@ -1,5 +1,5 @@
 from any_charm_base import AnyCharmBase  # type: ignore[import]
-from certificate_transfer import (  # type: ignore[import]
+from charmlibs.interfaces.certificate_transfer import (
     CertificateTransferRequires,
 )
 from ops.charm import CollectStatusEvent

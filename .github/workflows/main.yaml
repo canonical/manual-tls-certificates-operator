@@ -12,39 +12,94 @@ concurrency:
   group: ${{ github.ref == 'refs/heads/main' && format('ignore-main-{0}', github.run_id) || format('{0}-{1}', github.workflow, github.ref_name) }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  lint-report:
-    uses: canonical/identity-credentials-workflows/.github/workflows/lint-report.yaml@v0
+  quality:
+    name: Quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.2
 
-  static-analysis:
-    name: Static analysis
-    uses: canonical/identity-credentials-workflows/.github/workflows/static-analysis.yaml@v0
+      - name: Install charmcraft
+        run: sudo snap install charmcraft --classic
 
-  unit-tests-with-coverage:
-    uses: canonical/identity-credentials-workflows/.github/workflows/unit-test.yaml@v0
+      - name: Fetch charmcraft libs
+        run: charmcraft fetch-libs
+
+      - uses: canonical/identity-credentials-workflows/.github/actions/code-quality@v3.1.2
+        with:
+          python-enabled: "true"
+
+      - uses: canonical/identity-credentials-workflows/.github/actions/unit-test@v3.1.2
+        with:
+          python-enabled: "true"
 
   build:
     needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
-    uses: ./.github/workflows/build.yaml
-    secrets: inherit
+      - quality
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.2
+    with:
+      path: ""
+      fetch-libs: true
+
+  build-arm:
+    needs:
+      - quality
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.2
+    with:
+      path: ""
+      arch: arm64
+      runner: '["self-hosted", "linux", "ARM64", "medium", "noble"]'
+      fetch-libs: true
 
   integration-test:
     needs:
       - build
     uses: ./.github/workflows/integration-test.yaml
-
-  publish-charm:
-    needs:
-      - lint-report
-      - static-analysis
-      - unit-tests-with-coverage
-      - integration-test
-    if: ${{ github.ref_name == 'main' }}
-    uses: canonical/identity-credentials-workflows/.github/workflows/publish-charm-multiarch.yaml@v0
     with:
-      track-name: 1
+      artifacts-key: ${{ needs.build.outputs.artifacts-key }}
+      charm-paths: ${{ needs.build.outputs.charm-paths }}
+      runner: '"ubuntu-24.04"'
+
+  integration-test-arm:
+    needs:
+      - build-arm
+    uses: ./.github/workflows/integration-test.yaml
+    with:
+      artifacts-key: ${{ needs.build-arm.outputs.artifacts-key }}
+      charm-paths: ${{ needs.build-arm.outputs.charm-paths }}
+      runner: '["self-hosted", "linux", "ARM64", "xlarge", "noble"]'
+
+  publish-charm-amd64:
+    needs:
+      - quality
+      - integration-test
+      - build
+    if: ${{ github.ref_name == 'main' }}
+    permissions:
+      contents: write
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.2
+    with:
+      destination_channel: 1/edge
+      artifacts-key: ${{ needs.build.outputs.artifacts-key }}
+      charm-paths: ${{ needs.build.outputs.charm-paths }}
+    secrets:
+      CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
+
+  publish-charm-arm64:
+    needs:
+      - quality
+      - integration-test-arm
+      - build-arm
+    if: ${{ github.ref_name == 'main' }}
+    permissions:
+      contents: write
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.2
+    with:
+      destination_channel: 1/edge
+      artifacts-key: ${{ needs.build-arm.outputs.artifacts-key }}
+      charm-paths: ${{ needs.build-arm.outputs.charm-paths }}
     secrets:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
