@@ -158,16 +158,16 @@ wheels = [
 
 [[package]]
 name = "charmlibs-interfaces-tls-certificates"
-version = "1.8.3"
+version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "ops" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/b0/24342009af662f52f83d163852d43d53e9e0c3fb629feeeda5eeb739c03e/charmlibs_interfaces_tls_certificates-1.8.3.tar.gz", hash = "sha256:6bc35ee330681f2e0c58cf67e41133b144f3281f73d27293714c9ca918ee7cbc", size = 110247, upload-time = "2026-06-05T10:08:01.55Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/ee/e44db33dd3b9d9a83eda97dca7f6c42054f093ae43f7f37032a2b1f20a93/charmlibs_interfaces_tls_certificates-1.10.0.tar.gz", hash = "sha256:df29a5dd551bba51049ea40741662a8e99afb18c16a38d287d58836caf32c744", size = 130758, upload-time = "2026-07-13T15:49:04.323Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/3f/168d8416060557dca7ada03d160b3efbecb21cdda89ce262524ee5b3518e/charmlibs_interfaces_tls_certificates-1.8.3-py3-none-any.whl", hash = "sha256:fa0aa150b4e4513d439c7afb7eb0ceaf00363671143b27b09382758deea8a0cc", size = 28293, upload-time = "2026-06-05T10:08:00.383Z" },
+    { url = "https://files.pythonhosted.org/packages/04/7b/9ebc21050c47fe0add7c0a7793e86c08a76c56c2b3162570c0461616a639/charmlibs_interfaces_tls_certificates-1.10.0-py3-none-any.whl", hash = "sha256:65a97f71241ff3cb8a8babaf5b6e64c239ba2f87d76fed5c3fd9d9ca1ea2b99a", size = 33168, upload-time = "2026-07-13T15:49:03.028Z" },
 ]
 
 [[package]]
@@ -440,7 +440,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -507,14 +507,14 @@ wheels = [
 
 [[package]]
 name = "jubilant"
-version = "1.11.0"
+version = "1.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1c/0a/4112c6a16440efa7047b58ea7cd3751a75ef4b73e75fa4b4b4aadf7cbf1c/jubilant-1.11.0.tar.gz", hash = "sha256:69d13d2a0c9604a146fb7172732b9344f7aa14a35cdc29a37189831a724dc80a", size = 34642, upload-time = "2026-06-29T04:23:29.965Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/c3/13eb3579d021346c95d0622ebbcce7d3326ed6412d0b51d4d3df2461443d/jubilant-1.12.0.tar.gz", hash = "sha256:7d796d5c19f0b74a041f50aa68919731c7c83da4fb8a8258c8861524532b6997", size = 35291, upload-time = "2026-07-30T03:45:32.974Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/72/8ba367bc63f03b9f0a31c7975fec8e7f3c9da3516a8d1db668164fc1801b/jubilant-1.11.0-py3-none-any.whl", hash = "sha256:900427d616c75f1cfb6ee11212fefe9c7877111209630a87b2b2556a37d626e7", size = 36640, upload-time = "2026-06-29T04:23:28.667Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/17/0569153f6aca13716e019243d01895f26061233bae7e21a459cc128e7120/jubilant-1.12.0-py3-none-any.whl", hash = "sha256:fa64922156d861149666c8ce08cb93b1fd787172fdd12175a4d0563955a67544", size = 37077, upload-time = "2026-07-30T03:45:31.764Z" },
 ]
 
 [[package]]
@@ -549,7 +549,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "charmlibs-interfaces-certificate-transfer", specifier = ">=1.0.0" },
-    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.8" },
+    { name = "charmlibs-interfaces-tls-certificates", specifier = "~=1.10" },
     { name = "cryptography" },
     { name = "jsonschema" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
@@ -565,10 +565,10 @@ dev = [
 ]
 test = [
     { name = "coverage", extras = ["toml"] },
-    { name = "jubilant", specifier = ">=1.11.0,<2" },
+    { name = "jubilant", specifier = ">=1.12.0,<2" },
     { name = "ops", extras = ["testing"] },
     { name = "pytest" },
-    { name = "pytest-jubilant", specifier = ">=2.1.1,<3" },
+    { name = "pytest-jubilant", specifier = ">=2.2.0,<3" },
     { name = "requests" },
 ]
 
@@ -910,15 +910,15 @@ wheels = [
 
 [[package]]
 name = "pytest-jubilant"
-version = "2.1.1"
+version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jubilant" },
     { name = "pytest" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/11/3baee677f3cf51ef41e06a7cbcfe8551613723695a458997b9d63026e0b5/pytest_jubilant-2.1.1.tar.gz", hash = "sha256:04c083ef1366f92237da79e3d499094ca50f50519a19462f388c38c699ee495a", size = 17971, upload-time = "2026-06-09T23:01:56.332Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/e4/5864f77afc116ba987407b50064b7016eee20c66948c636fade78c8f2849/pytest_jubilant-2.2.0.tar.gz", hash = "sha256:df61f0fedf77762e825290941d7de68d6d2bfc5a838fcdb30d96cc8a9ebbacdd", size = 18363, upload-time = "2026-07-30T03:45:55.379Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/ea/33ecce9a52a022547544ab3b6393368944b1b55480a35ae00b7d9bd02f39/pytest_jubilant-2.1.1-py3-none-any.whl", hash = "sha256:d710cf9c41fb8daed6218d7b6ce68f4d4c234c5b0ee066d2be1dc9dd07265d35", size = 14922, upload-time = "2026-06-09T23:01:55.13Z" },
+    { url = "https://files.pythonhosted.org/packages/93/7c/8985ebc1e2f94daa5e2bb29d14f81b49ef18a418a87a87faa3406163e590/pytest_jubilant-2.2.0-py3-none-any.whl", hash = "sha256:5798624c16e8c4692f5647ded95f18bf212abcdede683cd93d3c49dd72e15b75", size = 14655, upload-time = "2026-07-30T03:45:54.212Z" },
 ]
 
 [[package]]
