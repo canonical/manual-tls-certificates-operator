@@ -497,14 +497,20 @@ class TestCharm:
             "certificate-signing-request": self.decoded_csr,
             "certificate": self.decoded_certificate,
             "ca-certificate": self.decoded_ca_certificate,
-            "ca-chain": "Invalid CA chain",
+            "ca-chain": self._decode_from_base64(
+                self._encode_in_base64(f"{self.ca_certificate}\n{self.certificate}")
+            ),
             "relation-id": certificates_relation.id,
         }
 
         with pytest.raises(scenario.ActionFailed) as exc:
             self.ctx.run(self.ctx.on.action("provide-certificate", params=params), state_in)
 
-        assert exc.value.message == "Action input is not valid."
+        assert exc.value.message == (
+            "Action input is not valid: Invalid CA chain: certificate 1's issuer does not match "
+            "certificate 2's subject. Certificates must be ordered from the leaf certificate "
+            "to the root CA certificate."
+        )
 
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.get_certificate_requests")
     @patch(f"{TLS_CERTIFICATES_PROVIDES_PATH}.set_relation_certificate")

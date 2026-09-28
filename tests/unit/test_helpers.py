@@ -69,7 +69,14 @@ class TestHelpers(unittest.TestCase):
             csr=csr,
         )
         ca_chain = f"{str(ca_certificate)}\n{str(certificate)}"
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(
+            ValueError,
+            (
+                "Invalid CA chain: certificate 1's issuer does not match certificate 2's "
+                "subject. Certificates must be ordered from the leaf certificate to the "
+                "root CA certificate."
+            ),
+        ):
             parse_ca_chain(ca_chain)
 
     def test_given_multiple_certificates_not_as_a_chain_when_parse_pem_bundle_then_certificates_are_returned(  # noqa: E501
