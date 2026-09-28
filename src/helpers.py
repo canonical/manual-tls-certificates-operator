@@ -13,6 +13,10 @@ from cryptography.exceptions import InvalidSignature
 logger = logging.getLogger(__name__)
 
 
+class InvalidCAChainError(ValueError):
+    """Raised when a CA chain cannot be parsed or validated."""
+
+
 def parse_pem_bundle(pem_bundle: str) -> List[x509.Certificate]:
     """Return list of certificates contained in a PEM bundle.
 
@@ -43,10 +47,24 @@ def parse_ca_chain(ca_chain_pem: str) -> List[x509.Certificate]:
     Returns:
         list: List of certificates
     """
-    chain = parse_pem_bundle(ca_chain_pem)
-    for cert, ca_cert in zip(chain, chain[1:]):
+    try:
+        chain = parse_pem_bundle(ca_chain_pem)
+    except ValueError as e:
+        raise InvalidCAChainError(
+            "Invalid CA chain: unable to parse the certificate bundle."
+        ) from e
+    for index, (cert, ca_cert) in enumerate(zip(chain, chain[1:]), start=1):
+        if cert.issuer != ca_cert.subject:
+            raise InvalidCAChainError(
+                f"Invalid CA chain: certificate {index}'s issuer does not match certificate "
+                f"{index + 1}'s subject. Certificates must be ordered from the leaf certificate "
+                "to the root CA certificate."
+            )
         try:
             cert.verify_directly_issued_by(ca_cert)
         except (ValueError, TypeError, InvalidSignature) as e:
-            raise ValueError("Invalid CA chain: %s", e)
+            raise InvalidCAChainError(
+                f"Invalid CA chain: certificate {index} is not directly signed by certificate "
+                f"{index + 1}."
+            ) from e
     return chain

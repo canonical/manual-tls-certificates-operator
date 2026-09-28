@@ -36,7 +36,7 @@ from ops.charm import (
 from ops.main import main
 from ops.model import ActiveStatus
 
-from helpers import parse_ca_chain, parse_pem_bundle
+from helpers import InvalidCAChainError, parse_ca_chain, parse_pem_bundle
 
 logger = logging.getLogger(__name__)
 
@@ -194,8 +194,8 @@ class ManualTLSCertificatesCharm(CharmBase):
         except KeyError:
             event.fail(message="One or more action parameters are missing.")
             return
-        except ValueError:
-            event.fail(message="Action input is not valid.")
+        except ValueError as e:
+            event.fail(message=_action_input_error_message(e))
             return
 
         if not csr.matches_certificate(certificate):
@@ -320,6 +320,12 @@ class ManualTLSCertificatesCharm(CharmBase):
 def decode_action_base64_input(input: str) -> str:
     """Decode base64 string to Python string."""
     return base64.b64decode(input).decode("utf-8").strip()
+
+
+def _action_input_error_message(error: ValueError) -> str:
+    if isinstance(error, InvalidCAChainError):
+        return f"Action input is not valid: {error}"
+    return "Action input is not valid."
 
 
 if __name__ == "__main__":
