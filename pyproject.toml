@@ -5,21 +5,21 @@ requires-python = ">=3.10"
 
 dependencies = [
     "charmlibs-interfaces-certificate-transfer>=1.0.0",
-    "charmlibs-interfaces-tls-certificates~=1.10",
+    "charmlibs-interfaces-tls-certificates~=1.12",
     "cryptography",
     "jsonschema",
     "ops",
     "opentelemetry-exporter-otlp-proto-http",
-    "pydantic==2.13.4",
+    "pydantic==2.13.5",
 ]
 
 [dependency-groups]
 test = [
     "coverage[toml]",
-    "jubilant>=1.12.0,<2",
+    "jubilant>=1.14.0,<2",
     "ops[testing]",
     "pytest",
-    "pytest-jubilant>=2.2.0,<3",
+    "pytest-jubilant>=2.3.0,<3",
     "requests",
 ]
 dev = [
