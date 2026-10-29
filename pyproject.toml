@@ -4,13 +4,13 @@ version = "0.1.0"
 requires-python = ">=3.10"
 
 dependencies = [
-    "charmlibs-interfaces-certificate-transfer>=1.0.0",
+    "charmlibs-interfaces-certificate-transfer>=1.1.0",
     "charmlibs-interfaces-tls-certificates~=1.12",
     "cryptography",
     "jsonschema",
     "ops",
     "opentelemetry-exporter-otlp-proto-http",
-    "pydantic==2.13.5",
+    "pydantic==2.14.2",
 ]
 
 [dependency-groups]
