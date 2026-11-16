@@ -31,11 +31,13 @@ jobs:
       track: "1"
       # We have to compute the channel here again because we can't pass env variables to a reusable workflow
       channel: ${{ inputs.promotion == 'edge -> beta' && 'edge' || inputs.promotion == 'beta -> candidate' && 'beta' || inputs.promotion == 'candidate -> stable' && 'candidate' || '' }}
-      arch: amd64
+      arch: ${{ inputs.arch }}
       create-issue: ${{ inputs.promotion == 'candidate -> stable' || inputs.promotion == 'beta -> candidate' }}
+      fail-on-cve: ${{ inputs.promotion != 'edge -> beta' }}
 
   promote:
     name: Promote Charm
+    needs: scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
