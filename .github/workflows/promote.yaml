@@ -28,7 +28,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.1.6
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.1.8
     with:
       charm: manual-tls-certificates
       track: "1"
@@ -45,7 +45,7 @@ jobs:
     needs: scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Promote Charm
         uses: canonical/charming-actions/release-charm@2.7.0
         with:
