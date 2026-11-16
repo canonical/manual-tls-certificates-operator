@@ -25,7 +25,10 @@ env:
 jobs:
   scan:
     name: Secscan
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.1.3
+    permissions:
+      contents: read
+      issues: write
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.1.6
     with:
       charm: manual-tls-certificates
       track: "1"
@@ -37,6 +40,8 @@ jobs:
 
   promote:
     name: Promote Charm
+    permissions:
+      contents: write
     needs: scan
     runs-on: ubuntu-latest
     steps:
