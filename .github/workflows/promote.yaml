@@ -28,13 +28,14 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.1.8
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-secscan.yaml@v3.2.0
     with:
       charm: manual-tls-certificates
       track: "1"
       # We have to compute the channel here again because we can't pass env variables to a reusable workflow
       channel: ${{ inputs.promotion == 'edge -> beta' && 'edge' || inputs.promotion == 'beta -> candidate' && 'beta' || inputs.promotion == 'candidate -> stable' && 'candidate' || '' }}
       arch: ${{ inputs.arch }}
+      base: ubuntu@24.04
       create-issue: ${{ inputs.promotion == 'candidate -> stable' || inputs.promotion == 'beta -> candidate' }}
       fail-on-cve: ${{ inputs.promotion != 'edge -> beta' }}
 
