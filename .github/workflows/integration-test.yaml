@@ -7,8 +7,12 @@ on:
         description: Key used to download the charm artifacts
         required: true
         type: string
-      charm-paths:
-        description: Comma-separated list of built charm file names
+      base:
+        description: Ubuntu base channel to test
+        required: true
+        type: string
+      arch:
+        description: Architecture of the charm under test
         required: true
         type: string
       runner:
@@ -21,7 +25,9 @@ jobs:
     runs-on: ${{ fromJson(inputs.runner) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.8
+        with:
+          workflows-ref: v3.1.8
 
       - name: Fetch Charm Under Test
         uses: actions/download-artifact@v8
@@ -31,13 +37,26 @@ jobs:
 
       - name: Get Charm Under Test Path
         id: charm-path
-        run: echo "charm_path=$(find built/ -name '*.charm' -type f -print)" >> $GITHUB_OUTPUT
+        env:
+          BASE: ${{ inputs.base }}
+          ARCH: ${{ inputs.arch }}
+        run: |
+          shopt -s nullglob
+          charms=(built/*_ubuntu@"${BASE}"-"${ARCH}".charm)
+          if [ "${#charms[@]}" -ne 1 ]; then
+            echo "Expected exactly one charm for ubuntu@${BASE}:${ARCH}, found ${#charms[@]}" >&2
+            exit 1
+          fi
+          echo "charm_path=${charms[0]}" >> "$GITHUB_OUTPUT"
 
       # Configuring manually instead of using the charmed-kubernetes/actions-operator@main
       # so we can run sudo microk8s config | juju add-k8s my-k8s --client before bootstrap
       # This workaround is needed because ARM runners are failing to setup strictly confined microk8s
-      - name: Install charmcraft
-        run: sudo snap install charmcraft --classic
+      - name: Set up Python and Charmcraft toolchains
+        uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.1.8
+        with:
+          toolchains: python charmcraft
+          charmcraft-channel: latest/stable
 
       - name: Install Juju
         run: |
@@ -45,7 +64,7 @@ jobs:
 
       - name: Install and setup Microk8s
         run: |
-          sudo snap install microk8s --channel=1.32/stable --classic
+          sudo snap install microk8s --channel=1.35/stable --classic
           sudo microk8s enable dns storage rbac
 
       - name: Wait for Microk8s to be ready
@@ -60,27 +79,27 @@ jobs:
         run: |
           juju bootstrap my-k8s github-pr-${{ github.run_id }}-microk8s --debug --verbose
 
-      - name: Install UV and Tox
+      - name: Install Tox
         run: |
           pipx uninstall tox || true
-          sudo snap install astral-uv --classic
           uv tool install tox --with tox-uv --force
 
       - name: Run integration tests
         run: |
           tox -e integration -- \
             --charm_path="${{ steps.charm-path.outputs.charm_path }}" \
+            --charm-base="ubuntu@${{ inputs.base }}"
 
       - name: Archive charmcraft logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: charmcraft-logs
+          name: charmcraft-logs-${{ inputs.base }}-${{ inputs.arch }}
           path: /home/runner/.local/state/charmcraft/log/*.log
 
       - name: Archive juju crashdump
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: juju-crashdump
+          name: juju-crashdump-${{ inputs.base }}-${{ inputs.arch }}
           path: juju-crashdump-*.tar.xz

@@ -16,6 +16,12 @@ on:
         options:
           - amd64
           - arm64
+      base:
+        type: choice
+        description: Ubuntu base
+        options:
+          - "24.04"
+          - "26.04"
 
 env:
   PROMOTE_FROM: ${{ inputs.promotion == 'edge -> beta' && 'edge' || inputs.promotion == 'beta -> candidate' && 'beta' || inputs.promotion == 'candidate -> stable' && 'candidate' || '' }}
@@ -35,7 +41,7 @@ jobs:
       # We have to compute the channel here again because we can't pass env variables to a reusable workflow
       channel: ${{ inputs.promotion == 'edge -> beta' && 'edge' || inputs.promotion == 'beta -> candidate' && 'beta' || inputs.promotion == 'candidate -> stable' && 'candidate' || '' }}
       arch: ${{ inputs.arch }}
-      base: ubuntu@24.04
+      base: ubuntu@${{ inputs.base }}
       create-issue: ${{ inputs.promotion == 'candidate -> stable' || inputs.promotion == 'beta -> candidate' }}
       fail-on-cve: ${{ inputs.promotion != 'edge -> beta' }}
 
@@ -55,5 +61,5 @@ jobs:
           destination-channel: ${{ env.TRACK }}/${{ env.PROMOTE_TO }}
           origin-channel: ${{ env.TRACK }}/${{ env.PROMOTE_FROM }}
           charmcraft-channel: latest/stable
-          base-channel: "24.04"
+          base-channel: ${{ inputs.base }}
           base-architecture: ${{ github.event.inputs.arch }}
