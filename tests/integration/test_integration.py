@@ -139,14 +139,14 @@ class TestManualTLSCertificatesOperator:
 
     @pytest.mark.juju_setup
     def test_given_no_requirer_when_deploy_then_status_is_waiting(  # noqa: E501
-        self, juju: jubilant.Juju, charm: Path
+        self, juju: jubilant.Juju, charm: Path, request: pytest.FixtureRequest
     ):
         logger.info("Deploying charms for architecture: %s", ARCH)
         juju.model_constraints({"arch": ARCH})
         juju.deploy(
             charm,
             APPLICATION_NAME,
-            base="ubuntu@24.04",
+            base=request.config.getoption("--charm-base"),
             constraints={"arch": ARCH},
         )
 

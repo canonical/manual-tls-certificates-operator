@@ -22,14 +22,12 @@ jobs:
     steps:
       - uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.8
         with:
-          workflows-ref: v3.1.3
+          workflows-ref: v3.1.8
 
       - uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.1.8
         with:
-          toolchains: python
-
-      - name: Install charmcraft
-        run: sudo snap install charmcraft --classic
+          toolchains: python charmcraft
+          charmcraft-channel: latest/stable
 
       - name: Fetch charmcraft libs
         run: charmcraft fetch-libs
@@ -63,19 +61,33 @@ jobs:
   integration-test:
     needs:
       - build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - base: "24.04"
+            runner: '"ubuntu-24.04"'
+          - base: "26.04"
+            runner: '"ubuntu-26.04"'
     uses: ./.github/workflows/integration-test.yaml
     with:
       artifacts-key: ${{ needs.build.outputs.artifacts-key }}
-      charm-paths: ${{ needs.build.outputs.charm-paths }}
-      runner: '"ubuntu-24.04"'
+      base: ${{ matrix.base }}
+      arch: amd64
+      runner: ${{ matrix.runner }}
 
   integration-test-arm:
     needs:
       - build-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        base: ["24.04", "26.04"]
     uses: ./.github/workflows/integration-test.yaml
     with:
       artifacts-key: ${{ needs.build-arm.outputs.artifacts-key }}
-      charm-paths: ${{ needs.build-arm.outputs.charm-paths }}
+      base: ${{ matrix.base }}
+      arch: arm64
       runner: '["self-hosted", "linux", "ARM64", "xlarge", "noble"]'
 
   publish-charm-amd64:

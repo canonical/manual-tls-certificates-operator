@@ -13,6 +13,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--charm_path", action="store", default=None, help="Path to the charm under test"
     )
+    parser.addoption(
+        "--charm-base", action="store", default="ubuntu@24.04", help="Base of the charm under test"
+    )
 
 
 @pytest.fixture(scope="session")
