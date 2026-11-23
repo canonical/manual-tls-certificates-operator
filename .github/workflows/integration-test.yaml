@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ fromJson(inputs.runner) }}
     steps:
       - name: Checkout
-        uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.8
+        uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.2.0
         with:
           workflows-ref: v3.1.8
 
@@ -53,7 +53,7 @@ jobs:
       # so we can run sudo microk8s config | juju add-k8s my-k8s --client before bootstrap
       # This workaround is needed because ARM runners are failing to setup strictly confined microk8s
       - name: Set up Python and Charmcraft toolchains
-        uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.1.8
+        uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.2.0
         with:
           toolchains: python charmcraft
           charmcraft-channel: latest/stable

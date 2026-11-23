@@ -20,11 +20,11 @@ jobs:
     name: Quality
     runs-on: ubuntu-26.04
     steps:
-      - uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.1.8
+      - uses: canonical/identity-credentials-workflows/.github/actions/prepare@v3.2.0
         with:
           workflows-ref: v3.1.8
 
-      - uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.1.8
+      - uses: canonical/identity-credentials-workflows/.github/actions/setup-toolchains@v3.2.0
         with:
           toolchains: python charmcraft
           charmcraft-channel: latest/stable
@@ -32,18 +32,18 @@ jobs:
       - name: Fetch charmcraft libs
         run: charmcraft fetch-libs
 
-      - uses: canonical/identity-credentials-workflows/.github/actions/code-quality@v3.1.8
+      - uses: canonical/identity-credentials-workflows/.github/actions/code-quality@v3.2.0
         with:
           python-enabled: "true"
 
-      - uses: canonical/identity-credentials-workflows/.github/actions/unit-test@v3.1.8
+      - uses: canonical/identity-credentials-workflows/.github/actions/unit-test@v3.2.0
         with:
           python-enabled: "true"
 
   build:
     needs:
       - quality
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.8
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.2.0
     with:
       path: ""
       fetch-libs: true
@@ -51,7 +51,7 @@ jobs:
   build-arm:
     needs:
       - quality
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.1.8
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-build.yaml@v3.2.0
     with:
       path: ""
       arch: arm64
@@ -98,7 +98,7 @@ jobs:
     if: ${{ github.ref_name == 'main' }}
     permissions:
       contents: write
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.8
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.2.0
     with:
       destination_channel: 1/edge
       artifacts-key: ${{ needs.build.outputs.artifacts-key }}
@@ -114,7 +114,7 @@ jobs:
     if: ${{ github.ref_name == 'main' }}
     permissions:
       contents: write
-    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.1.8
+    uses: canonical/identity-credentials-workflows/.github/workflows/charm-publish.yaml@v3.2.0
     with:
       destination_channel: 1/edge
       artifacts-key: ${{ needs.build-arm.outputs.artifacts-key }}
